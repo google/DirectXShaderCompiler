@@ -137,7 +137,7 @@ static void WritePartToFile(IDxcBlob *pBlob, hlsl::DxilFourCC CC,
 int DxcContext::ActOnBlob(IDxcBlob *pBlob) {
   int retVal = 0;
   // Text output.
-  if (m_Opts.AstDump || m_Opts.OptDump || m_Opts.GenSPIRV) { // SPIRV change: add GenSPIRV
+  if (m_Opts.AstDump || m_Opts.OptDump) {
     WriteBlobToConsole(pBlob);
     return retVal;
   }
@@ -837,6 +837,15 @@ int __cdecl wmain(int argc, const wchar_t **argv_) {
       if (optResult != 0) {
         return optResult;
       }
+
+      // SPIRV change starts
+      // This ideally should be put in ReadDxcOpts(), but ReadDxcOpts() are called
+      // again in DxcCompilerCompile() with -Fo stripped.
+      if (dxcOpts.GenSPIRV && dxcOpts.OutputObject.empty()) {
+        fprintf(stderr, "-spirv requires -Fo for output object file name.");
+        return 1;
+      }
+      // SPIRV change ends
     }
 
     // Handle help request, which overrides any other processing.

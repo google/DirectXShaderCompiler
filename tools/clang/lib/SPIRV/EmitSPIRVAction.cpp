@@ -17,6 +17,7 @@
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
+#include "clang/SPIRV/SPIRVBuilder.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -28,11 +29,15 @@ public:
   explicit SPIRVEmitter(raw_ostream *Out) : OutStream(*Out) {}
 
   void HandleTranslationUnit(ASTContext &Context) override {
-    OutStream << "SPIR-V";
+    Builder.BeginModule();
+    Builder.EndModule();
+    std::vector<uint32_t> M = Builder.TakeModule();
+    OutStream.write(reinterpret_cast<const char *>(M.data()), M.size() * 4);
   }
 
 private:
   raw_ostream &OutStream;
+  spirv::SPIRVBuilder Builder;
 };
 }
 
