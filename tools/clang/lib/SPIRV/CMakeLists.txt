@@ -4,6 +4,8 @@ set(LLVM_LINK_COMPONENTS
 
 add_clang_library(clangSPIRV
   EmitSPIRVAction.cpp
+  InstBuilderAuto.cpp
+  InstBuilderManual.cpp
   SPIRVBuilder.cpp
 
   LINK_LIBS
