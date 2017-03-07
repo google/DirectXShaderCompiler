@@ -47,7 +47,7 @@ public:
   InstBuilder();
 
   // Finalizes the building.
-  Status x(std::function<void(std::vector<uint32_t> &&)> consumer);
+  Status x(const std::function<void(std::vector<uint32_t> &&)> &consumer);
   // Clears the current instruction under building.
   void clear();
 
