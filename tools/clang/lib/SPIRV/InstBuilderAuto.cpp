@@ -32,7 +32,7 @@ inline bool bitEnumContains(spv::MemoryAccessMask bits,
 InstBuilder::InstBuilder() : TheStatus(Status::Success) {}
 
 InstBuilder::Status
-InstBuilder::x(std::function<void(std::vector<uint32_t> &&)> consumer) {
+InstBuilder::x(const std::function<void(std::vector<uint32_t> &&)> &consumer) {
   if (TheStatus == Status::Success && Expectation.empty()) {
     if (!TheInst.empty())
       TheInst.front() |= uint32_t(TheInst.size());
