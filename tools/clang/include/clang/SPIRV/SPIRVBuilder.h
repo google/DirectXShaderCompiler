@@ -38,6 +38,8 @@ private:
   std::vector<uint32_t> TheModule;
 };
 
+uint32_t SPIRVBuilder::TakeNextID() { return NextID++; }
+
 } // end namespace spirv
 } // end namespace clang
 
