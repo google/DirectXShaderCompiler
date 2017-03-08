@@ -20,8 +20,6 @@ constexpr size_t kBoundIndex = 3;
 
 SPIRVBuilder::SPIRVBuilder() : NextID(0) {}
 
-uint32_t SPIRVBuilder::TakeNextID() { return NextID++; }
-
 void SPIRVBuilder::BeginModule() { GenHeader(); }
 
 void SPIRVBuilder::EndModule() {
