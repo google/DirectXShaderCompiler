@@ -35,7 +35,7 @@ InstBuilder::Status
 InstBuilder::x(const std::function<void(std::vector<uint32_t> &&)> &consumer) {
   if (TheStatus == Status::Success && Expectation.empty()) {
     if (!TheInst.empty())
-      TheInst.front() |= uint32_t(TheInst.size());
+      TheInst.front() |= uint32_t(TheInst.size()) << 16;
     consumer(std::move(TheInst));
     TheInst.clear();
   }
