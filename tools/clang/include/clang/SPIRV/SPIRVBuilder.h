@@ -11,15 +11,14 @@
 
 #include <vector>
 
+#include "clang/SPIRV/Context.h"
+
 namespace clang {
 namespace spirv {
 
 class SPIRVBuilder {
 public:
-  SPIRVBuilder();
-
-  /// \brief Consumes the next unused result id.
-  inline uint32_t TakeNextID();
+  explicit SPIRVBuilder(Context *);
 
   /// \brief Begins building a SPIR-V module.
   void BeginModule();
@@ -32,13 +31,10 @@ private:
   /// \brief Generates a header into the SPIR-V module under building.
   void GenHeader();
 
-  /// \brief The next unused result id.
-  uint32_t NextID;
+  Context &TheContext;
   /// \brief The module under building.
   std::vector<uint32_t> TheModule;
 };
-
-uint32_t SPIRVBuilder::TakeNextID() { return NextID++; }
 
 } // end namespace spirv
 } // end namespace clang
