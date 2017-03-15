@@ -26,7 +26,8 @@ namespace {
 class SPIRVEmitter : public ASTConsumer,
                      public RecursiveASTVisitor<SPIRVEmitter> {
 public:
-  explicit SPIRVEmitter(raw_ostream *Out) : OutStream(*Out) {}
+  explicit SPIRVEmitter(raw_ostream *Out)
+      : OutStream(*Out), TheContext(), Builder(&TheContext) {}
 
   void HandleTranslationUnit(ASTContext &Context) override {
     Builder.BeginModule();
@@ -37,6 +38,7 @@ public:
 
 private:
   raw_ostream &OutStream;
+  spirv::Context TheContext;
   spirv::SPIRVBuilder Builder;
 };
 }

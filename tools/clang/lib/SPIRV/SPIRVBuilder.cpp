@@ -15,19 +15,20 @@
 namespace clang {
 namespace spirv {
 
+namespace {
 constexpr size_t kHeaderSize = 5;
 constexpr size_t kBoundIndex = 3;
+}
 
-SPIRVBuilder::SPIRVBuilder() : NextID(0) {}
+SPIRVBuilder::SPIRVBuilder(Context *C) : TheContext(*C) {}
 
 void SPIRVBuilder::BeginModule() { GenHeader(); }
 
 void SPIRVBuilder::EndModule() {
   assert(!TheModule.empty() && "BeginModule() not called before EndModule()");
-  TheModule[kBoundIndex] = NextID;
+  TheModule[kBoundIndex] = TheContext.GetNextId();
 }
 std::vector<uint32_t> SPIRVBuilder::TakeModule() {
-  NextID = 0;
   return std::move(TheModule);
 }
 
