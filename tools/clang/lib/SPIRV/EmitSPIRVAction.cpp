@@ -17,7 +17,7 @@
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/CompilerInstance.h"
-#include "clang/SPIRV/SPIRVBuilder.h"
+#include "clang/SPIRV/ModuleBuilder.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -39,7 +39,7 @@ public:
 private:
   raw_ostream &OutStream;
   spirv::Context TheContext;
-  spirv::SPIRVBuilder Builder;
+  spirv::ModuleBuilder Builder;
 };
 }
 

@@ -1,4 +1,4 @@
-//===-- SPIRVBuilder.h - SPIR-V builder --*- C++ -*------------------------===//
+//===-- ModuleBuilder.h - SPIR-V builder ----------------------*- C++ -*---===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -6,8 +6,8 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-#ifndef LLVM_CLANG_SPIRV_SPIRVBUILDER_H
-#define LLVM_CLANG_SPIRV_SPIRVBUILDER_H
+#ifndef LLVM_CLANG_SPIRV_MODULEBUILDER_H
+#define LLVM_CLANG_SPIRV_MODULEBUILDER_H
 
 #include <vector>
 
@@ -16,9 +16,9 @@
 namespace clang {
 namespace spirv {
 
-class SPIRVBuilder {
+class ModuleBuilder {
 public:
-  explicit SPIRVBuilder(Context *);
+  explicit ModuleBuilder(Context *);
 
   /// \brief Begins building a SPIR-V module.
   void BeginModule();
