@@ -1,4 +1,4 @@
-//===--- SPIRVBuilder.cpp - SPIR-V builder implementation -----------------===//
+//===--- ModuleBuilder.cpp - SPIR-V builder implementation ----*- C++ -*---===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "clang/SPIRV/SPIRVBuilder.h"
+#include "clang/SPIRV/ModuleBuilder.h"
 
 #include "clang/SPIRV/spirv.hpp"
 #include "llvm/llvm_assert/assert.h"
@@ -20,19 +20,19 @@ constexpr size_t kHeaderSize = 5;
 constexpr size_t kBoundIndex = 3;
 }
 
-SPIRVBuilder::SPIRVBuilder(Context *C) : TheContext(*C) {}
+ModuleBuilder::ModuleBuilder(Context *C) : TheContext(*C) {}
 
-void SPIRVBuilder::BeginModule() { GenHeader(); }
+void ModuleBuilder::BeginModule() { GenHeader(); }
 
-void SPIRVBuilder::EndModule() {
+void ModuleBuilder::EndModule() {
   assert(!TheModule.empty() && "BeginModule() not called before EndModule()");
   TheModule[kBoundIndex] = TheContext.GetNextId();
 }
-std::vector<uint32_t> SPIRVBuilder::TakeModule() {
+std::vector<uint32_t> ModuleBuilder::TakeModule() {
   return std::move(TheModule);
 }
 
-void SPIRVBuilder::GenHeader() {
+void ModuleBuilder::GenHeader() {
   assert(TheModule.empty() && "Header not at the beginning");
   TheModule.reserve(kHeaderSize);
   TheModule.emplace_back(spv::MagicNumber);
