@@ -1,4 +1,4 @@
-//===-- Context.h - Context holding SPIR-V codegen data ---------*- C++ -*-===//
+//===-- SPIRVContext.h - Context holding SPIR-V codegen data ----*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -6,8 +6,8 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-#ifndef LLVM_CLANG_SPIRV_CONTEXT_H
-#define LLVM_CLANG_SPIRV_CONTEXT_H
+#ifndef LLVM_CLANG_SPIRV_SPIRVCONTEXT_H
+#define LLVM_CLANG_SPIRV_SPIRVCONTEXT_H
 
 #include "clang/Frontend/FrontendAction.h"
 
@@ -17,15 +17,15 @@ namespace spirv {
 /// \brief A class for holding various data needed in SPIR-V codegen.
 /// It should outlive all SPIR-V codegen components that requires/allocates
 /// data.
-class Context {
+class SPIRVContext {
 public:
-  inline Context();
+  inline SPIRVContext();
 
   // Disable copy/move (assignment) constructors.
-  Context(const Context &) = delete;
-  Context(Context &&) = delete;
-  Context &operator=(const Context &) = delete;
-  Context &operator=(Context &&) = delete;
+  SPIRVContext(const SPIRVContext &) = delete;
+  SPIRVContext(SPIRVContext &&) = delete;
+  SPIRVContext &operator=(const SPIRVContext &) = delete;
+  SPIRVContext &operator=(SPIRVContext &&) = delete;
 
   inline uint32_t GetNextId() const;
   inline uint32_t TakeNextId();
@@ -34,9 +34,9 @@ private:
   uint32_t NextId;
 };
 
-Context::Context() : NextId(1) {}
-uint32_t Context::GetNextId() const { return NextId; }
-uint32_t Context::TakeNextId() { return NextId++; }
+SPIRVContext::SPIRVContext() : NextId(1) {}
+uint32_t SPIRVContext::GetNextId() const { return NextId; }
+uint32_t SPIRVContext::TakeNextId() { return NextId++; }
 
 } // end namespace spirv
 } // end namespace clang

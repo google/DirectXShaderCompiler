@@ -20,7 +20,7 @@ constexpr size_t kHeaderSize = 5;
 constexpr size_t kBoundIndex = 3;
 }
 
-ModuleBuilder::ModuleBuilder(Context *C) : TheContext(*C) {}
+ModuleBuilder::ModuleBuilder(SPIRVContext *C) : TheContext(*C) {}
 
 void ModuleBuilder::BeginModule() { GenHeader(); }
 
