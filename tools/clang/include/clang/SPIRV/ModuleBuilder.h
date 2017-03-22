@@ -11,14 +11,14 @@
 
 #include <vector>
 
-#include "clang/SPIRV/Context.h"
+#include "clang/SPIRV/SPIRVContext.h"
 
 namespace clang {
 namespace spirv {
 
 class ModuleBuilder {
 public:
-  explicit ModuleBuilder(Context *);
+  explicit ModuleBuilder(SPIRVContext *);
 
   /// \brief Begins building a SPIR-V module.
   void BeginModule();
@@ -31,7 +31,7 @@ private:
   /// \brief Generates a header into the SPIR-V module under building.
   void GenHeader();
 
-  Context &TheContext;
+  SPIRVContext &TheContext;
   /// \brief The module under building.
   std::vector<uint32_t> TheModule;
 };
