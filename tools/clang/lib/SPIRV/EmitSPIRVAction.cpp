@@ -38,7 +38,7 @@ public:
 
 private:
   raw_ostream &OutStream;
-  spirv::Context TheContext;
+  spirv::SPIRVContext TheContext;
   spirv::ModuleBuilder Builder;
 };
 }
