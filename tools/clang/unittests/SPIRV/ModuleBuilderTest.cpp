@@ -1,4 +1,4 @@
-//===- unittests/Basic/FileMangerTest.cpp ------------ FileManger tests ---===//
+//===- unittests/SPIRV/ModuleBuilderTest.cpp ------ ModuleBuilder tests ---===//
 //
 //                     The LLVM Compiler Infrastructure
 //
