@@ -9,6 +9,12 @@ set TEST_CLANG=1
 set TEST_EXEC=1
 set TEST_CLANG_VERIF=0
 set TEST_EXTRAS=1
+
+rem Begin SPIRV change
+set TEST_SPIRV=0
+set TEST_SPIRV_ONLY=0
+rem End SPIRV change
+
 set BUILD_CONFIG=Debug
 
 if "%1"=="clean" (
@@ -19,6 +25,19 @@ if "%1"=="clean" (
   set TEST_EXTRAS=0
   shift /1
 )
+
+rem Begin SPIRV change
+if "%1"=="spirv" (
+  set TEST_SPIRV=1
+  shift /1
+)
+
+if "%1"=="spirv_only" (
+  set TEST_SPIRV=1
+  set TEST_SPIRV_ONLY=1
+  shift /1
+)
+rem End SPIRV change
 
 if "%1"=="clang" (
   set TEST_EXEC=0
@@ -97,6 +116,24 @@ if "%TEST_CLEAN%"=="1" (
   rmdir /q /s %TEST_DIR%
   exit /b 0
 )
+
+rem Begin SPIRV change
+if "%TEST_SPIRV%"=="1" (
+  if not exist %HLSL_BLD_DIR%\tools\clang\unittests\SPIRV\%BUILD_CONFIG%\clang-spirv-tests.exe (
+    echo clang-spirv-tests.exe has not been built. Make sure you run "hctbuild -spirv" first.
+    exit /b 1
+  )
+  echo Running SPIRV tests ...
+  %HLSL_BLD_DIR%\tools\clang\unittests\SPIRV\%BUILD_CONFIG%\clang-spirv-tests.exe
+  if errorlevel 1 (
+    echo Failure occured in SPIRV unit tests
+    exit /b 1
+  )
+  if "%TEST_SPIRV_ONLY%"=="1" (
+    exit /b 0
+  )
+)
+rem End SPIRV change
 
 echo Copying binaries to test to %TEST_DIR%:
 robocopy %HLSL_BLD_DIR%\%BUILD_CONFIG%\bin %TEST_DIR% *.exe *.dll
