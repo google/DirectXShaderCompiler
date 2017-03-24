@@ -7,10 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "clang/SPIRV/spirv.hpp"
 #include "clang/SPIRV/ModuleBuilder.h"
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 namespace {
+
+using ::testing::ElementsAre;
 
 TEST(ValidateModuleBuilder, ValidateModuleWithHeaderOnly) {
   clang::spirv::SPIRVContext context;
@@ -20,8 +24,8 @@ TEST(ValidateModuleBuilder, ValidateModuleWithHeaderOnly) {
   std::vector<uint32_t> spvModule = builder.TakeModule();
   // At the very least, running BeginModule() and EndModule() should
   // create the SPIR-V Header. The header is exactly 5 words long.
-  EXPECT_NE(spvModule.size(), 0u);
   EXPECT_EQ(spvModule.size(), 5u);
+  EXPECT_THAT(spvModule, ElementsAre(spv::MagicNumber, spv::Version, ~0u, 1u, 0u));
 }
 
 // TODO: Add more ModuleBuilder tests

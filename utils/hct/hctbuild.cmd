@@ -100,11 +100,14 @@ if "%1"=="-vs2017" (
   set BUILD_GENERATOR=Visual Studio 15 2017
   shift /1
 )
+
+rem Begin SPIRV change
 if "%1"=="-spirv" (
   echo SPIRV generation is enabled.
-  set CMAKE_OPTS=%CMAKE_OPTS% -DENABLE_SPIRV_GENERATION_FLOW:BOOL=ON
+  set CMAKE_OPTS=%CMAKE_OPTS% -DENABLE_SPIRV_CODEGEN:BOOL=ON
   shift /1
 )
+rem End SPIRV change
 
 if "%BUILD_ARCH%"=="x64" (
   set BUILD_GENERATOR=%BUILD_GENERATOR% %BUILD_ARCH:x64=Win64%

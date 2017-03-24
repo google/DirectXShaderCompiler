@@ -84,7 +84,7 @@ option(HLSL_ENABLE_FIXED_VER "Sets up fixed version information." OFF) # HLSL Ch
 option(HLSL_ENABLE_ANALYZE "Enables compiler analysis during compilation." OFF) # HLSL Change
 option(HLSL_OPTIONAL_PROJS_IN_DEFAULT "Include optional projects in default build target." OFF) # HLSL Change
 
-option(ENABLE_SPIRV_GENERATION_FLOW "Enables the HLSL to SPIR-V conversion flow." OFF) # SPIRV Change
+option(ENABLE_SPIRV_CODEGEN "Enables the HLSL to SPIR-V conversion flow." OFF) # SPIRV Change
 
 include(VersionFromVCS)
 
@@ -613,7 +613,7 @@ else()
   endif()
 endif()
 
-if(LLVM_INCLUDE_TESTS OR ENABLE_SPIRV_GENERATION_FLOW)
+if(LLVM_INCLUDE_TESTS OR ENABLE_SPIRV_CODEGEN)
   add_subdirectory(utils/unittest)
 endif()
 
