@@ -14,7 +14,7 @@ build_script:
 
     call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
 
-    call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -vs2017
+    call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -vs2017 -spirvtest
 test_script:
 - cmd: >-
     cd %HLSL_SRC_DIR%
@@ -22,6 +22,9 @@ test_script:
     call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
 
     powershell utils\appveyor\appveyor_test.ps1
+# Running SPIR-V tests
+- cmd: >-
+    %HLSL_BLD_DIR%\tools\clang\unittests\SPIRV\%CONFIGURATION%\clang-spirv-tests.exe
 
 notifications:
 - provider: GitHubPullRequest
