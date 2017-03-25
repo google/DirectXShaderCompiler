@@ -96,8 +96,9 @@ InstBuilder &InstBuilder::opSourceContinued(std::string continued_source) {
 }
 
 InstBuilder &InstBuilder::opSource(spv::SourceLanguage source_language,
-                                   uint32_t version, Option<uint32_t> file,
-                                   Option<std::string> source) {
+                                   uint32_t version,
+                                   llvm::Optional<uint32_t> file,
+                                   llvm::Optional<std::string> source) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -107,12 +108,12 @@ InstBuilder &InstBuilder::opSource(spv::SourceLanguage source_language,
   TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpSource));
   TheInst.emplace_back(static_cast<uint32_t>(source_language));
   TheInst.emplace_back(version);
-  if (file.isSome()) {
-    const auto &val = file.unwrap();
+  if (file.hasValue()) {
+    const auto &val = file.getValue();
     TheInst.emplace_back(val);
   }
-  if (source.isSome()) {
-    const auto &val = source.unwrap();
+  if (source.hasValue()) {
+    const auto &val = source.getValue();
     encodeString(val);
   }
 
@@ -432,12 +433,11 @@ InstBuilder &InstBuilder::opTypeMatrix(uint32_t result_id, uint32_t column_type,
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opTypeImage(uint32_t result_id, uint32_t sampled_type,
-                         spv::Dim dim, uint32_t depth, uint32_t arrayed,
-                         uint32_t ms, uint32_t sampled,
-                         spv::ImageFormat image_format,
-                         Option<spv::AccessQualifier> access_qualifier) {
+InstBuilder &InstBuilder::opTypeImage(
+    uint32_t result_id, uint32_t sampled_type, spv::Dim dim, uint32_t depth,
+    uint32_t arrayed, uint32_t ms, uint32_t sampled,
+    spv::ImageFormat image_format,
+    llvm::Optional<spv::AccessQualifier> access_qualifier) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -457,8 +457,8 @@ InstBuilder::opTypeImage(uint32_t result_id, uint32_t sampled_type,
   TheInst.emplace_back(ms);
   TheInst.emplace_back(sampled);
   TheInst.emplace_back(static_cast<uint32_t>(image_format));
-  if (access_qualifier.isSome()) {
-    const auto &val = access_qualifier.unwrap();
+  if (access_qualifier.hasValue()) {
+    const auto &val = access_qualifier.getValue();
     TheInst.emplace_back(static_cast<uint32_t>(val));
   }
 
@@ -1034,7 +1034,7 @@ InstBuilder &InstBuilder::opFunctionCall(
 
 InstBuilder &InstBuilder::opVariable(uint32_t result_type, uint32_t result_id,
                                      spv::StorageClass storage_class,
-                                     Option<uint32_t> initializer) {
+                                     llvm::Optional<uint32_t> initializer) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1053,8 +1053,8 @@ InstBuilder &InstBuilder::opVariable(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(result_type);
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(static_cast<uint32_t>(storage_class));
-  if (initializer.isSome()) {
-    const auto &val = initializer.unwrap();
+  if (initializer.hasValue()) {
+    const auto &val = initializer.getValue();
     TheInst.emplace_back(val);
   }
 
@@ -1090,9 +1090,9 @@ InstBuilder &InstBuilder::opImageTexelPointer(uint32_t result_type,
   return *this;
 }
 
-InstBuilder &InstBuilder::opLoad(uint32_t result_type, uint32_t result_id,
-                                 uint32_t pointer,
-                                 Option<spv::MemoryAccessMask> memory_access) {
+InstBuilder &
+InstBuilder::opLoad(uint32_t result_type, uint32_t result_id, uint32_t pointer,
+                    llvm::Optional<spv::MemoryAccessMask> memory_access) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1111,16 +1111,17 @@ InstBuilder &InstBuilder::opLoad(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(result_type);
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(pointer);
-  if (memory_access.isSome()) {
-    const auto &val = memory_access.unwrap();
+  if (memory_access.hasValue()) {
+    const auto &val = memory_access.getValue();
     encodeMemoryAccess(val);
   }
 
   return *this;
 }
 
-InstBuilder &InstBuilder::opStore(uint32_t pointer, uint32_t object,
-                                  Option<spv::MemoryAccessMask> memory_access) {
+InstBuilder &
+InstBuilder::opStore(uint32_t pointer, uint32_t object,
+                     llvm::Optional<spv::MemoryAccessMask> memory_access) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1130,8 +1131,8 @@ InstBuilder &InstBuilder::opStore(uint32_t pointer, uint32_t object,
   TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpStore));
   TheInst.emplace_back(pointer);
   TheInst.emplace_back(object);
-  if (memory_access.isSome()) {
-    const auto &val = memory_access.unwrap();
+  if (memory_access.hasValue()) {
+    const auto &val = memory_access.getValue();
     encodeMemoryAccess(val);
   }
 
@@ -1140,7 +1141,7 @@ InstBuilder &InstBuilder::opStore(uint32_t pointer, uint32_t object,
 
 InstBuilder &
 InstBuilder::opCopyMemory(uint32_t target, uint32_t source,
-                          Option<spv::MemoryAccessMask> memory_access) {
+                          llvm::Optional<spv::MemoryAccessMask> memory_access) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1150,17 +1151,17 @@ InstBuilder::opCopyMemory(uint32_t target, uint32_t source,
   TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpCopyMemory));
   TheInst.emplace_back(target);
   TheInst.emplace_back(source);
-  if (memory_access.isSome()) {
-    const auto &val = memory_access.unwrap();
+  if (memory_access.hasValue()) {
+    const auto &val = memory_access.getValue();
     encodeMemoryAccess(val);
   }
 
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opCopyMemorySized(uint32_t target, uint32_t source, uint32_t size,
-                               Option<spv::MemoryAccessMask> memory_access) {
+InstBuilder &InstBuilder::opCopyMemorySized(
+    uint32_t target, uint32_t source, uint32_t size,
+    llvm::Optional<spv::MemoryAccessMask> memory_access) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1171,8 +1172,8 @@ InstBuilder::opCopyMemorySized(uint32_t target, uint32_t source, uint32_t size,
   TheInst.emplace_back(target);
   TheInst.emplace_back(source);
   TheInst.emplace_back(size);
-  if (memory_access.isSome()) {
-    const auto &val = memory_access.unwrap();
+  if (memory_access.hasValue()) {
+    const auto &val = memory_access.getValue();
     encodeMemoryAccess(val);
   }
 
@@ -1676,7 +1677,8 @@ InstBuilder &InstBuilder::opSampledImage(uint32_t result_type,
 
 InstBuilder &InstBuilder::opImageSampleImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
-    uint32_t coordinate, Option<spv::ImageOperandsMask> image_operands) {
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1697,8 +1699,8 @@ InstBuilder &InstBuilder::opImageSampleImplicitLod(
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -1736,7 +1738,7 @@ InstBuilder &InstBuilder::opImageSampleExplicitLod(
 InstBuilder &InstBuilder::opImageSampleDrefImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
     uint32_t coordinate, uint32_t dref,
-    Option<spv::ImageOperandsMask> image_operands) {
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1758,8 +1760,8 @@ InstBuilder &InstBuilder::opImageSampleDrefImplicitLod(
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(dref);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -1797,7 +1799,8 @@ InstBuilder &InstBuilder::opImageSampleDrefExplicitLod(
 
 InstBuilder &InstBuilder::opImageSampleProjImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
-    uint32_t coordinate, Option<spv::ImageOperandsMask> image_operands) {
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1818,8 +1821,8 @@ InstBuilder &InstBuilder::opImageSampleProjImplicitLod(
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -1857,7 +1860,7 @@ InstBuilder &InstBuilder::opImageSampleProjExplicitLod(
 InstBuilder &InstBuilder::opImageSampleProjDrefImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
     uint32_t coordinate, uint32_t dref,
-    Option<spv::ImageOperandsMask> image_operands) {
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1879,8 +1882,8 @@ InstBuilder &InstBuilder::opImageSampleProjDrefImplicitLod(
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(dref);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -1916,10 +1919,10 @@ InstBuilder &InstBuilder::opImageSampleProjDrefExplicitLod(
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageFetch(uint32_t result_type, uint32_t result_id,
-                          uint32_t image, uint32_t coordinate,
-                          Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageFetch(
+    uint32_t result_type, uint32_t result_id, uint32_t image,
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1939,19 +1942,18 @@ InstBuilder::opImageFetch(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageGather(uint32_t result_type, uint32_t result_id,
-                           uint32_t sampled_image, uint32_t coordinate,
-                           uint32_t component,
-                           Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageGather(
+    uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+    uint32_t coordinate, uint32_t component,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -1972,19 +1974,18 @@ InstBuilder::opImageGather(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(component);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageDrefGather(uint32_t result_type, uint32_t result_id,
-                               uint32_t sampled_image, uint32_t coordinate,
-                               uint32_t dref,
-                               Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageDrefGather(
+    uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+    uint32_t coordinate, uint32_t dref,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -2005,18 +2006,18 @@ InstBuilder::opImageDrefGather(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(dref);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageRead(uint32_t result_type, uint32_t result_id,
-                         uint32_t image, uint32_t coordinate,
-                         Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageRead(
+    uint32_t result_type, uint32_t result_id, uint32_t image,
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -2036,17 +2037,17 @@ InstBuilder::opImageRead(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageWrite(uint32_t image, uint32_t coordinate, uint32_t texel,
-                          Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageWrite(
+    uint32_t image, uint32_t coordinate, uint32_t texel,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -2057,8 +2058,8 @@ InstBuilder::opImageWrite(uint32_t image, uint32_t coordinate, uint32_t texel,
   TheInst.emplace_back(image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(texel);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6686,7 +6687,8 @@ InstBuilder &InstBuilder::opBuildNDRange(uint32_t result_type,
 
 InstBuilder &InstBuilder::opImageSparseSampleImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
-    uint32_t coordinate, Option<spv::ImageOperandsMask> image_operands) {
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -6707,8 +6709,8 @@ InstBuilder &InstBuilder::opImageSparseSampleImplicitLod(
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6746,7 +6748,7 @@ InstBuilder &InstBuilder::opImageSparseSampleExplicitLod(
 InstBuilder &InstBuilder::opImageSparseSampleDrefImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
     uint32_t coordinate, uint32_t dref,
-    Option<spv::ImageOperandsMask> image_operands) {
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -6768,8 +6770,8 @@ InstBuilder &InstBuilder::opImageSparseSampleDrefImplicitLod(
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(dref);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6807,7 +6809,8 @@ InstBuilder &InstBuilder::opImageSparseSampleDrefExplicitLod(
 
 InstBuilder &InstBuilder::opImageSparseSampleProjImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
-    uint32_t coordinate, Option<spv::ImageOperandsMask> image_operands) {
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -6828,8 +6831,8 @@ InstBuilder &InstBuilder::opImageSparseSampleProjImplicitLod(
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6867,7 +6870,7 @@ InstBuilder &InstBuilder::opImageSparseSampleProjExplicitLod(
 InstBuilder &InstBuilder::opImageSparseSampleProjDrefImplicitLod(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
     uint32_t coordinate, uint32_t dref,
-    Option<spv::ImageOperandsMask> image_operands) {
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -6889,8 +6892,8 @@ InstBuilder &InstBuilder::opImageSparseSampleProjDrefImplicitLod(
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(dref);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6926,10 +6929,10 @@ InstBuilder &InstBuilder::opImageSparseSampleProjDrefExplicitLod(
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageSparseFetch(uint32_t result_type, uint32_t result_id,
-                                uint32_t image, uint32_t coordinate,
-                                Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageSparseFetch(
+    uint32_t result_type, uint32_t result_id, uint32_t image,
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -6949,8 +6952,8 @@ InstBuilder::opImageSparseFetch(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6960,7 +6963,7 @@ InstBuilder::opImageSparseFetch(uint32_t result_type, uint32_t result_id,
 InstBuilder &InstBuilder::opImageSparseGather(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
     uint32_t coordinate, uint32_t component,
-    Option<spv::ImageOperandsMask> image_operands) {
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -6981,8 +6984,8 @@ InstBuilder &InstBuilder::opImageSparseGather(
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(component);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -6992,7 +6995,7 @@ InstBuilder &InstBuilder::opImageSparseGather(
 InstBuilder &InstBuilder::opImageSparseDrefGather(
     uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
     uint32_t coordinate, uint32_t dref,
-    Option<spv::ImageOperandsMask> image_operands) {
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -7013,8 +7016,8 @@ InstBuilder &InstBuilder::opImageSparseDrefGather(
   TheInst.emplace_back(sampled_image);
   TheInst.emplace_back(coordinate);
   TheInst.emplace_back(dref);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
@@ -7104,10 +7107,10 @@ InstBuilder &InstBuilder::opAtomicFlagClear(uint32_t pointer, uint32_t scope,
   return *this;
 }
 
-InstBuilder &
-InstBuilder::opImageSparseRead(uint32_t result_type, uint32_t result_id,
-                               uint32_t image, uint32_t coordinate,
-                               Option<spv::ImageOperandsMask> image_operands) {
+InstBuilder &InstBuilder::opImageSparseRead(
+    uint32_t result_type, uint32_t result_id, uint32_t image,
+    uint32_t coordinate,
+    llvm::Optional<spv::ImageOperandsMask> image_operands) {
   if (!TheInst.empty()) {
     TheStatus = Status::NestedInst;
     return *this;
@@ -7127,8 +7130,8 @@ InstBuilder::opImageSparseRead(uint32_t result_type, uint32_t result_id,
   TheInst.emplace_back(result_id);
   TheInst.emplace_back(image);
   TheInst.emplace_back(coordinate);
-  if (image_operands.isSome()) {
-    const auto &val = image_operands.unwrap();
+  if (image_operands.hasValue()) {
+    const auto &val = image_operands.getValue();
     encodeImageOperands(val);
   }
 
