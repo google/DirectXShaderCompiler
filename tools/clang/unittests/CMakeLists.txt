@@ -45,8 +45,8 @@ endif (HLSL_INCLUDE_TESTS)
 
 # SPIRV Change Starts
 
-if (ENABLE_SPIRV_CODEGEN)
+if (SPIRV_BUILD_TESTS)
   add_subdirectory(SPIRV)
-endif (ENABLE_SPIRV_CODEGEN)
+endif (SPIRV_BUILD_TESTS)
 
 # SPIRV Change Ends

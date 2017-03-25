@@ -30,7 +30,6 @@
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/CodeGen/CodeGenAction.h"
-#include "clang/SPIRV/EmitSPIRVAction.h" // SPIRV change
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DiagnosticPrinter.h"
 #include "llvm/Support/Format.h"
@@ -41,6 +40,11 @@
 #include "dxc/HLSL/DxilPipelineStateValidation.h"
 #include "dxc/HLSL/HLSLExtensionsCodegenHelper.h"
 #include "dxc/HLSL/DxilRootSignature.h"
+// SPIRV change starts
+#ifdef ENABLE_SPIRV_CODEGEN
+#include "clang/SPIRV/EmitSPIRVAction.h"
+#endif
+// SPIRV change ends
 
 #ifdef _DEBUG
 #if defined(_MSC_VER)
@@ -2138,6 +2142,7 @@ public:
         }
       }
       // SPIRV change starts
+#ifdef ENABLE_SPIRV_CODEGEN
       else if (opts.GenSPIRV) {
           clang::EmitSPIRVAction action;
           FrontendInputFile file(utf8SourceName.m_psz, IK_HLSL);
@@ -2146,6 +2151,7 @@ public:
           action.EndSourceFile();
           outStream.flush();
       }
+#endif
       // SPIRV change ends
       else {
         llvm::LLVMContext llvmContext;

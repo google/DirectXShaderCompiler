@@ -839,12 +839,19 @@ int __cdecl wmain(int argc, const wchar_t **argv_) {
       }
 
       // SPIRV change starts
+#ifdef ENABLE_SPIRV_CODEGEN
       // This ideally should be put in ReadDxcOpts(), but ReadDxcOpts() are called
       // again in DxcCompilerCompile() with -Fo stripped.
       if (dxcOpts.GenSPIRV && dxcOpts.OutputObject.empty()) {
         fprintf(stderr, "-spirv requires -Fo for output object file name.");
         return 1;
       }
+#else
+      if (dxcOpts.GenSPIRV) {
+        fprintf(stderr, "SPIR-V codegen not configured via ENABLE_SPIRV_CODEGEN");
+        return 1;
+      }
+#endif
       // SPIRV change ends
     }
 
