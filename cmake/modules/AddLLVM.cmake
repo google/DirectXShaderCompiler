@@ -749,7 +749,7 @@ endfunction(add_llvm_implicit_external_projects)
 
 # Generic support for adding a unittest.
 function(add_unittest test_suite test_name)
-  if( NOT LLVM_BUILD_TESTS )
+  if( NOT LLVM_BUILD_TESTS AND NOT SPIRV_BUILD_TESTS ) # SPIRV change
     set(EXCLUDE_FROM_ALL ON)
   endif()
 
