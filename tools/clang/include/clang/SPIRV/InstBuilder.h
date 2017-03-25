@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-#include "clang/SPIRV/Option.h"
 #include "clang/SPIRV/spirv.hpp"
+#include "llvm/ADT/Optional.h"
 
 namespace clang {
 namespace spirv {
@@ -56,7 +56,8 @@ public:
   InstBuilder &opUndef(uint32_t result_type, uint32_t result_id);
   InstBuilder &opSourceContinued(std::string continued_source);
   InstBuilder &opSource(spv::SourceLanguage source_language, uint32_t version,
-                        Option<uint32_t> file, Option<std::string> source);
+                        llvm::Optional<uint32_t> file,
+                        llvm::Optional<std::string> source);
   InstBuilder &opSourceExtension(std::string extension);
   InstBuilder &opName(uint32_t target, std::string name);
   InstBuilder &opMemberName(uint32_t type, uint32_t member, std::string name);
@@ -83,11 +84,11 @@ public:
                             uint32_t component_count);
   InstBuilder &opTypeMatrix(uint32_t result_id, uint32_t column_type,
                             uint32_t column_count);
-  InstBuilder &opTypeImage(uint32_t result_id, uint32_t sampled_type,
-                           spv::Dim dim, uint32_t depth, uint32_t arrayed,
-                           uint32_t ms, uint32_t sampled,
-                           spv::ImageFormat image_format,
-                           Option<spv::AccessQualifier> access_qualifier);
+  InstBuilder &
+  opTypeImage(uint32_t result_id, uint32_t sampled_type, spv::Dim dim,
+              uint32_t depth, uint32_t arrayed, uint32_t ms, uint32_t sampled,
+              spv::ImageFormat image_format,
+              llvm::Optional<spv::AccessQualifier> access_qualifier);
   InstBuilder &opTypeSampler(uint32_t result_id);
   InstBuilder &opTypeSampledImage(uint32_t result_id, uint32_t image_type);
   InstBuilder &opTypeArray(uint32_t result_id, uint32_t element_type,
@@ -137,20 +138,21 @@ public:
                  std::initializer_list<uint32_t> argument_0_argument_1_);
   InstBuilder &opVariable(uint32_t result_type, uint32_t result_id,
                           spv::StorageClass storage_class,
-                          Option<uint32_t> initializer);
+                          llvm::Optional<uint32_t> initializer);
   InstBuilder &opImageTexelPointer(uint32_t result_type, uint32_t result_id,
                                    uint32_t image, uint32_t coordinate,
                                    uint32_t sample);
   InstBuilder &opLoad(uint32_t result_type, uint32_t result_id,
                       uint32_t pointer,
-                      Option<spv::MemoryAccessMask> memory_access);
+                      llvm::Optional<spv::MemoryAccessMask> memory_access);
   InstBuilder &opStore(uint32_t pointer, uint32_t object,
-                       Option<spv::MemoryAccessMask> memory_access);
-  InstBuilder &opCopyMemory(uint32_t target, uint32_t source,
-                            Option<spv::MemoryAccessMask> memory_access);
-  InstBuilder &opCopyMemorySized(uint32_t target, uint32_t source,
-                                 uint32_t size,
-                                 Option<spv::MemoryAccessMask> memory_access);
+                       llvm::Optional<spv::MemoryAccessMask> memory_access);
+  InstBuilder &
+  opCopyMemory(uint32_t target, uint32_t source,
+               llvm::Optional<spv::MemoryAccessMask> memory_access);
+  InstBuilder &
+  opCopyMemorySized(uint32_t target, uint32_t source, uint32_t size,
+                    llvm::Optional<spv::MemoryAccessMask> memory_access);
   InstBuilder &opAccessChain(uint32_t result_type, uint32_t result_id,
                              uint32_t base,
                              std::initializer_list<uint32_t> indexes);
@@ -200,29 +202,28 @@ public:
                            uint32_t matrix);
   InstBuilder &opSampledImage(uint32_t result_type, uint32_t result_id,
                               uint32_t image, uint32_t sampler);
-  InstBuilder &
-  opImageSampleImplicitLod(uint32_t result_type, uint32_t result_id,
-                           uint32_t sampled_image, uint32_t coordinate,
-                           Option<spv::ImageOperandsMask> image_operands);
+  InstBuilder &opImageSampleImplicitLod(
+      uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+      uint32_t coordinate,
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &opImageSampleExplicitLod(uint32_t result_type,
                                         uint32_t result_id,
                                         uint32_t sampled_image,
                                         uint32_t coordinate,
                                         spv::ImageOperandsMask image_operands);
-  InstBuilder &
-  opImageSampleDrefImplicitLod(uint32_t result_type, uint32_t result_id,
-                               uint32_t sampled_image, uint32_t coordinate,
-                               uint32_t dref,
-                               Option<spv::ImageOperandsMask> image_operands);
+  InstBuilder &opImageSampleDrefImplicitLod(
+      uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+      uint32_t coordinate, uint32_t dref,
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &
   opImageSampleDrefExplicitLod(uint32_t result_type, uint32_t result_id,
                                uint32_t sampled_image, uint32_t coordinate,
                                uint32_t dref,
                                spv::ImageOperandsMask image_operands);
-  InstBuilder &
-  opImageSampleProjImplicitLod(uint32_t result_type, uint32_t result_id,
-                               uint32_t sampled_image, uint32_t coordinate,
-                               Option<spv::ImageOperandsMask> image_operands);
+  InstBuilder &opImageSampleProjImplicitLod(
+      uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+      uint32_t coordinate,
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &
   opImageSampleProjExplicitLod(uint32_t result_type, uint32_t result_id,
                                uint32_t sampled_image, uint32_t coordinate,
@@ -230,28 +231,31 @@ public:
   InstBuilder &opImageSampleProjDrefImplicitLod(
       uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
       uint32_t coordinate, uint32_t dref,
-      Option<spv::ImageOperandsMask> image_operands);
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &
   opImageSampleProjDrefExplicitLod(uint32_t result_type, uint32_t result_id,
                                    uint32_t sampled_image, uint32_t coordinate,
                                    uint32_t dref,
                                    spv::ImageOperandsMask image_operands);
-  InstBuilder &opImageFetch(uint32_t result_type, uint32_t result_id,
-                            uint32_t image, uint32_t coordinate,
-                            Option<spv::ImageOperandsMask> image_operands);
-  InstBuilder &opImageGather(uint32_t result_type, uint32_t result_id,
-                             uint32_t sampled_image, uint32_t coordinate,
-                             uint32_t component,
-                             Option<spv::ImageOperandsMask> image_operands);
-  InstBuilder &opImageDrefGather(uint32_t result_type, uint32_t result_id,
-                                 uint32_t sampled_image, uint32_t coordinate,
-                                 uint32_t dref,
-                                 Option<spv::ImageOperandsMask> image_operands);
-  InstBuilder &opImageRead(uint32_t result_type, uint32_t result_id,
-                           uint32_t image, uint32_t coordinate,
-                           Option<spv::ImageOperandsMask> image_operands);
-  InstBuilder &opImageWrite(uint32_t image, uint32_t coordinate, uint32_t texel,
-                            Option<spv::ImageOperandsMask> image_operands);
+  InstBuilder &
+  opImageFetch(uint32_t result_type, uint32_t result_id, uint32_t image,
+               uint32_t coordinate,
+               llvm::Optional<spv::ImageOperandsMask> image_operands);
+  InstBuilder &
+  opImageGather(uint32_t result_type, uint32_t result_id,
+                uint32_t sampled_image, uint32_t coordinate, uint32_t component,
+                llvm::Optional<spv::ImageOperandsMask> image_operands);
+  InstBuilder &
+  opImageDrefGather(uint32_t result_type, uint32_t result_id,
+                    uint32_t sampled_image, uint32_t coordinate, uint32_t dref,
+                    llvm::Optional<spv::ImageOperandsMask> image_operands);
+  InstBuilder &
+  opImageRead(uint32_t result_type, uint32_t result_id, uint32_t image,
+              uint32_t coordinate,
+              llvm::Optional<spv::ImageOperandsMask> image_operands);
+  InstBuilder &
+  opImageWrite(uint32_t image, uint32_t coordinate, uint32_t texel,
+               llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &opImage(uint32_t result_type, uint32_t result_id,
                        uint32_t sampled_image);
   InstBuilder &opImageQueryFormat(uint32_t result_type, uint32_t result_id,
@@ -683,10 +687,10 @@ public:
                               uint32_t global_work_size,
                               uint32_t local_work_size,
                               uint32_t global_work_offset);
-  InstBuilder &
-  opImageSparseSampleImplicitLod(uint32_t result_type, uint32_t result_id,
-                                 uint32_t sampled_image, uint32_t coordinate,
-                                 Option<spv::ImageOperandsMask> image_operands);
+  InstBuilder &opImageSparseSampleImplicitLod(
+      uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+      uint32_t coordinate,
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &
   opImageSparseSampleExplicitLod(uint32_t result_type, uint32_t result_id,
                                  uint32_t sampled_image, uint32_t coordinate,
@@ -694,7 +698,7 @@ public:
   InstBuilder &opImageSparseSampleDrefImplicitLod(
       uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
       uint32_t coordinate, uint32_t dref,
-      Option<spv::ImageOperandsMask> image_operands);
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &
   opImageSparseSampleDrefExplicitLod(uint32_t result_type, uint32_t result_id,
                                      uint32_t sampled_image,
@@ -702,14 +706,15 @@ public:
                                      spv::ImageOperandsMask image_operands);
   InstBuilder &opImageSparseSampleProjImplicitLod(
       uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
-      uint32_t coordinate, Option<spv::ImageOperandsMask> image_operands);
+      uint32_t coordinate,
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &opImageSparseSampleProjExplicitLod(
       uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
       uint32_t coordinate, spv::ImageOperandsMask image_operands);
   InstBuilder &opImageSparseSampleProjDrefImplicitLod(
       uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
       uint32_t coordinate, uint32_t dref,
-      Option<spv::ImageOperandsMask> image_operands);
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &opImageSparseSampleProjDrefExplicitLod(
       uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
       uint32_t coordinate, uint32_t dref,
@@ -717,17 +722,16 @@ public:
   InstBuilder &
   opImageSparseFetch(uint32_t result_type, uint32_t result_id, uint32_t image,
                      uint32_t coordinate,
-                     Option<spv::ImageOperandsMask> image_operands);
+                     llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &
   opImageSparseGather(uint32_t result_type, uint32_t result_id,
                       uint32_t sampled_image, uint32_t coordinate,
                       uint32_t component,
-                      Option<spv::ImageOperandsMask> image_operands);
-  InstBuilder &
-  opImageSparseDrefGather(uint32_t result_type, uint32_t result_id,
-                          uint32_t sampled_image, uint32_t coordinate,
-                          uint32_t dref,
-                          Option<spv::ImageOperandsMask> image_operands);
+                      llvm::Optional<spv::ImageOperandsMask> image_operands);
+  InstBuilder &opImageSparseDrefGather(
+      uint32_t result_type, uint32_t result_id, uint32_t sampled_image,
+      uint32_t coordinate, uint32_t dref,
+      llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &opImageSparseTexelsResident(uint32_t result_type,
                                            uint32_t result_id,
                                            uint32_t resident_code);
@@ -737,9 +741,10 @@ public:
                                       uint32_t semantics);
   InstBuilder &opAtomicFlagClear(uint32_t pointer, uint32_t scope,
                                  uint32_t semantics);
-  InstBuilder &opImageSparseRead(uint32_t result_type, uint32_t result_id,
-                                 uint32_t image, uint32_t coordinate,
-                                 Option<spv::ImageOperandsMask> image_operands);
+  InstBuilder &
+  opImageSparseRead(uint32_t result_type, uint32_t result_id, uint32_t image,
+                    uint32_t coordinate,
+                    llvm::Optional<spv::ImageOperandsMask> image_operands);
   InstBuilder &opSizeOf(uint32_t result_type, uint32_t result_id,
                         uint32_t pointer);
   InstBuilder &opTypePipeStorage(uint32_t result_id);
