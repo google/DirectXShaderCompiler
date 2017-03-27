@@ -16,6 +16,7 @@
 namespace clang {
 namespace spirv {
 
+namespace {
 inline bool bitEnumContains(spv::ImageOperandsMask bits,
                             spv::ImageOperandsMask bit) {
   return (uint32_t(bits) & uint32_t(bit)) != 0;
@@ -28,17 +29,43 @@ inline bool bitEnumContains(spv::MemoryAccessMask bits,
                             spv::MemoryAccessMask bit) {
   return (uint32_t(bits) & uint32_t(bit)) != 0;
 }
+} // namespace
 
-InstBuilder::InstBuilder() : TheStatus(Status::Success) {}
+InstBuilder::InstBuilder(WordConsumer consumer)
+    : TheConsumer(consumer), TheStatus(Status::Success) {}
 
-InstBuilder::Status
-InstBuilder::x(const std::function<void(std::vector<uint32_t> &&)> &consumer) {
-  if (TheStatus == Status::Success && Expectation.empty()) {
-    if (!TheInst.empty())
-      TheInst.front() |= uint32_t(TheInst.size()) << 16;
-    consumer(std::move(TheInst));
-    TheInst.clear();
+const WordConsumer &InstBuilder::getConsumer() const { return TheConsumer; }
+
+InstBuilder::Status InstBuilder::x() {
+  if (TheStatus != Status::Success)
+    return TheStatus;
+
+  if (!Expectation.empty()) {
+    switch (Expectation.front()) {
+    case OperandKind::BuiltIn:
+      return Status::ExpectBuiltIn;
+    case OperandKind::FPFastMathMode:
+      return Status::ExpectFPFastMathMode;
+    case OperandKind::FPRoundingMode:
+      return Status::ExpectFPRoundingMode;
+    case OperandKind::FunctionParameterAttribute:
+      return Status::ExpectFunctionParameterAttribute;
+    case OperandKind::IdRef:
+      return Status::ExpectIdRef;
+    case OperandKind::LinkageType:
+      return Status::ExpectLinkageType;
+    case OperandKind::LiteralInteger:
+      return Status::ExpectLiteralInteger;
+    case OperandKind::LiteralString:
+      return Status::ExpectLiteralString;
+    }
   }
+
+  if (!TheInst.empty())
+    TheInst.front() |= uint32_t(TheInst.size()) << 16;
+  TheConsumer(std::move(TheInst));
+  TheInst.clear();
+
   return TheStatus;
 }
 
