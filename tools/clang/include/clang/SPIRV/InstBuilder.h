@@ -27,8 +27,30 @@
 namespace clang {
 namespace spirv {
 
+/// \brief SPIR-V word consumer.
+using WordConsumer = std::function<void(std::vector<uint32_t> &&)>;
+
+/// \brief A low-level SPIR-V instruction builder that generates SPIR-V words
+/// directly. All generated SPIR-V words will be fed into the WordConsumer
+/// passed in the constructor.
+///
+/// The methods of this builder reflects the layouts of the corresponding
+/// SPIR-V instructions. For example, to construct an "OpMemoryModel Logical
+/// Simple" instruction, just call InstBuilder::opMemoryModel(
+/// spv::AddressingModel::Logical, spv::MemoryModel::Simple).
+///
+/// For SPIR-V instructions that may take additional parameters depending on
+/// the value of some previous parameters, additional methods are provided to
+/// "fix up" the instruction under building. For example, to construct an
+/// "OpDecorate <target-id> ArrayStride 0" instruction, just call InstBuilder::
+/// opDecorate(<target-id>, spv::Decoration::ArrayStride).literalInteger(0).
+///
+/// .x() is required to finalize the building and feed the result to the
+/// consumer. On failure, if additional parameters are needed, the first missing
+/// one will be reported by .x() via InstBuilder::Status.
 class InstBuilder {
 public:
+  /// Status of instruction building.
   enum class Status : int32_t {
     Success = 0,
     NestedInst = -1,
@@ -44,11 +66,21 @@ public:
     ExpectLiteralString = -11
   };
 
-  InstBuilder();
+  explicit InstBuilder(WordConsumer);
 
-  // Finalizes the building.
-  Status x(const std::function<void(std::vector<uint32_t> &&)> &consumer);
-  // Clears the current instruction under building.
+  // Disable copy constructor/assignment.
+  InstBuilder(const InstBuilder &) = delete;
+  InstBuilder &operator=(const InstBuilder &) = delete;
+
+  // Allow move constructor/assignment.
+  InstBuilder(InstBuilder &&that) = default;
+  InstBuilder &operator=(InstBuilder &&that) = default;
+
+  const WordConsumer &getConsumer() const;
+
+  /// \brief Finalizes the building.
+  Status x();
+  /// \brief Clears the current instruction under building.
   void clear();
 
   // Instruction building methods.
@@ -814,9 +846,10 @@ private:
   void encodeDecoration(spv::Decoration value);
   void encodeString(std::string value);
 
-  std::vector<uint32_t> TheInst;
-  std::deque<OperandKind> Expectation;
-  Status TheStatus;
+  WordConsumer TheConsumer;
+  std::vector<uint32_t> TheInst;       ///< The instruction under construction.
+  std::deque<OperandKind> Expectation; ///< Expected additional parameters.
+  Status TheStatus;                    ///< Current building status.
 };
 
 } // end namespace spirv
