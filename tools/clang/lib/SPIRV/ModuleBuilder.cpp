@@ -9,40 +9,94 @@
 
 #include "clang/SPIRV/ModuleBuilder.h"
 
+#include "clang/SPIRV/InstBuilder.h"
 #include "clang/SPIRV/spirv.hpp"
 #include "llvm/llvm_assert/assert.h"
 
 namespace clang {
 namespace spirv {
 
-namespace {
-constexpr size_t kHeaderSize = 5;
-constexpr size_t kBoundIndex = 3;
-
-constexpr uint32_t kGeneratorNumber = 14;
-constexpr uint32_t kToolVersion = 0;
+ModuleBuilder::ModuleBuilder(SPIRVContext *C)
+    : theContext(*C), theModule(), theFunction(llvm::None),
+      theBasicBlock(llvm::None), instBuilder(nullptr) {
+  instBuilder.setConsumer([this](std::vector<uint32_t> &&words) {
+    this->constructSite = std::move(words);
+  });
 }
 
-ModuleBuilder::ModuleBuilder(SPIRVContext *C) : TheContext(*C) {}
+ModuleBuilder::Status ModuleBuilder::beginModule() {
+  if (!theModule.isEmpty() || theFunction.hasValue() ||
+      theBasicBlock.hasValue())
+    return Status::ErrNestedModule;
 
-void ModuleBuilder::BeginModule() { GenHeader(); }
-
-void ModuleBuilder::EndModule() {
-  assert(!TheModule.empty() && "BeginModule() not called before EndModule()");
-  TheModule[kBoundIndex] = TheContext.getNextId();
-}
-std::vector<uint32_t> ModuleBuilder::TakeModule() {
-  return std::move(TheModule);
+  return Status::Success;
 }
 
-void ModuleBuilder::GenHeader() {
-  assert(TheModule.empty() && "Header not at the beginning");
-  TheModule.reserve(kHeaderSize);
-  TheModule.emplace_back(spv::MagicNumber);
-  TheModule.emplace_back(spv::Version);
-  TheModule.emplace_back((kGeneratorNumber << 16) | kToolVersion);
-  TheModule.emplace_back(0u);  // Bound
-  TheModule.emplace_back(0u);  // Schema
+ModuleBuilder::Status ModuleBuilder::endModule() {
+  theModule.setBound(theContext.getNextId());
+  return Status::Success;
+}
+
+ModuleBuilder::Status ModuleBuilder::beginFunction(uint32_t funcType,
+                                                   uint32_t returnType) {
+  if (theFunction.hasValue())
+    return Status::ErrNestedFunction;
+
+  theFunction = llvm::Optional<Function>(
+      Function(returnType, theContext.takeNextId(),
+               spv::FunctionControlMask::MaskNone, funcType));
+
+  return Status::Success;
+}
+
+ModuleBuilder::Status ModuleBuilder::endFunction() {
+  if (theBasicBlock.hasValue())
+    return Status::ErrActiveBasicBlock;
+  if (!theFunction.hasValue())
+    return Status::ErrNoActiveFunction;
+
+  theModule.addFunction(std::move(theFunction.getValue()));
+  theFunction.reset();
+
+  return Status::Success;
+}
+
+ModuleBuilder::Status ModuleBuilder::beginBasicBlock() {
+  if (theBasicBlock.hasValue())
+    return Status::ErrNestedBasicBlock;
+  if (!theFunction.hasValue())
+    return Status::ErrDetachedBasicBlock;
+
+  theBasicBlock =
+      llvm::Optional<BasicBlock>(BasicBlock(theContext.takeNextId()));
+
+  return Status::Success;
+}
+
+ModuleBuilder::Status ModuleBuilder::endBasicBlockWithReturn() {
+  if (!theBasicBlock.hasValue())
+    return Status::ErrNoActiveBasicBlock;
+
+  instBuilder.opReturn().x();
+  theBasicBlock.getValue().addInstruction(std::move(constructSite));
+
+  return endBasicBlock();
+}
+
+ModuleBuilder::Status ModuleBuilder::endBasicBlock() {
+  theFunction.getValue().addBasicBlock(std::move(theBasicBlock.getValue()));
+  theBasicBlock.reset();
+  return Status::Success;
+}
+
+std::vector<uint32_t> ModuleBuilder::takeModule() {
+  std::vector<uint32_t> binary;
+  auto ib = InstBuilder([&binary](std::vector<uint32_t> &&words) {
+    binary.insert(binary.end(), words.begin(), words.end());
+  });
+
+  theModule.take(&ib);
+  return std::move(binary);
 }
 
 } // end namespace spirv

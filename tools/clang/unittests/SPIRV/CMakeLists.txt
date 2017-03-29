@@ -9,6 +9,7 @@ add_clang_unittest(clang-spirv-tests
   DecorationTest.cpp
   SPIRVContextTest.cpp
   ModuleBuilderTest.cpp
+  StructureTest.cpp
   TypeTest.cpp
   UtilsTest.cpp
   )
