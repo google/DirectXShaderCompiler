@@ -150,6 +150,11 @@ TEST(InstBuilder, InstMissingAdditionalLiteralString) {
             ib.opDecorate(1, spv::Decoration::LinkageAttributes).x());
 }
 
+TEST(InstBuilder, NullConsumerResultsInError) {
+  auto ib = InstBuilder(nullptr);
+  EXPECT_EQ(InstBuilder::Status::NullConsumer, ib.opNop().x());
+}
+
 TEST(InstBuilder, InstWStringParams) {
   std::vector<uint32_t> result;
   auto ib = constructInstBuilder(result);

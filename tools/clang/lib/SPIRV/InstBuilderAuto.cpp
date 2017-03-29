@@ -34,9 +34,13 @@ inline bool bitEnumContains(spv::MemoryAccessMask bits,
 InstBuilder::InstBuilder(WordConsumer consumer)
     : TheConsumer(consumer), TheStatus(Status::Success) {}
 
+void InstBuilder::setConsumer(WordConsumer consumer) { TheConsumer = consumer; }
 const WordConsumer &InstBuilder::getConsumer() const { return TheConsumer; }
 
 InstBuilder::Status InstBuilder::x() {
+  if (TheConsumer == nullptr)
+    return Status::NullConsumer;
+
   if (TheStatus != Status::Success)
     return TheStatus;
 

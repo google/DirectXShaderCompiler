@@ -53,17 +53,18 @@ public:
   /// Status of instruction building.
   enum class Status : int32_t {
     Success = 0,
-    NestedInst = -1,
-    ZeroResultType = -2,
-    ZeroResultId = -3,
-    ExpectBuiltIn = -4,
-    ExpectFPFastMathMode = -5,
-    ExpectFPRoundingMode = -6,
-    ExpectFunctionParameterAttribute = -7,
-    ExpectIdRef = -8,
-    ExpectLinkageType = -9,
-    ExpectLiteralInteger = -10,
-    ExpectLiteralString = -11
+    NullConsumer = -1,
+    NestedInst = -2,
+    ZeroResultType = -3,
+    ZeroResultId = -4,
+    ExpectBuiltIn = -5,
+    ExpectFPFastMathMode = -6,
+    ExpectFPRoundingMode = -7,
+    ExpectFunctionParameterAttribute = -8,
+    ExpectIdRef = -9,
+    ExpectLinkageType = -10,
+    ExpectLiteralInteger = -11,
+    ExpectLiteralString = -12
   };
 
   explicit InstBuilder(WordConsumer);
@@ -76,6 +77,7 @@ public:
   InstBuilder(InstBuilder &&that) = default;
   InstBuilder &operator=(InstBuilder &&that) = default;
 
+  void setConsumer(WordConsumer);
   const WordConsumer &getConsumer() const;
 
   /// \brief Finalizes the building.
