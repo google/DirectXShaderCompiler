@@ -36,15 +36,18 @@ struct DecorationHash {
 /// data.
 class SPIRVContext {
 public:
+  /// \brief Constructs a default SPIR-V context.
   inline SPIRVContext();
 
-  // Disable copy/move (assignment) constructors.
+  // Disable copy/move constructors/assignments.
   SPIRVContext(const SPIRVContext &) = delete;
   SPIRVContext(SPIRVContext &&) = delete;
   SPIRVContext &operator=(const SPIRVContext &) = delete;
   SPIRVContext &operator=(SPIRVContext &&) = delete;
 
+  /// \brief Returns the next unused <result-id>.
   inline uint32_t getNextId() const;
+  /// \brief Consumes the next unused <result-id>.
   inline uint32_t takeNextId();
 
   /// \brief Returns the <result-id> that defines the given Type. If the type

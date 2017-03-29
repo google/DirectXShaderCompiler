@@ -30,9 +30,9 @@ public:
       : OutStream(*Out), TheContext(), Builder(&TheContext) {}
 
   void HandleTranslationUnit(ASTContext &Context) override {
-    Builder.BeginModule();
-    Builder.EndModule();
-    std::vector<uint32_t> M = Builder.TakeModule();
+    Builder.beginModule();
+    Builder.endModule();
+    std::vector<uint32_t> M = Builder.takeModule();
     OutStream.write(reinterpret_cast<const char *>(M.data()), M.size() * 4);
   }
 
