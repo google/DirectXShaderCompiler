@@ -7,6 +7,7 @@ add_clang_library(clangSPIRV
   EmitSPIRVAction.cpp
   InstBuilderAuto.cpp
   InstBuilderManual.cpp
+  Structure.cpp
   ModuleBuilder.cpp
   SPIRVContext.cpp
   Type.cpp

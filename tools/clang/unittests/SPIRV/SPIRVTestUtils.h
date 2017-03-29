@@ -55,5 +55,10 @@ inline void appendVector(std::vector<uint32_t> *all,
   all->insert(all->end(), part.begin(), part.end());
 }
 
+/// Returns the words in SPIR-V module header with the given id bound.
+inline std::vector<uint32_t> getModuleHeader(uint32_t bound) {
+  return {spv::MagicNumber, spv::Version, 14u << 16, bound, 0};
+}
+
 } // end namespace spirv
 } // end namespace clang
