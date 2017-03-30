@@ -16,7 +16,7 @@ namespace clang {
 namespace spirv {
 
 void InstBuilder::encodeString(std::string value) {
-  std::vector<uint32_t> words = utils::reinterpretStringAsUintVec(value);
+  const auto& words = utils::encodeSPIRVString(value);
   TheInst.insert(TheInst.end(), words.begin(), words.end());
 }
 

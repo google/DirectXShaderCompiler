@@ -1,4 +1,4 @@
-//===-- Decoration.h - SPIR-V Decoration --*- C++-*------------------------===//
+//===-- Decoration.h - SPIR-V Decoration ------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -9,145 +9,152 @@
 #ifndef LLVM_CLANG_SPIRV_DECORATION_H
 #define LLVM_CLANG_SPIRV_DECORATION_H
 
-#include <unordered_set>
 #include <vector>
 
-#include "clang/SPIRV/Option.h"
 #include "clang/SPIRV/spirv.hpp"
+#include "llvm/ADT/Optional.h"
+#include "llvm/ADT/SmallVector.h"
 
 namespace clang {
 namespace spirv {
 
+/// \brief SPIR-V Decoration.
+///
+/// This class defines a unique SPIR-V Decoration.
+/// A SPIR-V Decoration includes an identifier defined by the SPIR-V Spec.
+/// It also incldues any arguments (32-bit words) needed to define the
+/// decoration. If the decoration applies to a structure member, it also
+/// includes the index of the member to which the decoration applies.
+///
+/// The class includes static getXXX(...) functions for getting pointers of any
+/// needed decoration. A unique Decoration has a unique pointer (e.g. calling
+/// 'getRelaxedPrecision' function will always return the same pointer for the
+/// given context)
 class SPIRVContext;
 class Decoration {
-  enum { kInvalidMember = -1 };
 
 public:
-  spv::Decoration getDecorationType() const { return id; }
-  const std::vector<uint32_t> &getArgs() const { return args; }
-  const uint32_t getMemberIndex() const { return memberIndex; }
+  spv::Decoration getValue() const { return id; }
+  const llvm::SmallVectorImpl<uint32_t> &getArgs() const { return args; }
+  const llvm::Optional<uint32_t> getMemberIndex() const { return memberIndex; }
 
-  static const Decoration *getDecorationRelaxedPrecision(SPIRVContext &ctx);
-  static const Decoration *getDecorationSpecId(SPIRVContext &ctx, uint32_t id);
-  static const Decoration *getDecorationBlock(SPIRVContext &ctx);
-  static const Decoration *getDecorationBufferBlock(SPIRVContext &ctx);
-  static const Decoration *getDecorationRowMajor(SPIRVContext &ctx,
-                                                 int32_t member_idx);
-  static const Decoration *getDecorationColMajor(SPIRVContext &ctx,
-                                                 int32_t member_idx);
-  static const Decoration *getDecorationArrayStride(SPIRVContext &ctx,
-                                                    uint32_t stride);
-  static const Decoration *getDecorationMatrixStride(SPIRVContext &ctx,
-                                                     uint32_t stride,
-                                                     int32_t member_idx);
-  static const Decoration *getDecorationGLSLShared(SPIRVContext &ctx);
-  static const Decoration *getDecorationGLSLPacked(SPIRVContext &ctx);
-  static const Decoration *getDecorationCPacked(SPIRVContext &ctx);
+  static const Decoration *getRelaxedPrecision(SPIRVContext &ctx);
+  static const Decoration *getSpecId(SPIRVContext &ctx, uint32_t id);
+  static const Decoration *getBlock(SPIRVContext &ctx);
+  static const Decoration *getBufferBlock(SPIRVContext &ctx);
+  static const Decoration *getRowMajor(SPIRVContext &ctx, uint32_t member_idx);
+  static const Decoration *getColMajor(SPIRVContext &ctx, uint32_t member_idx);
+  static const Decoration *getArrayStride(SPIRVContext &ctx, uint32_t stride);
+  static const Decoration *getMatrixStride(SPIRVContext &ctx, uint32_t stride,
+                                           uint32_t member_idx);
+  static const Decoration *getGLSLShared(SPIRVContext &ctx);
+  static const Decoration *getGLSLPacked(SPIRVContext &ctx);
+  static const Decoration *getCPacked(SPIRVContext &ctx);
   static const Decoration *
-  getDecorationBuiltIn(SPIRVContext &ctx, spv::BuiltIn builtin,
-                       int32_t member_idx = kInvalidMember);
+  getBuiltIn(SPIRVContext &ctx, spv::BuiltIn builtin,
+             llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationNoPerspective(SPIRVContext &ctx,
-                             int32_t member_idx = kInvalidMember);
+  getNoPerspective(SPIRVContext &ctx,
+                   llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationFlat(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
+  getFlat(SPIRVContext &ctx, llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationPatch(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
+  getPatch(SPIRVContext &ctx, llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationCentroid(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
+  getCentroid(SPIRVContext &ctx,
+              llvm::Optional<uint32_t> member_idx = llvm::None);
+
   static const Decoration *
-  getDecorationSample(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
-  static const Decoration *getDecorationInvariant(SPIRVContext &ctx);
-  static const Decoration *getDecorationRestrict(SPIRVContext &ctx);
-  static const Decoration *getDecorationAliased(SPIRVContext &ctx);
+  getSample(SPIRVContext &ctx,
+            llvm::Optional<uint32_t> member_idx = llvm::None);
+  static const Decoration *getInvariant(SPIRVContext &ctx);
+  static const Decoration *getRestrict(SPIRVContext &ctx);
+  static const Decoration *getAliased(SPIRVContext &ctx);
   static const Decoration *
-  getDecorationVolatile(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
-  static const Decoration *getDecorationConstant(SPIRVContext &ctx);
+  getVolatile(SPIRVContext &ctx,
+              llvm::Optional<uint32_t> member_idx = llvm::None);
+
+  static const Decoration *getConstant(SPIRVContext &ctx);
   static const Decoration *
-  getDecorationCoherent(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
+  getCoherent(SPIRVContext &ctx,
+              llvm::Optional<uint32_t> member_idx = llvm::None);
+
   static const Decoration *
-  getDecorationNonWritable(SPIRVContext &ctx,
-                           int32_t member_idx = kInvalidMember);
+  getNonWritable(SPIRVContext &ctx,
+                 llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationNonReadable(SPIRVContext &ctx,
-                           int32_t member_idx = kInvalidMember);
+  getNonReadable(SPIRVContext &ctx,
+                 llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationUniform(SPIRVContext &ctx, int32_t member_idx = kInvalidMember);
-  static const Decoration *getDecorationSaturatedConversion(SPIRVContext &ctx);
+  getUniform(SPIRVContext &ctx,
+             llvm::Optional<uint32_t> member_idx = llvm::None);
+  static const Decoration *getSaturatedConversion(SPIRVContext &ctx);
   static const Decoration *
-  getDecorationStream(SPIRVContext &ctx, uint32_t stream_number,
-                      int32_t member_idx = kInvalidMember);
+  getStream(SPIRVContext &ctx, uint32_t stream_number,
+            llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationLocation(SPIRVContext &ctx, uint32_t location,
-                        int32_t member_idx = kInvalidMember);
+  getLocation(SPIRVContext &ctx, uint32_t location,
+              llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationComponent(SPIRVContext &ctx, uint32_t component,
-                         int32_t member_idx = kInvalidMember);
-  static const Decoration *getDecorationIndex(SPIRVContext &ctx,
-                                              uint32_t index);
-  static const Decoration *getDecorationBinding(SPIRVContext &ctx,
-                                                uint32_t binding_point);
-  static const Decoration *getDecorationDescriptorSet(SPIRVContext &ctx,
-                                                      uint32_t set);
+  getComponent(SPIRVContext &ctx, uint32_t component,
+               llvm::Optional<uint32_t> member_idx = llvm::None);
+  static const Decoration *getIndex(SPIRVContext &ctx, uint32_t index);
+  static const Decoration *getBinding(SPIRVContext &ctx,
+                                      uint32_t binding_point);
+  static const Decoration *getDescriptorSet(SPIRVContext &ctx, uint32_t set);
   static const Decoration *
-  getDecorationOffset(SPIRVContext &ctx, uint32_t byte_offset,
-                      int32_t member_idx = kInvalidMember);
+  getOffset(SPIRVContext &ctx, uint32_t byte_offset,
+            llvm::Optional<uint32_t> member_idx = llvm::None);
   static const Decoration *
-  getDecorationXfbBuffer(SPIRVContext &ctx, uint32_t xfb_buf,
-                         int32_t member_idx = kInvalidMember);
-  static const Decoration *getDecorationXfbStride(SPIRVContext &ctx,
-                                                  uint32_t xfb_stride);
+  getXfbBuffer(SPIRVContext &ctx, uint32_t xfb_buf,
+               llvm::Optional<uint32_t> member_idx = llvm::None);
+  static const Decoration *getXfbStride(SPIRVContext &ctx, uint32_t xfb_stride);
   static const Decoration *
-  getDecorationFuncParamAttr(SPIRVContext &ctx,
-                             spv::FunctionParameterAttribute attr);
-  static const Decoration *
-  getDecorationFPRoundingMode(SPIRVContext &ctx, spv::FPRoundingMode mode);
-  static const Decoration *
-  getDecorationFPFastMathMode(SPIRVContext &ctx, spv::FPFastMathModeShift mode);
-  static const Decoration *
-  getDecorationLinkageAttributes(SPIRVContext &ctx, std::string name,
-                                 spv::LinkageType linkage_type);
-  static const Decoration *getDecorationNoContraction(SPIRVContext &ctx);
-  static const Decoration *getDecorationInputAttachmentIndex(SPIRVContext &ctx,
-                                                             uint32_t index);
-  static const Decoration *getDecorationAlignment(SPIRVContext &ctx,
-                                                  uint32_t alignment);
-  static const Decoration *getDecorationMaxByteOffset(SPIRVContext &ctx,
-                                                      uint32_t max_byte_offset);
-  static const Decoration *getDecorationOverrideCoverageNV(SPIRVContext &ctx);
-  static const Decoration *getDecorationPassthroughNV(SPIRVContext &ctx);
-  static const Decoration *getDecorationViewportRelativeNV(SPIRVContext &ctx);
-  static const Decoration *
-  getDecorationSecondaryViewportRelativeNV(SPIRVContext &ctx, uint32_t offset);
+  getFuncParamAttr(SPIRVContext &ctx, spv::FunctionParameterAttribute attr);
+  static const Decoration *getFPRoundingMode(SPIRVContext &ctx,
+                                             spv::FPRoundingMode mode);
+  static const Decoration *getFPFastMathMode(SPIRVContext &ctx,
+                                             spv::FPFastMathModeShift mode);
+  static const Decoration *getLinkageAttributes(SPIRVContext &ctx,
+                                                std::string name,
+                                                spv::LinkageType linkage_type);
+  static const Decoration *getNoContraction(SPIRVContext &ctx);
+  static const Decoration *getInputAttachmentIndex(SPIRVContext &ctx,
+                                                   uint32_t index);
+  static const Decoration *getAlignment(SPIRVContext &ctx, uint32_t alignment);
+  static const Decoration *getMaxByteOffset(SPIRVContext &ctx,
+                                            uint32_t max_byte_offset);
+  static const Decoration *getOverrideCoverageNV(SPIRVContext &ctx);
+  static const Decoration *getPassthroughNV(SPIRVContext &ctx);
+  static const Decoration *getViewportRelativeNV(SPIRVContext &ctx);
+  static const Decoration *getSecondaryViewportRelativeNV(SPIRVContext &ctx,
+                                                          uint32_t offset);
 
   bool operator==(const Decoration &other) const {
     return id == other.id && args == other.args &&
-           memberIndex == other.memberIndex;
+           memberIndex.hasValue() == other.memberIndex.hasValue() &&
+           (!memberIndex.hasValue() ||
+            memberIndex.getValue() == other.memberIndex.getValue());
   }
 
 private:
   /// \brief prevent public APIs from creating Decoration objects.
-  Decoration(spv::Decoration dec_id, std::vector<uint32_t> arg = {},
-             int32_t idx = kInvalidMember)
+  Decoration(spv::Decoration dec_id, llvm::SmallVector<uint32_t, 2> arg = {},
+    llvm::Optional<uint32_t> idx = llvm::None)
       : id(dec_id), args(arg), memberIndex(idx) {}
 
   /// \brief Sets the index of the structure member to which the decoration
   /// applies.
-  void setMemberIndex(int32_t idx) { memberIndex = idx; }
+  void setMemberIndex(llvm::Optional<uint32_t> idx) { memberIndex = idx; }
 
-  /// \brief Uses ExistingDecorations to return a unique Decoration.
+  /// \brief Returns the unique decoration pointer within the given context.
   static const Decoration *getUniqueDecoration(SPIRVContext &ctx,
                                                Decoration &d);
 
 private:
-  // Private members that define a unique SPIR-V Decoration.
-  spv::Decoration id;
-  std::vector<uint32_t> args;
-  // If this is a decoration that applies to a structure member, the index
-  // of the member is stored here. It will be kInvalidMember in all other
-  // cases. A 32-bit integer is certainly enough to store the member index
-  // (see Universal Limits in SPIRV Spec.)
-  int32_t memberIndex;
+  spv::Decoration id;                   ///< Defined by SPIR-V Spec
+  llvm::SmallVector<uint32_t, 2> args;  ///< Decoration parameters
+  llvm::Optional<uint32_t> memberIndex; ///< Struct member index (if applicable)
 };
 
 } // end namespace spirv

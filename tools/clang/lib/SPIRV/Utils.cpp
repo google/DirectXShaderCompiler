@@ -15,35 +15,34 @@ namespace spirv {
 namespace utils {
 
 /// \brief Reinterprets a given string as sequence of words.
-/// Assumes Little Endian architecture.
-std::vector<uint32_t> reinterpretStringAsUintVec(std::string s) {
-  std::vector<uint32_t> results;
-  if (!s.empty()) {
-    unsigned int num_bytes_needed = s.size() + 1;
-    unsigned int num_words_needed = (num_bytes_needed / 4) + 1;
-    std::string full_str(4 * num_words_needed, '\0');
-    full_str.insert(full_str.begin(), s.begin(), s.end());
-    for (unsigned int word_index = 0; word_index < num_words_needed;
-         ++word_index) {
-      int i = 4 * word_index;
-      uint32_t word = 0;
-      word |= full_str[i + 3] << 24;
-      word |= full_str[i + 2] << 16;
-      word |= full_str[i + 1] << 8;
-      word |= full_str[i];
-      results.push_back(word);
-    }
-  }
-  return results;
+std::vector<uint32_t> encodeSPIRVString(std::string s) {
+  // Initialize all words to 0.
+  size_t numChars = s.size();
+  std::vector<uint32_t> result(numChars / 4 + 1, 0);
+
+  // From the SPIR-V spec, literal string is
+  //
+  // A nul-terminated stream of characters consuming an integral number of
+  // words. The character set is Unicode in the UTF-8 encoding scheme. The UTF-8
+  // octets (8-bit bytes) are packed four per word, following the little-endian
+  // convention (i.e., the first octet is in the lowest-order 8 bits of the
+  // word). The final word contains the string's nul-termination character (0),
+  // and all contents past the end of the string in the final word are padded
+  // with 0.
+  //
+  // So the following works on little endian machines.
+  char *strDest = reinterpret_cast<char *>(result.data());
+  strncpy(strDest, s.c_str(), numChars);
+  return result;
 }
 
 /// \brief Reinterprets the given vector of 32-bit words as a string.
 /// Expectes that the words represent a NULL-terminated string.
 /// Assumes Little Endian architecture.
-std::string reinterpretUintVecAsString(std::vector<uint32_t>& vec) {
+std::string decodeSPIRVString(std::vector<uint32_t>& vec) {
   std::string result;
   if (!vec.empty()) {
-    result = std::string(reinterpret_cast<const char*>(&vec[0]));
+    result = std::string(reinterpret_cast<const char*>(vec.data()));
   }
   return result;
 }

@@ -14,15 +14,14 @@ namespace clang {
 namespace spirv {
 
 uint32_t
-SPIRVContext::GetResultIdForType(const Type *t,
-                                 std::function<uint32_t()> get_id_func) {
+SPIRVContext::getResultIdForType(const Type *t) {
   assert(t != nullptr);
   uint32_t result_id = 0;
 
-  auto iter = TypeResultIdMap.find(t);
-  if (iter == TypeResultIdMap.end()) {
+  auto iter = typeResultIdMap.find(t);
+  if (iter == typeResultIdMap.end()) {
     // The Type has not been defined yet. Reserve an ID for it.
-    result_id = get_id_func();
+    result_id = takeNextId();
 
     // Make the instruction from the Type words
     std::vector<uint32_t> instr;
@@ -38,8 +37,8 @@ SPIRVContext::GetResultIdForType(const Type *t,
     instr[0] |= static_cast<uint16_t>(t->getArgs().size()) << 16;
 
     // Register it.
-    TypeResultIdMap[t] = result_id;
-    IdToInstructionMap[result_id] = instr;
+    typeResultIdMap[t] = result_id;
+    idToInstructionMap[result_id] = instr;
   } else {
     result_id = iter->second;
   }
@@ -49,10 +48,23 @@ SPIRVContext::GetResultIdForType(const Type *t,
 }
 
 const std::vector<uint32_t> &
-SPIRVContext::GetInstrForType(const Type *t,
-                              std::function<uint32_t()> get_id_func) {
-  uint32_t result_id = GetResultIdForType(t, get_id_func);
-  return IdToInstructionMap[result_id];
+SPIRVContext::getInstrForType(const Type *t) {
+  uint32_t result_id = getResultIdForType(t);
+  return idToInstructionMap[result_id];
+}
+
+const Type* SPIRVContext::registerType(Type& t) {
+  // Insert function will only insert if it doesn't already exist in the set.
+  std::unordered_set<Type, TypeHash>::iterator it;
+  std::tie(it, std::ignore) = existingTypes.insert(t);
+  return &*it;
+}
+
+const Decoration* SPIRVContext::registerDecoration(Decoration& d) {
+  // Insert function will only insert if it doesn't already exist in the set.
+  std::unordered_set<Decoration, DecorationHash>::iterator it;
+  std::tie(it, std::ignore) = existingDecorations.insert(d);
+  return &*it;
 }
 
 } // end namespace spirv

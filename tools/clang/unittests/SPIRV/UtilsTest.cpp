@@ -15,7 +15,37 @@ namespace {
 
 using ::testing::ElementsAre;
 
-TEST(ValidateUtils, ValidateStringToUintVecConversion) {
+TEST(Utils, EncodeEmptyString) {
+  std::string str = "";
+  std::vector<uint32_t> words =
+      clang::spirv::utils::encodeSPIRVString(str);
+  EXPECT_THAT(words, ElementsAre(0u));
+}
+TEST(Utils, EncodeOneCharString) {
+  std::string str = "m";
+  std::vector<uint32_t> words =
+      clang::spirv::utils::encodeSPIRVString(str);
+  EXPECT_THAT(words, ElementsAre(109u));
+}
+TEST(Utils, EncodeTwoCharString) {
+  std::string str = "ma";
+  std::vector<uint32_t> words =
+      clang::spirv::utils::encodeSPIRVString(str);
+  EXPECT_THAT(words, ElementsAre(24941u));
+}
+TEST(Utils, EncodeThreeCharString) {
+  std::string str = "mai";
+  std::vector<uint32_t> words =
+      clang::spirv::utils::encodeSPIRVString(str);
+  EXPECT_THAT(words, ElementsAre(6906221u));
+}
+TEST(Utils, EncodeFourCharString) {
+  std::string str = "main";
+  std::vector<uint32_t> words =
+      clang::spirv::utils::encodeSPIRVString(str);
+  EXPECT_THAT(words, ElementsAre(1852399981u, 0u));
+}
+TEST(Utils, EncodeString) {
   // Bin  01110100   01110011    01100101    01010100 = unsigned(1,953,719,636)
   // Hex     74         73          65          54
   //          t          s           e           T
@@ -27,10 +57,10 @@ TEST(ValidateUtils, ValidateStringToUintVecConversion) {
   //          \0         \0          g           n
   std::string str = "TestString";
   std::vector<uint32_t> words =
-      clang::spirv::utils::reinterpretStringAsUintVec(str);
+      clang::spirv::utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(1953719636, 1769108563, 26478));
 }
-TEST(ValidateUtils, ValidateUintVecToStringConversion) {
+TEST(Utils, DecodeString) {
   // Bin  01110100   01110011    01100101    01010100 = unsigned(1,953,719,636)
   // Hex     74         73          65          54
   //          t          s           e           T
@@ -41,17 +71,17 @@ TEST(ValidateUtils, ValidateUintVecToStringConversion) {
   // Hex      0          0          67          6E
   //          \0         \0          g           n
   std::vector<uint32_t> words = { 1953719636, 1769108563, 26478 };
-  std::string str = clang::spirv::utils::reinterpretUintVecAsString(words);
+  std::string str = clang::spirv::utils::decodeSPIRVString(words);
   EXPECT_EQ(str, "TestString");
 }
-TEST(ValidateUtils, ValidateTwoWayUintVecToStringConversion) {
+TEST(Utils, EncodeAndDecodeString) {
   std::string str = "TestString";
   // Convert to vector
   std::vector<uint32_t> words =
-      clang::spirv::utils::reinterpretStringAsUintVec(str);
+      clang::spirv::utils::encodeSPIRVString(str);
 
   // Convert back to string
-  std::string result = clang::spirv::utils::reinterpretUintVecAsString(words);
+  std::string result = clang::spirv::utils::decodeSPIRVString(words);
 
   EXPECT_EQ(str, result);
 }

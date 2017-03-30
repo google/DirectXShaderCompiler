@@ -10,8 +10,6 @@
 #include "clang/SPIRV/Type.h"
 #include "clang/SPIRV/SPIRVContext.h"
 #include "clang/SPIRV/Utils.h"
-#include "clang/SPIRV/spirv.hpp"
-#include "llvm/llvm_assert/assert.h"
 
 namespace clang {
 namespace spirv {
@@ -21,121 +19,119 @@ Type::Type(spv::Op op, std::vector<uint32_t> arg,
     : opcode(op), args(arg), decorations(decs) {}
 
 const Type *Type::getUniqueType(SPIRVContext &context, Type &t) {
-  // Insert function will only insert if it doesn't already exist in the set.
-  context.ExistingTypes.insert(t);
-  return &(*context.ExistingTypes.find(t));
+  return context.registerType(t);
 }
-const Type *Type::getTypeVoid(SPIRVContext &context) {
+const Type *Type::getVoid(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeVoid);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeBool(SPIRVContext &context) {
+const Type *Type::getBool(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeBool);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeInt8(SPIRVContext &context) {
+const Type *Type::getInt8(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {8, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeUnsignedInt8(SPIRVContext &context) {
+const Type *Type::getUnsignedInt8(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {8, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeInt16(SPIRVContext &context) {
+const Type *Type::getInt16(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {16, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeUnsignedInt16(SPIRVContext &context) {
+const Type *Type::getUnsignedInt16(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {16, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeInt32(SPIRVContext &context) {
+const Type *Type::getInt32(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {32, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeUnsignedInt32(SPIRVContext &context) {
+const Type *Type::getUnsignedInt32(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {32, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeInt64(SPIRVContext &context) {
+const Type *Type::getInt64(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {64, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeUnsignedInt64(SPIRVContext &context) {
+const Type *Type::getUnsignedInt64(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {64, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeFloat16(SPIRVContext &context) {
+const Type *Type::getFloat16(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeFloat, {16});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeFloat32(SPIRVContext &context) {
+const Type *Type::getFloat32(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeFloat, {32});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeFloat64(SPIRVContext &context) {
+const Type *Type::getFloat64(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeFloat, {64});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeVector(SPIRVContext &context, uint32_t component_type,
-                                uint32_t vec_size) {
+const Type *Type::getVector(SPIRVContext &context, uint32_t component_type,
+                            uint32_t vec_size) {
   Type t = Type(spv::Op::OpTypeVector, {component_type, vec_size});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeVec2(SPIRVContext &context, uint32_t component_type) {
-  return getTypeVector(context, component_type, 2u);
+const Type *Type::getVec2(SPIRVContext &context, uint32_t component_type) {
+  return getVector(context, component_type, 2u);
 }
-const Type *Type::getTypeVec3(SPIRVContext &context, uint32_t component_type) {
-  return getTypeVector(context, component_type, 3u);
+const Type *Type::getVec3(SPIRVContext &context, uint32_t component_type) {
+  return getVector(context, component_type, 3u);
 }
-const Type *Type::getTypeVec4(SPIRVContext &context, uint32_t component_type) {
-  return getTypeVector(context, component_type, 4u);
+const Type *Type::getVec4(SPIRVContext &context, uint32_t component_type) {
+  return getVector(context, component_type, 4u);
 }
-const Type *Type::getTypeMatrix(SPIRVContext &context, uint32_t column_type_id,
-                                uint32_t column_count) {
+const Type *Type::getMatrix(SPIRVContext &context, uint32_t column_type_id,
+                            uint32_t column_count) {
   Type t = Type(spv::Op::OpTypeMatrix, {column_type_id, column_count});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeImage(SPIRVContext &context, uint32_t sampled_type,
-                               spv::Dim dim, uint32_t depth, uint32_t arrayed,
-                               uint32_t ms, uint32_t sampled,
-                               spv::ImageFormat image_format,
-                               Option<spv::AccessQualifier> access_qualifier) {
+const Type *
+Type::getImage(SPIRVContext &context, uint32_t sampled_type, spv::Dim dim,
+               uint32_t depth, uint32_t arrayed, uint32_t ms, uint32_t sampled,
+               spv::ImageFormat image_format,
+               llvm::Optional<spv::AccessQualifier> access_qualifier) {
   std::vector<uint32_t> args = {
       sampled_type, uint32_t(dim),         depth, arrayed, ms,
       sampled,      uint32_t(image_format)};
-  if (access_qualifier.isSome()) {
-    args.push_back(static_cast<uint32_t>(access_qualifier.unwrap()));
+  if (access_qualifier.hasValue()) {
+    args.push_back(static_cast<uint32_t>(access_qualifier.getValue()));
   }
   Type t = Type(spv::Op::OpTypeImage, args);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeSampler(SPIRVContext &context) {
+const Type *Type::getSampler(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeSampler);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeSampledImage(SPIRVContext &context,
-                                      uint32_t image_type_id) {
+const Type *Type::getSampledImage(SPIRVContext &context,
+                                  uint32_t image_type_id) {
   Type t = Type(spv::Op::OpTypeSampledImage, {image_type_id});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeArray(SPIRVContext &context,
-                               uint32_t component_type_id, uint32_t len_id) {
+const Type *Type::getArray(SPIRVContext &context, uint32_t component_type_id,
+                           uint32_t len_id) {
   Type t = Type(spv::Op::OpTypeArray, {component_type_id, len_id});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeRuntimeArray(SPIRVContext &context,
-                                      uint32_t component_type_id) {
+const Type *Type::getRuntimeArray(SPIRVContext &context,
+                                  uint32_t component_type_id) {
   Type t = Type(spv::Op::OpTypeRuntimeArray, {component_type_id});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeStruct(SPIRVContext &context,
-                                std::initializer_list<uint32_t> members) {
+const Type *Type::getStruct(SPIRVContext &context,
+                            std::initializer_list<uint32_t> members) {
   Type t = Type(spv::Op::OpTypeStruct, std::vector<uint32_t>(members));
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeOpaque(SPIRVContext &context, std::string name) {
-  Type t = Type(spv::Op::OpTypeOpaque, utils::reinterpretStringAsUintVec(name));
+const Type *Type::getOpaque(SPIRVContext &context, std::string name) {
+  Type t = Type(spv::Op::OpTypeOpaque, utils::encodeSPIRVString(name));
   return getUniqueType(context, t);
 }
 const Type *Type::getTyePointer(SPIRVContext &context,
@@ -145,42 +141,42 @@ const Type *Type::getTyePointer(SPIRVContext &context,
                 {static_cast<uint32_t>(storage_class), type});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeFunction(SPIRVContext &context, uint32_t return_type,
-                                  std::initializer_list<uint32_t> params) {
+const Type *Type::getFunction(SPIRVContext &context, uint32_t return_type,
+                              std::initializer_list<uint32_t> params) {
   std::vector<uint32_t> args = {return_type};
   args.insert(args.end(), params.begin(), params.end());
   Type t = Type(spv::Op::OpTypeFunction, args);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeEvent(SPIRVContext &context) {
+const Type *Type::getEvent(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeEvent);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeDeviceEvent(SPIRVContext &context) {
+const Type *Type::getDeviceEvent(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeDeviceEvent);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeQueue(SPIRVContext &context) {
+const Type *Type::getQueue(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeQueue);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypePipe(SPIRVContext &context,
-                              spv::AccessQualifier qualifier) {
+const Type *Type::getPipe(SPIRVContext &context,
+                          spv::AccessQualifier qualifier) {
   Type t = Type(spv::Op::OpTypePipe, {static_cast<uint32_t>(qualifier)});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeForwardPointer(SPIRVContext &context,
-                                        uint32_t pointer_type,
-                                        spv::StorageClass storage_class) {
+const Type *Type::getForwardPointer(SPIRVContext &context,
+                                    uint32_t pointer_type,
+                                    spv::StorageClass storage_class) {
   Type t = Type(spv::Op::OpTypeForwardPointer,
                 {pointer_type, static_cast<uint32_t>(storage_class)});
   return getUniqueType(context, t);
 }
-const Type *Type::getTypePipeStorage(SPIRVContext &context) {
+const Type *Type::getPipeStorage(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypePipeStorage);
   return getUniqueType(context, t);
 }
-const Type *Type::getTypeNamedBarrier(SPIRVContext &context) {
+const Type *Type::getNamedBarrier(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeNamedBarrier);
   return getUniqueType(context, t);
 }
@@ -190,42 +186,22 @@ const Type *Type::getType(SPIRVContext &context, spv::Op op,
   Type t = Type(op, arg, dec);
   return getUniqueType(context, t);
 }
-bool Type::isBooleanType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeBool;
+bool Type::isBooleanType() const { return opcode == spv::Op::OpTypeBool; }
+bool Type::isIntegerType() const { return opcode == spv::Op::OpTypeInt; }
+bool Type::isFloatType() const { return opcode == spv::Op::OpTypeFloat; }
+bool Type::isNumericalType() const { return isFloatType() || isIntegerType(); }
+bool Type::isScalarType() const { return isBooleanType() || isNumericalType(); }
+bool Type::isVectorType() const { return opcode == spv::Op::OpTypeVector; }
+bool Type::isMatrixType() const { return opcode == spv::Op::OpTypeMatrix; }
+bool Type::isArrayType() const { return opcode == spv::Op::OpTypeArray; }
+bool Type::isStructureType() const { return opcode == spv::Op::OpTypeStruct; }
+bool Type::isAggregateType() const {
+  return isStructureType() || isArrayType();
 }
-bool Type::isIntegerType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeInt;
+bool Type::isCompositeType() const {
+  return isAggregateType() || isMatrixType() || isVectorType();
 }
-bool Type::isFloatType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeFloat;
-}
-bool Type::isNumericalType(const Type *t) {
-  return isFloatType(t) || isIntegerType(t);
-}
-bool Type::isScalarType(const Type *t) {
-  return isBooleanType(t) || isNumericalType(t);
-}
-bool Type::isVectorType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeVector;
-}
-bool Type::isMatrixType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeMatrix;
-}
-bool Type::isArrayType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeArray;
-}
-bool Type::isStructureType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeStruct;
-}
-bool Type::isAggregateType(const Type *t) {
-  return isStructureType(t) || isArrayType(t);
-}
-bool Type::isCompositeType(const Type *t) {
-  return isAggregateType(t) || isMatrixType(t) || isVectorType(t);
-}
-bool Type::isImageType(const Type *t) {
-  return t->getOpcode() == spv::Op::OpTypeImage;
-}
+bool Type::isImageType() const { return opcode == spv::Op::OpTypeImage; }
 
 } // end namespace spirv
 } // end namespace clang

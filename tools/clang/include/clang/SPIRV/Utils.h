@@ -1,4 +1,4 @@
-//===-- Utils.h - SPIR-V Utils --------*- C++-*----------------------------===//
+//===-- Utils.h - SPIR-V Utils ----------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -16,14 +16,14 @@ namespace clang {
 namespace spirv {
 namespace utils {
 
-/// \brief Reinterprets a given string as sequence of words.
-/// Assumes Little Endian architecture.
-std::vector<uint32_t> reinterpretStringAsUintVec(std::string s);
-  
+/// \brief Reinterprets a given string as sequence of words. It follows the
+/// SPIR-V string encoding requirements.
+std::vector<uint32_t> encodeSPIRVString(std::string s);
+
 /// \brief Reinterprets the given vector of 32-bit words as a string.
 /// Expectes that the words represent a NULL-terminated string.
-/// Assumes Little Endian architecture.
-std::string reinterpretUintVecAsString(std::vector<uint32_t>& vec);
+/// It follows the SPIR-V string encoding requirements.
+std::string decodeSPIRVString(std::vector<uint32_t> &vec);
 
 } // end namespace utils
 } // end namespace spirv

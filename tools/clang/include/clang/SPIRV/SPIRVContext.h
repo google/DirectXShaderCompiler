@@ -27,7 +27,7 @@ struct TypeHash {
 struct DecorationHash {
   std::size_t operator()(const Decoration &d) const {
     // TODO: We could probably improve this hash function if needed.
-    return std::hash<uint32_t>{}(static_cast<uint32_t>(d.getDecorationType()));
+    return std::hash<uint32_t>{}(static_cast<uint32_t>(d.getValue()));
   }
 };
 
@@ -44,43 +44,47 @@ public:
   SPIRVContext &operator=(const SPIRVContext &) = delete;
   SPIRVContext &operator=(SPIRVContext &&) = delete;
 
-  inline uint32_t GetNextId() const;
-  inline uint32_t TakeNextId();
+  inline uint32_t getNextId() const;
+  inline uint32_t takeNextId();
 
-  /// \brief Returns the ResultID that defines the given Type. If the type
+  /// \brief Returns the <result-id> that defines the given Type. If the type
   /// has not been defined, it will define and store its instruction.
-  /// The 'next_id_func' will be called to get the ResultID for the type.
-  uint32_t GetResultIdForType(const Type *t,
-                              std::function<uint32_t()> next_id_func);
+  uint32_t getResultIdForType(const Type *);
 
   /// \brief Returns the instruction that defined the given Type.
-  /// If no ResultID has been associated with this Type (not defined yet),
+  /// If no <result-id> has been associated with this Type (not defined yet),
   /// the instruction will be created, registered, and returned.
-  /// The 'next_id_func' will be called to get the result_id for the type.
-  const std::vector<uint32_t> &
-  GetInstrForType(const Type *t, std::function<uint32_t()> next_id_func);
+  const std::vector<uint32_t> &getInstrForType(const Type *);
 
-  // All the unique types defined in the current context.
-  std::unordered_set<Type, TypeHash> ExistingTypes;
+  /// \brief Registers the existence of the given type in the current context,
+  /// and returns the unique Type pointer.
+  const Type *registerType(Type &);
 
-  // All the unique Decorations defined in the current context.
-  std::unordered_set<Decoration, DecorationHash> ExistingDecorations;
+  /// \brief Registers the existence of the given decoration in the current
+  /// context, and returns the unique Decoration pointer.
+  const Decoration *registerDecoration(Decoration &);
 
 private:
-  uint32_t NextId;
+  uint32_t nextId;
 
-  // Maps a ResultID to its SPIR-V instruction.
-  std::unordered_map<uint32_t, std::vector<uint32_t>> IdToInstructionMap;
+  /// \brief All the unique Decorations defined in the current context.
+  std::unordered_set<Decoration, DecorationHash> existingDecorations;
 
-  // Maps a given type to the ResultID that is defined for
-  // that type. If a Type* does not exist in the map, the type
-  // is not yet defined and is not associated with a ResultID.
-  std::unordered_map<const Type *, uint32_t> TypeResultIdMap;
+  /// \brief All the unique types defined in the current context.
+  std::unordered_set<Type, TypeHash> existingTypes;
+
+  /// \brief Maps a <result-id> to its SPIR-V instruction.
+  std::unordered_map<uint32_t, std::vector<uint32_t>> idToInstructionMap;
+
+  /// \brief Maps a given type to the <result-id> that is defined for
+  /// that type. If a Type* does not exist in the map, the type
+  /// is not yet defined and is not associated with a <result-id>.
+  std::unordered_map<const Type *, uint32_t> typeResultIdMap;
 };
 
-SPIRVContext::SPIRVContext() : NextId(1) {}
-uint32_t SPIRVContext::GetNextId() const { return NextId; }
-uint32_t SPIRVContext::TakeNextId() { return NextId++; }
+SPIRVContext::SPIRVContext() : nextId(1) {}
+uint32_t SPIRVContext::getNextId() const { return nextId; }
+uint32_t SPIRVContext::takeNextId() { return nextId++; }
 
 } // end namespace spirv
 } // end namespace clang

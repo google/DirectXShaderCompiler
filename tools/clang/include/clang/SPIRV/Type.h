@@ -1,4 +1,4 @@
-//===-- Type.h - SPIR-V Type --*- C++-*------------------------------------===//
+//===-- Type.h - SPIR-V Type ------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -14,85 +14,93 @@
 #include <vector>
 
 #include "clang/SPIRV/Decoration.h"
-#include "clang/SPIRV/Option.h"
 #include "clang/SPIRV/spirv.hpp"
+#include "llvm/ADT/Optional.h"
 
 namespace clang {
 namespace spirv {
 
 class SPIRVContext;
 
+/// \brief SPIR-V Type
+///
+/// This class defines a unique SPIR-V Type.
+/// A SPIR-V Type includes its <opcode> defined by the SPIR-V Spec.
+/// It also incldues any arguments (32-bit words) needed to define the
+/// type. It also includes a set of decorations that are applied to that type.
+///
+/// The class includes static getXXX(...) functions for getting pointers of any
+/// needed type. A unique type has a unique pointer (e.g. calling
+/// 'getBoolean' function will always return the same pointer for the given
+/// context)
 class Type {
 public:
   spv::Op getOpcode() const { return opcode; }
   const std::vector<uint32_t> &getArgs() const { return args; }
-  bool isBooleanType(const Type *t);
-  bool isIntegerType(const Type *t);
-  bool isFloatType(const Type *t);
-  bool isNumericalType(const Type *t);
-  bool isScalarType(const Type *t);
-  bool isVectorType(const Type *t);
-  bool isMatrixType(const Type *t);
-  bool isArrayType(const Type *t);
-  bool isStructureType(const Type *t);
-  bool isAggregateType(const Type *t);
-  bool isCompositeType(const Type *t);
-  bool isImageType(const Type *t);
+  bool isBooleanType() const;
+  bool isIntegerType() const;
+  bool isFloatType() const;
+  bool isNumericalType() const;
+  bool isScalarType() const;
+  bool isVectorType() const;
+  bool isMatrixType() const;
+  bool isArrayType() const;
+  bool isStructureType() const;
+  bool isAggregateType() const;
+  bool isCompositeType() const;
+  bool isImageType() const;
 
   static const Type *getType(SPIRVContext &ctx, spv::Op op,
                              std::vector<uint32_t> arg = {},
                              std::set<const Decoration *> decs = {});
 
-  static const Type *getTypeVoid(SPIRVContext &ctx);
-  static const Type *getTypeBool(SPIRVContext &ctx);
-  static const Type *getTypeInt8(SPIRVContext &ctx);
-  static const Type *getTypeUnsignedInt8(SPIRVContext &ctx);
-  static const Type *getTypeInt16(SPIRVContext &ctx);
-  static const Type *getTypeUnsignedInt16(SPIRVContext &ctx);
-  static const Type *getTypeInt32(SPIRVContext &ctx);
-  static const Type *getTypeUnsignedInt32(SPIRVContext &ctx);
-  static const Type *getTypeInt64(SPIRVContext &ctx);
-  static const Type *getTypeUnsignedInt64(SPIRVContext &ctx);
-  static const Type *getTypeFloat16(SPIRVContext &ctx);
-  static const Type *getTypeFloat32(SPIRVContext &ctx);
-  static const Type *getTypeFloat64(SPIRVContext &ctx);
-  static const Type *getTypeVector(SPIRVContext &ctx, uint32_t component_type,
-                                   uint32_t vec_size);
-  static const Type *getTypeVec2(SPIRVContext &ctx, uint32_t component_type);
-  static const Type *getTypeVec3(SPIRVContext &ctx, uint32_t component_type);
-  static const Type *getTypeVec4(SPIRVContext &ctx, uint32_t component_type);
-  static const Type *getTypeMatrix(SPIRVContext &ctx, uint32_t column_type_id,
-                                   uint32_t column_count);
+  static const Type *getVoid(SPIRVContext &ctx);
+  static const Type *getBool(SPIRVContext &ctx);
+  static const Type *getInt8(SPIRVContext &ctx);
+  static const Type *getUnsignedInt8(SPIRVContext &ctx);
+  static const Type *getInt16(SPIRVContext &ctx);
+  static const Type *getUnsignedInt16(SPIRVContext &ctx);
+  static const Type *getInt32(SPIRVContext &ctx);
+  static const Type *getUnsignedInt32(SPIRVContext &ctx);
+  static const Type *getInt64(SPIRVContext &ctx);
+  static const Type *getUnsignedInt64(SPIRVContext &ctx);
+  static const Type *getFloat16(SPIRVContext &ctx);
+  static const Type *getFloat32(SPIRVContext &ctx);
+  static const Type *getFloat64(SPIRVContext &ctx);
+  static const Type *getVector(SPIRVContext &ctx, uint32_t component_type,
+                               uint32_t vec_size);
+  static const Type *getVec2(SPIRVContext &ctx, uint32_t component_type);
+  static const Type *getVec3(SPIRVContext &ctx, uint32_t component_type);
+  static const Type *getVec4(SPIRVContext &ctx, uint32_t component_type);
+  static const Type *getMatrix(SPIRVContext &ctx, uint32_t column_type_id,
+                               uint32_t column_count);
   static const Type *
-  getTypeImage(SPIRVContext &ctx, uint32_t sampled_type, spv::Dim dim,
-               uint32_t depth, uint32_t arrayed, uint32_t ms, uint32_t sampled,
-               spv::ImageFormat image_format,
-               Option<spv::AccessQualifier> access_qualifier);
-  static const Type *getTypeSampler(SPIRVContext &ctx);
-  static const Type *getTypeSampledImage(SPIRVContext &ctx,
-                                         uint32_t imag_type_id);
-  static const Type *getTypeArray(SPIRVContext &ctx, uint32_t component_type_id,
-                                  uint32_t len_id);
-  static const Type *getTypeRuntimeArray(SPIRVContext &ctx,
-                                         uint32_t component_type_id);
-  static const Type *getTypeStruct(SPIRVContext &ctx,
-                                   std::initializer_list<uint32_t> members);
-  static const Type *getTypeOpaque(SPIRVContext &ctx, std::string name);
+  getImage(SPIRVContext &ctx, uint32_t sampled_type, spv::Dim dim,
+           uint32_t depth, uint32_t arrayed, uint32_t ms, uint32_t sampled,
+           spv::ImageFormat image_format,
+           llvm::Optional<spv::AccessQualifier> access_qualifier);
+  static const Type *getSampler(SPIRVContext &ctx);
+  static const Type *getSampledImage(SPIRVContext &ctx, uint32_t imag_type_id);
+  static const Type *getArray(SPIRVContext &ctx, uint32_t component_type_id,
+                              uint32_t len_id);
+  static const Type *getRuntimeArray(SPIRVContext &ctx,
+                                     uint32_t component_type_id);
+  static const Type *getStruct(SPIRVContext &ctx,
+                               std::initializer_list<uint32_t> members);
+  static const Type *getOpaque(SPIRVContext &ctx, std::string name);
   static const Type *getTyePointer(SPIRVContext &ctx,
                                    spv::StorageClass storage_class,
                                    uint32_t type);
-  static const Type *getTypeFunction(SPIRVContext &ctx, uint32_t return_type,
-                                     std::initializer_list<uint32_t> params);
-  static const Type *getTypeEvent(SPIRVContext &ctx);
-  static const Type *getTypeDeviceEvent(SPIRVContext &ctx);
-  static const Type *getTypeQueue(SPIRVContext &ctx);
-  static const Type *getTypePipe(SPIRVContext &ctx,
-                                 spv::AccessQualifier qualifier);
-  static const Type *getTypeForwardPointer(SPIRVContext &ctx,
-                                           uint32_t pointer_type,
-                                           spv::StorageClass storage_class);
-  static const Type *getTypePipeStorage(SPIRVContext &ctx);
-  static const Type *getTypeNamedBarrier(SPIRVContext &ctx);
+  static const Type *getFunction(SPIRVContext &ctx, uint32_t return_type,
+                                 std::initializer_list<uint32_t> params);
+  static const Type *getEvent(SPIRVContext &ctx);
+  static const Type *getDeviceEvent(SPIRVContext &ctx);
+  static const Type *getQueue(SPIRVContext &ctx);
+  static const Type *getPipe(SPIRVContext &ctx, spv::AccessQualifier qualifier);
+  static const Type *getForwardPointer(SPIRVContext &ctx, uint32_t pointer_type,
+                                       spv::StorageClass storage_class);
+  static const Type *getPipeStorage(SPIRVContext &ctx);
+  static const Type *getNamedBarrier(SPIRVContext &ctx);
 
   bool operator==(const Type &other) const {
     return opcode == other.opcode && args == other.args &&
@@ -100,16 +108,17 @@ public:
   }
 
 private:
+  /// \brief Private constructor.
   Type(spv::Op op, std::vector<uint32_t> arg = {},
        std::set<const Decoration *> dec = {});
 
-  // Uses ExistingTypes to return an unique type.
-  static const Type *getUniqueType(SPIRVContext &context, Type &t);
+  /// \brief Returns the unique Type pointer within the given context.
+  static const Type *getUniqueType(SPIRVContext &, Type &);
 
-  // Private members that define a unique SPIR-V type.
-  spv::Op opcode;
-  std::vector<uint32_t> args;
-  std::set<const Decoration *> decorations;
+private:
+  spv::Op opcode;             ///< OpCode of the Type defined in SPIR-V Spec
+  std::vector<uint32_t> args; ///< Arguments needed to define the type
+  std::set<const Decoration *> decorations; ///< decorations applied to the type
 };
 
 } // end namespace spirv
