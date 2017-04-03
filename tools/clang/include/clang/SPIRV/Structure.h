@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "spirv/1.0/spirv.hpp11"
 #include "clang/SPIRV/InstBuilder.h"
-#include "clang/SPIRV/spirv.hpp"
 #include "llvm/ADT/Optional.h"
 
 namespace clang {

@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "clang/SPIRV/spirv.hpp"
+#include "spirv/1.0/spirv.hpp11"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 
@@ -123,8 +123,6 @@ public:
   static const Decoration *getInputAttachmentIndex(SPIRVContext &ctx,
                                                    uint32_t index);
   static const Decoration *getAlignment(SPIRVContext &ctx, uint32_t alignment);
-  static const Decoration *getMaxByteOffset(SPIRVContext &ctx,
-                                            uint32_t max_byte_offset);
   static const Decoration *getOverrideCoverageNV(SPIRVContext &ctx);
   static const Decoration *getPassthroughNV(SPIRVContext &ctx);
   static const Decoration *getViewportRelativeNV(SPIRVContext &ctx);
@@ -141,7 +139,7 @@ public:
 private:
   /// \brief prevent public APIs from creating Decoration objects.
   Decoration(spv::Decoration dec_id, llvm::SmallVector<uint32_t, 2> arg = {},
-    llvm::Optional<uint32_t> idx = llvm::None)
+             llvm::Optional<uint32_t> idx = llvm::None)
       : id(dec_id), args(arg), memberIndex(idx) {}
 
   /// \brief Sets the index of the structure member to which the decoration

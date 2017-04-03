@@ -10,7 +10,6 @@
 #include "clang/SPIRV/Decoration.h"
 #include "clang/SPIRV/SPIRVContext.h"
 #include "clang/SPIRV/Utils.h"
-#include "clang/SPIRV/spirv.hpp"
 #include "llvm/llvm_assert/assert.h"
 
 namespace clang {
@@ -258,11 +257,6 @@ const Decoration *Decoration::getInputAttachmentIndex(SPIRVContext &context,
 const Decoration *Decoration::getAlignment(SPIRVContext &context,
                                            uint32_t alignment) {
   Decoration d = Decoration(spv::Decoration::Alignment, {alignment});
-  return getUniqueDecoration(context, d);
-}
-const Decoration *Decoration::getMaxByteOffset(SPIRVContext &context,
-                                               uint32_t max_byte_offset) {
-  Decoration d = Decoration(spv::Decoration::MaxByteOffset, {max_byte_offset});
   return getUniqueDecoration(context, d);
 }
 const Decoration *Decoration::getOverrideCoverageNV(SPIRVContext &context) {
