@@ -29,7 +29,7 @@ void ModuleBuilder::BeginModule() { GenHeader(); }
 
 void ModuleBuilder::EndModule() {
   assert(!TheModule.empty() && "BeginModule() not called before EndModule()");
-  TheModule[kBoundIndex] = TheContext.GetNextId();
+  TheModule[kBoundIndex] = TheContext.getNextId();
 }
 std::vector<uint32_t> ModuleBuilder::TakeModule() {
   return std::move(TheModule);
