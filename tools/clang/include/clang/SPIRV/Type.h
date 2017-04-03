@@ -13,8 +13,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "spirv/1.0/spirv.hpp11"
 #include "clang/SPIRV/Decoration.h"
-#include "clang/SPIRV/spirv.hpp"
 #include "llvm/ADT/Optional.h"
 
 namespace clang {
@@ -100,8 +100,6 @@ public:
   static const Type *getPipe(SPIRVContext &ctx, spv::AccessQualifier qualifier);
   static const Type *getForwardPointer(SPIRVContext &ctx, uint32_t pointer_type,
                                        spv::StorageClass storage_class);
-  static const Type *getPipeStorage(SPIRVContext &ctx);
-  static const Type *getNamedBarrier(SPIRVContext &ctx);
 
   bool operator==(const Type &other) const {
     return opcode == other.opcode && args == other.args &&

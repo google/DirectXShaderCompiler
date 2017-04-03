@@ -172,14 +172,6 @@ const Type *Type::getForwardPointer(SPIRVContext &context,
                 {pointer_type, static_cast<uint32_t>(storage_class)});
   return getUniqueType(context, t);
 }
-const Type *Type::getPipeStorage(SPIRVContext &context) {
-  Type t = Type(spv::Op::OpTypePipeStorage);
-  return getUniqueType(context, t);
-}
-const Type *Type::getNamedBarrier(SPIRVContext &context) {
-  Type t = Type(spv::Op::OpTypeNamedBarrier);
-  return getUniqueType(context, t);
-}
 const Type *Type::getType(SPIRVContext &context, spv::Op op,
                           std::vector<uint32_t> arg,
                           std::set<const Decoration *> dec) {
