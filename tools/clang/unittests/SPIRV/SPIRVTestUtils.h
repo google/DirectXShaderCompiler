@@ -19,7 +19,7 @@
 #include "gtest/gtest.h"
 
 #include "clang/SPIRV/InstBuilder.h"
-#include "clang/SPIRV/spirv.hpp"
+#include "spirv/1.0/spirv.hpp11"
 
 namespace clang {
 namespace spirv {

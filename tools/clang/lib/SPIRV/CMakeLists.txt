@@ -19,3 +19,5 @@ add_clang_library(clangSPIRV
   clangFrontend
   clangLex
   )
+
+target_include_directories(clangSPIRV PUBLIC ${SPIRV_HEADER_INCLUDE_DIR})

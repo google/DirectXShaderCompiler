@@ -8,7 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/SPIRV/ModuleBuilder.h"
-#include "clang/SPIRV/spirv.hpp"
+#include "spirv/1.0/spirv.hpp11"
 
 #include "SPIRVTestUtils.h"
 

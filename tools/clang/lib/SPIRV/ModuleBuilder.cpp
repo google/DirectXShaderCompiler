@@ -10,8 +10,8 @@
 #include "clang/SPIRV/ModuleBuilder.h"
 
 #include "clang/SPIRV/InstBuilder.h"
-#include "clang/SPIRV/spirv.hpp"
 #include "llvm/llvm_assert/assert.h"
+#include "spirv/1.0//spirv.hpp11"
 
 namespace clang {
 namespace spirv {

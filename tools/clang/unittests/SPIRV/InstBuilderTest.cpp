@@ -67,12 +67,15 @@ TEST(InstBuilder, InstWBitEnumParams) {
 TEST(InstBuilder, InstWBitEnumParamsNeedAdditionalParams) {
   std::vector<uint32_t> result;
   auto ib = constructInstBuilder(result);
-  // DependencyLength requires an additional literal integer.
-  auto control =
-      spv::LoopControlMask::Unroll | spv::LoopControlMask::DependencyLength;
-  expectBuildSuccess(ib.opLoopMerge(1, 2, control).literalInteger(10).x());
-  auto expected = constructInst(spv::Op::OpLoopMerge,
-                                {1, 2, static_cast<uint32_t>(control), 10});
+  // Aligned requires an additional literal integer.
+  auto access =
+      spv::MemoryAccessMask::Nontemporal | spv::MemoryAccessMask::Aligned;
+  expectBuildSuccess(
+      ib.opStore(1, 2, llvm::Optional<spv::MemoryAccessMask>(access))
+          .literalInteger(16)
+          .x());
+  auto expected = constructInst(spv::Op::OpStore,
+                                {1, 2, static_cast<uint32_t>(access), 16});
   EXPECT_THAT(result, ContainerEq(expected));
 }
 

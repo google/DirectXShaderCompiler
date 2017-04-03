@@ -16,13 +16,12 @@
 namespace clang {
 namespace spirv {
 
+static_assert(spv::Version == 0x00010000 && spv::Revision == 10,
+              "Needs to regenerate outdated InstBuilder");
+
 namespace {
 inline bool bitEnumContains(spv::ImageOperandsMask bits,
                             spv::ImageOperandsMask bit) {
-  return (uint32_t(bits) & uint32_t(bit)) != 0;
-}
-inline bool bitEnumContains(spv::LoopControlMask bits,
-                            spv::LoopControlMask bit) {
   return (uint32_t(bits) & uint32_t(bit)) != 0;
 }
 inline bool bitEnumContains(spv::MemoryAccessMask bits,
@@ -5449,7 +5448,7 @@ InstBuilder &InstBuilder::opLoopMerge(uint32_t merge_block,
   TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpLoopMerge));
   TheInst.emplace_back(merge_block);
   TheInst.emplace_back(continue_target);
-  encodeLoopControl(loop_control);
+  TheInst.emplace_back(static_cast<uint32_t>(loop_control));
 
   return *this;
 }
@@ -7169,235 +7168,6 @@ InstBuilder &InstBuilder::opImageSparseRead(
   return *this;
 }
 
-InstBuilder &InstBuilder::opSizeOf(uint32_t result_type, uint32_t result_id,
-                                   uint32_t pointer) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_type == 0) {
-    TheStatus = Status::ZeroResultType;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(4);
-  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpSizeOf));
-  TheInst.emplace_back(result_type);
-  TheInst.emplace_back(result_id);
-  TheInst.emplace_back(pointer);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opTypePipeStorage(uint32_t result_id) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(2);
-  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpTypePipeStorage));
-  TheInst.emplace_back(result_id);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opConstantPipeStorage(uint32_t result_type,
-                                                uint32_t result_id,
-                                                uint32_t packet_size,
-                                                uint32_t packet_alignment,
-                                                uint32_t capacity) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_type == 0) {
-    TheStatus = Status::ZeroResultType;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(6);
-  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpConstantPipeStorage));
-  TheInst.emplace_back(result_type);
-  TheInst.emplace_back(result_id);
-  TheInst.emplace_back(packet_size);
-  TheInst.emplace_back(packet_alignment);
-  TheInst.emplace_back(capacity);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opCreatePipeFromPipeStorage(uint32_t result_type,
-                                                      uint32_t result_id,
-                                                      uint32_t pipe_storage) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_type == 0) {
-    TheStatus = Status::ZeroResultType;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(4);
-  TheInst.emplace_back(
-      static_cast<uint32_t>(spv::Op::OpCreatePipeFromPipeStorage));
-  TheInst.emplace_back(result_type);
-  TheInst.emplace_back(result_id);
-  TheInst.emplace_back(pipe_storage);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opGetKernelLocalSizeForSubgroupCount(
-    uint32_t result_type, uint32_t result_id, uint32_t subgroup_count,
-    uint32_t invoke, uint32_t param, uint32_t param_size,
-    uint32_t param_align) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_type == 0) {
-    TheStatus = Status::ZeroResultType;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(8);
-  TheInst.emplace_back(
-      static_cast<uint32_t>(spv::Op::OpGetKernelLocalSizeForSubgroupCount));
-  TheInst.emplace_back(result_type);
-  TheInst.emplace_back(result_id);
-  TheInst.emplace_back(subgroup_count);
-  TheInst.emplace_back(invoke);
-  TheInst.emplace_back(param);
-  TheInst.emplace_back(param_size);
-  TheInst.emplace_back(param_align);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opGetKernelMaxNumSubgroups(
-    uint32_t result_type, uint32_t result_id, uint32_t invoke, uint32_t param,
-    uint32_t param_size, uint32_t param_align) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_type == 0) {
-    TheStatus = Status::ZeroResultType;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(7);
-  TheInst.emplace_back(
-      static_cast<uint32_t>(spv::Op::OpGetKernelMaxNumSubgroups));
-  TheInst.emplace_back(result_type);
-  TheInst.emplace_back(result_id);
-  TheInst.emplace_back(invoke);
-  TheInst.emplace_back(param);
-  TheInst.emplace_back(param_size);
-  TheInst.emplace_back(param_align);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opTypeNamedBarrier(uint32_t result_id) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(2);
-  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpTypeNamedBarrier));
-  TheInst.emplace_back(result_id);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opNamedBarrierInitialize(uint32_t result_type,
-                                                   uint32_t result_id,
-                                                   uint32_t subgroup_count) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-  if (result_type == 0) {
-    TheStatus = Status::ZeroResultType;
-    return *this;
-  }
-  if (result_id == 0) {
-    TheStatus = Status::ZeroResultId;
-    return *this;
-  }
-
-  TheInst.reserve(4);
-  TheInst.emplace_back(
-      static_cast<uint32_t>(spv::Op::OpNamedBarrierInitialize));
-  TheInst.emplace_back(result_type);
-  TheInst.emplace_back(result_id);
-  TheInst.emplace_back(subgroup_count);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opMemoryNamedBarrier(uint32_t named_barrier,
-                                               uint32_t memory,
-                                               uint32_t semantics) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-
-  TheInst.reserve(4);
-  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpMemoryNamedBarrier));
-  TheInst.emplace_back(named_barrier);
-  TheInst.emplace_back(memory);
-  TheInst.emplace_back(semantics);
-
-  return *this;
-}
-
-InstBuilder &InstBuilder::opModuleProcessed(std::string process) {
-  if (!TheInst.empty()) {
-    TheStatus = Status::NestedInst;
-    return *this;
-  }
-
-  TheInst.reserve(2);
-  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpModuleProcessed));
-  encodeString(process);
-
-  return *this;
-}
-
 InstBuilder &InstBuilder::opSubgroupBallotKHR(uint32_t result_type,
                                               uint32_t result_id,
                                               uint32_t predicate) {
@@ -7581,13 +7351,6 @@ void InstBuilder::encodeImageOperands(spv::ImageOperandsMask value) {
   TheInst.emplace_back(static_cast<uint32_t>(value));
 }
 
-void InstBuilder::encodeLoopControl(spv::LoopControlMask value) {
-  if (bitEnumContains(value, spv::LoopControlMask::DependencyLength)) {
-    Expectation.emplace_back(OperandKind::LiteralInteger);
-  }
-  TheInst.emplace_back(static_cast<uint32_t>(value));
-}
-
 void InstBuilder::encodeMemoryAccess(spv::MemoryAccessMask value) {
   if (bitEnumContains(value, spv::MemoryAccessMask::Aligned)) {
     Expectation.emplace_back(OperandKind::LiteralInteger);
@@ -7614,12 +7377,6 @@ void InstBuilder::encodeExecutionMode(spv::ExecutionMode value) {
     Expectation.emplace_back(OperandKind::LiteralInteger);
   } break;
   case spv::ExecutionMode::VecTypeHint: {
-    Expectation.emplace_back(OperandKind::LiteralInteger);
-  } break;
-  case spv::ExecutionMode::SubgroupSize: {
-    Expectation.emplace_back(OperandKind::LiteralInteger);
-  } break;
-  case spv::ExecutionMode::SubgroupsPerWorkgroup: {
     Expectation.emplace_back(OperandKind::LiteralInteger);
   } break;
   default:
@@ -7687,9 +7444,6 @@ void InstBuilder::encodeDecoration(spv::Decoration value) {
     Expectation.emplace_back(OperandKind::LiteralInteger);
   } break;
   case spv::Decoration::Alignment: {
-    Expectation.emplace_back(OperandKind::LiteralInteger);
-  } break;
-  case spv::Decoration::MaxByteOffset: {
     Expectation.emplace_back(OperandKind::LiteralInteger);
   } break;
   case spv::Decoration::SecondaryViewportRelativeNV: {
