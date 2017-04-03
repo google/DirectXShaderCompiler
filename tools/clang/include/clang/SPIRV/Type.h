@@ -32,11 +32,12 @@ class SPIRVContext;
 /// The class includes static getXXX(...) functions for getting pointers of any
 /// needed type. A unique type has a unique pointer (e.g. calling
 /// 'getBoolean' function will always return the same pointer for the given
-/// context)
+/// context).
 class Type {
 public:
   spv::Op getOpcode() const { return opcode; }
   const std::vector<uint32_t> &getArgs() const { return args; }
+
   bool isBooleanType() const;
   bool isIntegerType() const;
   bool isFloatType() const;
@@ -57,13 +58,13 @@ public:
   static const Type *getVoid(SPIRVContext &ctx);
   static const Type *getBool(SPIRVContext &ctx);
   static const Type *getInt8(SPIRVContext &ctx);
-  static const Type *getUnsignedInt8(SPIRVContext &ctx);
+  static const Type *getUint8(SPIRVContext &ctx);
   static const Type *getInt16(SPIRVContext &ctx);
-  static const Type *getUnsignedInt16(SPIRVContext &ctx);
+  static const Type *getUint16(SPIRVContext &ctx);
   static const Type *getInt32(SPIRVContext &ctx);
-  static const Type *getUnsignedInt32(SPIRVContext &ctx);
+  static const Type *getUint32(SPIRVContext &ctx);
   static const Type *getInt64(SPIRVContext &ctx);
-  static const Type *getUnsignedInt64(SPIRVContext &ctx);
+  static const Type *getUint64(SPIRVContext &ctx);
   static const Type *getFloat16(SPIRVContext &ctx);
   static const Type *getFloat32(SPIRVContext &ctx);
   static const Type *getFloat64(SPIRVContext &ctx);
@@ -113,7 +114,7 @@ private:
        std::set<const Decoration *> dec = {});
 
   /// \brief Returns the unique Type pointer within the given context.
-  static const Type *getUniqueType(SPIRVContext &, Type &);
+  static const Type *getUniqueType(SPIRVContext &, const Type &);
 
 private:
   spv::Op opcode;             ///< OpCode of the Type defined in SPIR-V Spec

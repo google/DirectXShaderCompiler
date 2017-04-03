@@ -17,7 +17,7 @@ namespace clang {
 namespace spirv {
 
 const Decoration *Decoration::getUniqueDecoration(SPIRVContext &context,
-                                                  Decoration &d) {
+                                                  const Decoration &d) {
   return context.registerDecoration(d);
 }
 const Decoration *Decoration::getRelaxedPrecision(SPIRVContext &context) {

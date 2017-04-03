@@ -51,30 +51,25 @@ public:
   /// has not been defined, it will define and store its instruction.
   uint32_t getResultIdForType(const Type *);
 
-  /// \brief Returns the instruction that defined the given Type.
-  /// If no <result-id> has been associated with this Type (not defined yet),
-  /// the instruction will be created, registered, and returned.
-  const std::vector<uint32_t> &getInstrForType(const Type *);
-
   /// \brief Registers the existence of the given type in the current context,
   /// and returns the unique Type pointer.
-  const Type *registerType(Type &);
+  const Type *registerType(const Type &);
 
   /// \brief Registers the existence of the given decoration in the current
   /// context, and returns the unique Decoration pointer.
-  const Decoration *registerDecoration(Decoration &);
+  const Decoration *registerDecoration(const Decoration &);
 
 private:
+  using TypeSet = std::unordered_set<Type, TypeHash>;
+  using DecorationSet = std::unordered_set<Decoration, DecorationHash>;
+
   uint32_t nextId;
 
   /// \brief All the unique Decorations defined in the current context.
-  std::unordered_set<Decoration, DecorationHash> existingDecorations;
+  DecorationSet existingDecorations;
 
   /// \brief All the unique types defined in the current context.
-  std::unordered_set<Type, TypeHash> existingTypes;
-
-  /// \brief Maps a <result-id> to its SPIR-V instruction.
-  std::unordered_map<uint32_t, std::vector<uint32_t>> idToInstructionMap;
+  TypeSet existingTypes;
 
   /// \brief Maps a given type to the <result-id> that is defined for
   /// that type. If a Type* does not exist in the map, the type

@@ -18,6 +18,8 @@
 namespace clang {
 namespace spirv {
 
+class SPIRVContext;
+
 /// \brief SPIR-V Decoration.
 ///
 /// This class defines a unique SPIR-V Decoration.
@@ -29,14 +31,13 @@ namespace spirv {
 /// The class includes static getXXX(...) functions for getting pointers of any
 /// needed decoration. A unique Decoration has a unique pointer (e.g. calling
 /// 'getRelaxedPrecision' function will always return the same pointer for the
-/// given context)
-class SPIRVContext;
+/// given context).
 class Decoration {
 
 public:
   spv::Decoration getValue() const { return id; }
-  const llvm::SmallVectorImpl<uint32_t> &getArgs() const { return args; }
-  const llvm::Optional<uint32_t> getMemberIndex() const { return memberIndex; }
+  const llvm::SmallVector<uint32_t, 2> &getArgs() const { return args; }
+  llvm::Optional<uint32_t> getMemberIndex() const { return memberIndex; }
 
   static const Decoration *getRelaxedPrecision(SPIRVContext &ctx);
   static const Decoration *getSpecId(SPIRVContext &ctx, uint32_t id);
@@ -149,7 +150,7 @@ private:
 
   /// \brief Returns the unique decoration pointer within the given context.
   static const Decoration *getUniqueDecoration(SPIRVContext &ctx,
-                                               Decoration &d);
+                                               const Decoration &d);
 
 private:
   spv::Decoration id;                   ///< Defined by SPIR-V Spec

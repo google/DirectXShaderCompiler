@@ -18,7 +18,7 @@ Type::Type(spv::Op op, std::vector<uint32_t> arg,
            std::set<const Decoration *> decs)
     : opcode(op), args(arg), decorations(decs) {}
 
-const Type *Type::getUniqueType(SPIRVContext &context, Type &t) {
+const Type *Type::getUniqueType(SPIRVContext &context, const Type &t) {
   return context.registerType(t);
 }
 const Type *Type::getVoid(SPIRVContext &context) {
@@ -33,7 +33,7 @@ const Type *Type::getInt8(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {8, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUnsignedInt8(SPIRVContext &context) {
+const Type *Type::getUint8(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {8, 0});
   return getUniqueType(context, t);
 }
@@ -41,7 +41,7 @@ const Type *Type::getInt16(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {16, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUnsignedInt16(SPIRVContext &context) {
+const Type *Type::getUint16(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {16, 0});
   return getUniqueType(context, t);
 }
@@ -49,7 +49,7 @@ const Type *Type::getInt32(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {32, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUnsignedInt32(SPIRVContext &context) {
+const Type *Type::getUint32(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {32, 0});
   return getUniqueType(context, t);
 }
@@ -57,7 +57,7 @@ const Type *Type::getInt64(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {64, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUnsignedInt64(SPIRVContext &context) {
+const Type *Type::getUint64(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeInt, {64, 0});
   return getUniqueType(context, t);
 }

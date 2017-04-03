@@ -7,42 +7,38 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "gmock/gmock.h"
 #include "clang/SPIRV/Utils.h"
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace {
 
+using namespace clang::spirv;
 using ::testing::ElementsAre;
 
 TEST(Utils, EncodeEmptyString) {
   std::string str = "";
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(0u));
 }
 TEST(Utils, EncodeOneCharString) {
   std::string str = "m";
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(109u));
 }
 TEST(Utils, EncodeTwoCharString) {
   std::string str = "ma";
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(24941u));
 }
 TEST(Utils, EncodeThreeCharString) {
   std::string str = "mai";
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(6906221u));
 }
 TEST(Utils, EncodeFourCharString) {
   std::string str = "main";
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(1852399981u, 0u));
 }
 TEST(Utils, EncodeString) {
@@ -56,8 +52,7 @@ TEST(Utils, EncodeString) {
   // Hex      0          0          67          6E
   //          \0         \0          g           n
   std::string str = "TestString";
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
   EXPECT_THAT(words, ElementsAre(1953719636, 1769108563, 26478));
 }
 TEST(Utils, DecodeString) {
@@ -70,18 +65,17 @@ TEST(Utils, DecodeString) {
   // Bin  00000000   00000000    01100111    01101110 =  unsigned(26,478)
   // Hex      0          0          67          6E
   //          \0         \0          g           n
-  std::vector<uint32_t> words = { 1953719636, 1769108563, 26478 };
-  std::string str = clang::spirv::utils::decodeSPIRVString(words);
+  std::vector<uint32_t> words = {1953719636, 1769108563, 26478};
+  std::string str = utils::decodeSPIRVString(words);
   EXPECT_EQ(str, "TestString");
 }
 TEST(Utils, EncodeAndDecodeString) {
   std::string str = "TestString";
   // Convert to vector
-  std::vector<uint32_t> words =
-      clang::spirv::utils::encodeSPIRVString(str);
+  std::vector<uint32_t> words = utils::encodeSPIRVString(str);
 
   // Convert back to string
-  std::string result = clang::spirv::utils::decodeSPIRVString(words);
+  std::string result = utils::decodeSPIRVString(words);
 
   EXPECT_EQ(str, result);
 }
