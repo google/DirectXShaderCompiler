@@ -763,38 +763,4 @@ TEST(Type, DecoratedForwardPointer) {
   EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
-TEST(Type, PipeStorage) {
-  SPIRVContext ctx;
-  const Type *t = Type::getPipeStorage(ctx);
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypePipeStorage);
-  EXPECT_TRUE(t->getArgs().empty());
-  EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedPipeStorage) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getPipeStorage(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypePipeStorage);
-  EXPECT_TRUE(t->getArgs().empty());
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
-TEST(Type, NamedBarrier) {
-  SPIRVContext ctx;
-  const Type *t = Type::getNamedBarrier(ctx);
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeNamedBarrier);
-  EXPECT_TRUE(t->getArgs().empty());
-  EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedNamedBarrier) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getNamedBarrier(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeNamedBarrier);
-  EXPECT_TRUE(t->getArgs().empty());
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 } // anonymous namespace
