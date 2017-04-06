@@ -536,14 +536,6 @@ TEST(Decoration, Alignment) {
   EXPECT_THAT(dec->getArgs(), ElementsAre(1));
 }
 
-TEST(Decoration, MaxByteOffset) {
-  SPIRVContext ctx;
-  const Decoration *dec = Decoration::getMaxByteOffset(ctx, 1);
-  EXPECT_EQ(dec->getValue(), spv::Decoration::MaxByteOffset);
-  EXPECT_FALSE(dec->getMemberIndex().hasValue());
-  EXPECT_THAT(dec->getArgs(), ElementsAre(1));
-}
-
 TEST(Decoration, OverrideCoverageNV) {
   SPIRVContext ctx;
   const Decoration *dec = Decoration::getOverrideCoverageNV(ctx);
