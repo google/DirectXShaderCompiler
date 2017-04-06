@@ -21,56 +21,56 @@ Type::Type(spv::Op op, std::vector<uint32_t> arg,
 const Type *Type::getUniqueType(SPIRVContext &context, const Type &t) {
   return context.registerType(t);
 }
-const Type *Type::getVoid(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeVoid, {}, d);
+const Type *Type::getVoid(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeVoid, {});
   return getUniqueType(context, t);
 }
-const Type *Type::getBool(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeBool, {}, d);
+const Type *Type::getBool(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeBool, {});
   return getUniqueType(context, t);
 }
-const Type *Type::getInt8(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {8, 1}, d);
+const Type *Type::getInt8(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {8, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUint8(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {8, 0}, d);
+const Type *Type::getUint8(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {8, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getInt16(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {16, 1}, d);
+const Type *Type::getInt16(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {16, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUint16(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {16, 0}, d);
+const Type *Type::getUint16(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {16, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getInt32(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {32, 1}, d);
+const Type *Type::getInt32(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {32, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUint32(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {32, 0}, d);
+const Type *Type::getUint32(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {32, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getInt64(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {64, 1}, d);
+const Type *Type::getInt64(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {64, 1});
   return getUniqueType(context, t);
 }
-const Type *Type::getUint64(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeInt, {64, 0}, d);
+const Type *Type::getUint64(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeInt, {64, 0});
   return getUniqueType(context, t);
 }
-const Type *Type::getFloat16(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeFloat, {16}, d);
+const Type *Type::getFloat16(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeFloat, {16});
   return getUniqueType(context, t);
 }
-const Type *Type::getFloat32(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeFloat, {32}, d);
+const Type *Type::getFloat32(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeFloat, {32});
   return getUniqueType(context, t);
 }
-const Type *Type::getFloat64(SPIRVContext &context, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeFloat, {64}, d);
+const Type *Type::getFloat64(SPIRVContext &context) {
+  Type t = Type(spv::Op::OpTypeFloat, {64});
   return getUniqueType(context, t);
 }
 const Type *Type::getVector(SPIRVContext &context, uint32_t component_type,

@@ -57,19 +57,21 @@ public:
   bool isCompositeType() const;
   bool isImageType() const;
 
-  static const Type *getVoid(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getBool(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getInt8(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getUint8(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getInt16(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getUint16(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getInt32(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getUint32(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getInt64(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getUint64(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getFloat16(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getFloat32(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getFloat64(SPIRVContext &ctx, DecorationSet decs = {});
+  // Scalar types do not take any decorations.
+  static const Type *getVoid(SPIRVContext &ctx);
+  static const Type *getBool(SPIRVContext &ctx);
+  static const Type *getInt8(SPIRVContext &ctx);
+  static const Type *getUint8(SPIRVContext &ctx);
+  static const Type *getInt16(SPIRVContext &ctx);
+  static const Type *getUint16(SPIRVContext &ctx);
+  static const Type *getInt32(SPIRVContext &ctx);
+  static const Type *getUint32(SPIRVContext &ctx);
+  static const Type *getInt64(SPIRVContext &ctx);
+  static const Type *getUint64(SPIRVContext &ctx);
+  static const Type *getFloat16(SPIRVContext &ctx);
+  static const Type *getFloat32(SPIRVContext &ctx);
+  static const Type *getFloat64(SPIRVContext &ctx);
+
   static const Type *getVector(SPIRVContext &ctx, uint32_t component_type,
                                uint32_t vec_size, DecorationSet decs = {});
   static const Type *getVec2(SPIRVContext &ctx, uint32_t component_type,

@@ -71,30 +71,12 @@ TEST(Type, Void) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedVoid) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getVoid(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVoid);
-  EXPECT_TRUE(t->getArgs().empty());
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Bool) {
   SPIRVContext ctx;
   const Type *t = Type::getBool(ctx);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeBool);
   EXPECT_TRUE(t->getArgs().empty());
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedBool) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getBool(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeBool);
-  EXPECT_TRUE(t->getArgs().empty());
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, Int8) {
@@ -105,30 +87,12 @@ TEST(Type, Int8) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedInt8) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getInt8(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(8, 1));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Uint8) {
   SPIRVContext ctx;
   const Type *t = Type::getUint8(ctx);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
   EXPECT_THAT(t->getArgs(), ElementsAre(8, 0));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedUint8) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getUint8(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(8, 0));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, Int16) {
@@ -139,30 +103,12 @@ TEST(Type, Int16) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedInt16) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getInt16(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(16, 1));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Uint16) {
   SPIRVContext ctx;
   const Type *t = Type::getUint16(ctx);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
   EXPECT_THAT(t->getArgs(), ElementsAre(16, 0));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedUint16) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getUint16(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(16, 0));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, Int32) {
@@ -173,30 +119,12 @@ TEST(Type, Int32) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedInt32) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getInt32(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(32, 1));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Uint32) {
   SPIRVContext ctx;
   const Type *t = Type::getUint32(ctx);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
   EXPECT_THAT(t->getArgs(), ElementsAre(32, 0));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedUint32) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getUint32(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(32, 0));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, Int64) {
@@ -207,30 +135,12 @@ TEST(Type, Int64) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedInt64) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getInt64(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(64, 1));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Uint64) {
   SPIRVContext ctx;
   const Type *t = Type::getUint64(ctx);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
   EXPECT_THAT(t->getArgs(), ElementsAre(64, 0));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedUint64) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getUint64(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeInt);
-  EXPECT_THAT(t->getArgs(), ElementsAre(64, 0));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, Float16) {
@@ -241,15 +151,6 @@ TEST(Type, Float16) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedFloat16) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getFloat16(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeFloat);
-  EXPECT_THAT(t->getArgs(), ElementsAre(16));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Float32) {
   SPIRVContext ctx;
   const Type *t = Type::getFloat32(ctx);
@@ -258,31 +159,12 @@ TEST(Type, Float32) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedFloat32) {
-  SPIRVContext ctx;
-
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getFloat32(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeFloat);
-  EXPECT_THAT(t->getArgs(), ElementsAre(32));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Float64) {
   SPIRVContext ctx;
   const Type *t = Type::getFloat64(ctx);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeFloat);
   EXPECT_THAT(t->getArgs(), ElementsAre(64));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedFloat64) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getFloat64(ctx, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeFloat);
-  EXPECT_THAT(t->getArgs(), ElementsAre(64));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, VectorBasic) {
