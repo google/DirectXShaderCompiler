@@ -73,26 +73,21 @@ const Type *Type::getFloat64(SPIRVContext &context) {
   Type t = Type(spv::Op::OpTypeFloat, {64});
   return getUniqueType(context, t);
 }
-const Type *Type::getVector(SPIRVContext &context, uint32_t component_type,
-                            uint32_t vec_size, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeVector, {component_type, vec_size}, d);
+const Type *Type::getVec2(SPIRVContext &context, uint32_t component_type) {
+  Type t = Type(spv::Op::OpTypeVector, {component_type, 2u});
   return getUniqueType(context, t);
 }
-const Type *Type::getVec2(SPIRVContext &context, uint32_t component_type,
-                          DecorationSet d) {
-  return getVector(context, component_type, 2u, d);
+const Type *Type::getVec3(SPIRVContext &context, uint32_t component_type) {
+  Type t = Type(spv::Op::OpTypeVector, {component_type, 3u});
+  return getUniqueType(context, t);
 }
-const Type *Type::getVec3(SPIRVContext &context, uint32_t component_type,
-                          DecorationSet d) {
-  return getVector(context, component_type, 3u, d);
-}
-const Type *Type::getVec4(SPIRVContext &context, uint32_t component_type,
-                          DecorationSet d) {
-  return getVector(context, component_type, 4u, d);
+const Type *Type::getVec4(SPIRVContext &context, uint32_t component_type) {
+  Type t = Type(spv::Op::OpTypeVector, {component_type, 4u});
+  return getUniqueType(context, t);
 }
 const Type *Type::getMatrix(SPIRVContext &context, uint32_t column_type_id,
-                            uint32_t column_count, DecorationSet d) {
-  Type t = Type(spv::Op::OpTypeMatrix, {column_type_id, column_count}, d);
+                            uint32_t column_count) {
+  Type t = Type(spv::Op::OpTypeMatrix, {column_type_id, column_count});
   return getUniqueType(context, t);
 }
 const Type *

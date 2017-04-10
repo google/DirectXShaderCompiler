@@ -167,38 +167,12 @@ TEST(Type, Float64) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, VectorBasic) {
-  SPIRVContext ctx;
-  const Type *t = Type::getVector(ctx, 1, 3);
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVector);
-  EXPECT_THAT(t->getArgs(), ElementsAre(1, 3));
-  EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedVectorBasic) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getVector(ctx, 1, 3, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVector);
-  EXPECT_THAT(t->getArgs(), ElementsAre(1, 3));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Vec2) {
   SPIRVContext ctx;
   const Type *t = Type::getVec2(ctx, 1);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVector);
   EXPECT_THAT(t->getArgs(), ElementsAre(1, 2));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedVec2) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getVec2(ctx, 1, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVector);
-  EXPECT_THAT(t->getArgs(), ElementsAre(1, 2));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, Vec3) {
@@ -209,15 +183,6 @@ TEST(Type, Vec3) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedVec3) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getVec3(ctx, 1, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVector);
-  EXPECT_THAT(t->getArgs(), ElementsAre(1, 3));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
 TEST(Type, Vec4) {
   SPIRVContext ctx;
   const Type *t = Type::getVec4(ctx, 1);
@@ -226,78 +191,12 @@ TEST(Type, Vec4) {
   EXPECT_TRUE(t->getDecorations().empty());
 }
 
-TEST(Type, DecoratedVec4) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getVec4(ctx, 1, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeVector);
-  EXPECT_THAT(t->getArgs(), ElementsAre(1, 4));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
-}
-
-TEST(Type, VectorWithTwoComponenetsAndVec2AreTheSameType) {
-  SPIRVContext ctx;
-  const Type *v1 = Type::getVector(ctx, /*type-id*/ 1, /*num-components*/ 2);
-  const Type *v2 = Type::getVec2(ctx, /*type-id*/ 1);
-  EXPECT_EQ(v1, v2);
-}
-
-TEST(Type, DecoratedVectorWithTwoComponenetsAndVec2AreTheSameType) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getBufferBlock(ctx);
-  const Type *v1 =
-      Type::getVector(ctx, /*type-id*/ 1, /*num-components*/ 2, {d});
-  const Type *v2 = Type::getVec2(ctx, /*type-id*/ 1, {d});
-  EXPECT_EQ(v1, v2);
-}
-
-TEST(Type, VectorWithThreeComponenetsAndVec3AreTheSameType) {
-  SPIRVContext ctx;
-  const Type *v1 = Type::getVector(ctx, /*type-id*/ 7, /*num-components*/ 3);
-  const Type *v2 = Type::getVec3(ctx, /*type-id*/ 7);
-  EXPECT_EQ(v1, v2);
-}
-
-TEST(Type, DecoratedVectorWithThreeComponenetsAndVec3AreTheSameType) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getBufferBlock(ctx);
-  const Type *v1 =
-      Type::getVector(ctx, /*type-id*/ 7, /*num-components*/ 3, {d});
-  const Type *v2 = Type::getVec3(ctx, /*type-id*/ 7, {d});
-  EXPECT_EQ(v1, v2);
-}
-
-TEST(Type, VectorWithFourComponenetsAndVec4AreTheSameType) {
-  SPIRVContext ctx;
-  const Type *v1 = Type::getVector(ctx, /*type-id*/ 7, /*num-components*/ 4);
-  const Type *v2 = Type::getVec4(ctx, /*type-id*/ 7);
-  EXPECT_EQ(v1, v2);
-}
-
-TEST(Type, DecoratedVectorWithFourComponenetsAndVec4AreTheSameType) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getBufferBlock(ctx);
-  const Type *v1 =
-      Type::getVector(ctx, /*type-id*/ 7, /*num-components*/ 4, {d});
-  const Type *v2 = Type::getVec4(ctx, /*type-id*/ 7, {d});
-  EXPECT_EQ(v1, v2);
-}
-
 TEST(Type, Matrix) {
   SPIRVContext ctx;
   const Type *t = Type::getMatrix(ctx, /*type-id*/ 7, /*column-count*/ 4);
   EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeMatrix);
   EXPECT_THAT(t->getArgs(), ElementsAre(7, 4));
   EXPECT_TRUE(t->getDecorations().empty());
-}
-
-TEST(Type, DecoratedMatrix) {
-  SPIRVContext ctx;
-  const Decoration *d = Decoration::getAliased(ctx);
-  const Type *t = Type::getMatrix(ctx, /*type-id*/ 7, /*column-count*/ 4, {d});
-  EXPECT_EQ(t->getOpcode(), spv::Op::OpTypeMatrix);
-  EXPECT_THAT(t->getArgs(), ElementsAre(7, 4));
-  EXPECT_THAT(t->getDecorations(), ElementsAre(d));
 }
 
 TEST(Type, ImageWithoutAccessQualifier) {

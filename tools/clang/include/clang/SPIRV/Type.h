@@ -71,17 +71,12 @@ public:
   static const Type *getFloat16(SPIRVContext &ctx);
   static const Type *getFloat32(SPIRVContext &ctx);
   static const Type *getFloat64(SPIRVContext &ctx);
-
-  static const Type *getVector(SPIRVContext &ctx, uint32_t component_type,
-                               uint32_t vec_size, DecorationSet decs = {});
-  static const Type *getVec2(SPIRVContext &ctx, uint32_t component_type,
-                             DecorationSet decs = {});
-  static const Type *getVec3(SPIRVContext &ctx, uint32_t component_type,
-                             DecorationSet decs = {});
-  static const Type *getVec4(SPIRVContext &ctx, uint32_t component_type,
-                             DecorationSet decs = {});
+  static const Type *getVec2(SPIRVContext &ctx, uint32_t component_type);
+  static const Type *getVec3(SPIRVContext &ctx, uint32_t component_type);
+  static const Type *getVec4(SPIRVContext &ctx, uint32_t component_type);
   static const Type *getMatrix(SPIRVContext &ctx, uint32_t column_type_id,
-                               uint32_t column_count, DecorationSet decs = {});
+                               uint32_t column_count);
+
   static const Type *
   getImage(SPIRVContext &ctx, uint32_t sampled_type, spv::Dim dim,
            uint32_t depth, uint32_t arrayed, uint32_t ms, uint32_t sampled,
