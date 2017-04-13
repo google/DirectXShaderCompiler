@@ -132,12 +132,12 @@ if "%TEST_CLEAN%"=="1" (
 
 rem Begin SPIRV change
 if "%TEST_SPIRV%"=="1" (
-  if not exist %HLSL_BLD_DIR%\tools\clang\unittests\SPIRV\%BUILD_CONFIG%\clang-spirv-tests.exe (
+  if not exist %HLSL_BLD_DIR%\%BUILD_CONFIG%\bin\clang-spirv-tests.exe (
     echo clang-spirv-tests.exe has not been built. Make sure you run "hctbuild -spirv" first.
     exit /b 1
   )
   echo Running SPIRV tests ...
-  %HLSL_BLD_DIR%\tools\clang\unittests\SPIRV\%BUILD_CONFIG%\clang-spirv-tests.exe
+  %HLSL_BLD_DIR%\%BUILD_CONFIG%\bin\clang-spirv-tests.exe --spirv-test-root %HLSL_SRC_DIR%\tools\clang\test\CodeGenSPIRV
   if errorlevel 1 (
     echo Failure occured in SPIRV unit tests
     exit /b 1

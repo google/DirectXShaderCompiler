@@ -56,4 +56,4 @@ add_llvm_library(gtest
   Support # Depends on llvm::raw_ostream
 )
 
-add_subdirectory(UnitTestMain)
+#add_subdirectory(UnitTestMain)  # SPIR-V Change
