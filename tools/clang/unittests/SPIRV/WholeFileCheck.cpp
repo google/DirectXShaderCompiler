@@ -18,22 +18,6 @@ WholeFileTest::WholeFileTest() : spirvTools(SPV_ENV_UNIVERSAL_1_0) {
          const char *message) { fprintf(stdout, "%s\n", message); });
 }
 
-bool WholeFileTest::writeToFile(const std::string &path,
-                                const std::string &content) {
-  std::ofstream outputFile;
-  outputFile.exceptions(std::ofstream::failbit);
-  try {
-    outputFile.open(path);
-    outputFile << content;
-    outputFile.close();
-  } catch (...) {
-    // An exception was thrown when opening/writing to output file.
-    fprintf(stderr, "Error: unable to open/write to file %s\n", path.c_str());
-    return false;
-  }
-  return true;
-}
-
 bool WholeFileTest::processRunCommandArgs(const std::string &runCommandLine) {
   std::istringstream buf(runCommandLine);
   std::istream_iterator<std::string> start(buf), end;

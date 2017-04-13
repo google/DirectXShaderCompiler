@@ -81,10 +81,6 @@ private:
   /// Returns true if they match, and false otherwise.
   bool compareExpectedSpirvAndGeneratedSpirv();
 
-  /// \brief Helper function that writes the given string content to the given
-  /// file. Returns true on success, and false otherwise.
-  bool writeToFile(const std::string &path, const std::string &content);
-
   /// \brief Parses the Target Profile and Entry Point from the Run command
   bool processRunCommandArgs(const std::string &runCommandLine);
 
