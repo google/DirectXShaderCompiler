@@ -5,6 +5,7 @@ set(LLVM_LINK_COMPONENTS
   )
 
 add_clang_unittest(clang-spirv-tests
+  CodeGenSPIRVTest.cpp
   DecorationTest.cpp
   InstBuilderTest.cpp
   ModuleBuilderTest.cpp
@@ -21,7 +22,6 @@ target_link_libraries(clang-spirv-tests
   clangCodeGen
   clangFrontend
   clangSPIRV
-  gtest
   SPIRV-Tools
   )
 

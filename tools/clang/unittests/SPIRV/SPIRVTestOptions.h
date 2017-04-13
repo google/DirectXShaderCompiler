@@ -25,9 +25,13 @@ namespace spirv {
 /// running the SPIR-V tests. New options should be added in this namespace.
 namespace testOptions {
 
+/// \brief Command line option that specifies the path to the directory that
+/// contains files that have the HLSL source code and expected SPIR-V code (used
+/// for the CodeGen test flow).
 extern std::string inputDataDir;
-}
-}
-}
+
+} // namespace testOptions
+} // namespace spirv
+} // namespace clang
 
 #endif
