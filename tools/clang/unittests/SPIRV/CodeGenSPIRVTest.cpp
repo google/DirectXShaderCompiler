@@ -1,4 +1,4 @@
-//===- unittests/SPIRV/WholeFileCheck.cpp ----- Run CodeGenSPIRV tests ----===//
+//===- unittests/SPIRV/CodeGenSPIRVTest.cpp ---- Run CodeGenSPIRV tests ---===//
 //
 //                     The LLVM Compiler Infrastructure
 //
