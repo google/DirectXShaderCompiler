@@ -113,10 +113,12 @@ if errorlevel 1 (
 )
 
 if "%GENERATOR_NINJA%"=="1" (
-  set TEST_DIR=%HLSL_BLD_DIR%\test
+  set OUTPUT_DIR=%HLSL_BLD_DIR%
 ) else (
-  set TEST_DIR=%HLSL_BLD_DIR%\%BUILD_CONFIG%\test
+  set OUTPUT_DIR=%HLSL_BLD_DIR%\%BUILD_CONFIG%
 )
+
+set TEST_DIR=%OUTPUT_DIR%\test
 
 if exist %TEST_DIR% (
   echo Cleaning %TEST_DIR% ...
@@ -132,12 +134,12 @@ if "%TEST_CLEAN%"=="1" (
 
 rem Begin SPIRV change
 if "%TEST_SPIRV%"=="1" (
-  if not exist %HLSL_BLD_DIR%\%BUILD_CONFIG%\bin\clang-spirv-tests.exe (
-    echo clang-spirv-tests.exe has not been built. Make sure you run "hctbuild -spirv" first.
+  if not exist %OUTPUT_DIR%\bin\clang-spirv-tests.exe (
+    echo clang-spirv-tests.exe has not been built. Make sure you run "hctbuild -spirvtest" first.
     exit /b 1
   )
   echo Running SPIRV tests ...
-  %HLSL_BLD_DIR%\%BUILD_CONFIG%\bin\clang-spirv-tests.exe --spirv-test-root %HLSL_SRC_DIR%\tools\clang\test\CodeGenSPIRV
+  %OUTPUT_DIR%\bin\clang-spirv-tests.exe --spirv-test-root %HLSL_SRC_DIR%\tools\clang\test\CodeGenSPIRV
   if errorlevel 1 (
     echo Failure occured in SPIRV unit tests
     exit /b 1
@@ -153,11 +155,7 @@ echo Copying binaries to test to %TEST_DIR%:
 Rem For the Ninja generator, artifacts are not generated into a directory
 Rem matching the current build configuration; instead, they are generated
 Rem directly into bin/ under the build root directory.
-if "%GENERATOR_NINJA%"=="1" (
-  robocopy %HLSL_BLD_DIR%\bin %TEST_DIR% *.exe *.dll
-) else (
-  robocopy %HLSL_BLD_DIR%\%BUILD_CONFIG%\bin %TEST_DIR% *.exe *.dll
-)
+robocopy %OUTPUT_DIR%\bin %TEST_DIR% *.exe *.dll
 
 echo Running HLSL tests ...
 
