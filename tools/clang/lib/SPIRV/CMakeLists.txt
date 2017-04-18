@@ -7,6 +7,7 @@ add_clang_library(clangSPIRV
   InstBuilderAuto.cpp
   InstBuilderManual.cpp
   SPIRVBuilder.cpp
+  Structure.cpp
   Utils.cpp
 
   LINK_LIBS
