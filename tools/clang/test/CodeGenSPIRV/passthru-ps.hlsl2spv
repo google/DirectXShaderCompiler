@@ -6,7 +6,8 @@ float4 main(float4 input: COLOR): SV_TARGET
 
 
 // TODO:
-// OpEntryPoint Fragment %main "main"
+// OpEntryPoint Fragment %main "main" %f4_inputVar %f4_outputVar
+// --> Input/Output interfaces are missing from OpEntryPoint
 // OpExecutionMode %main OriginUpperLeft
 // Semantics
 // Function parameter
@@ -21,6 +22,7 @@ float4 main(float4 input: COLOR): SV_TARGET
 // ; Schema: 0
 // OpCapability Shader
 // OpMemoryModel Logical GLSL450
+// OpEntryPoint Fragment %4 "main"
 // %float = OpTypeFloat 32
 // %v4float = OpTypeVector %float 4
 // %3 = OpTypeFunction %v4float %v4float

@@ -54,6 +54,12 @@ public:
   inline void setAddressingModel(spv::AddressingModel);
   inline void setMemoryModel(spv::MemoryModel);
 
+  /// \brief Sets the Type of Shader (Vertex, Fragment, etc) in <theModule>
+  inline void setShaderKind(spv::ExecutionModel);
+
+  /// \brief Adds an Entry Point to <theModule>
+  inline void addEntryPoint(EntryPoint);
+
   uint32_t getVoidType();
   uint32_t getFloatType();
   uint32_t getVec2Type(uint32_t elemType);
@@ -89,8 +95,16 @@ void ModuleBuilder::setMemoryModel(spv::MemoryModel mm) {
   theModule.setMemoryModel(mm);
 }
 
+void ModuleBuilder::setShaderKind(spv::ExecutionModel em) {
+  theModule.setShaderKind(em);
+}
+
 void ModuleBuilder::requireCapability(spv::Capability cap) {
   theModule.addCapability(cap);
+}
+
+void ModuleBuilder::addEntryPoint(EntryPoint ep) {
+  theModule.addEntryPoint(ep);
 }
 
 } // end namespace spirv
