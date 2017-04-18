@@ -21,16 +21,57 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
 
+namespace {
+spv::ExecutionModel getSpirvShaderKindFromHlslProfile(const char *profile) {
+  // DXIL Models are:
+  // Profile (DXIL Model) : HLSL Shader Kind : SPIRV Shader Kind
+  // vs_<version>         : Vertex Shader    : Vertex Shader
+  // hs_<version>         : Hull Shader      : Tassellation Control Shader
+  // ds_<version>         : Domain Shader    : Tessellation Evaluation Shader
+  // gs_<version>         : Geometry Shader  : Geometry Shader
+  // ps_<version>         : Pixel Shader     : Fragment Shader
+  // cs_<version>         : Compute Shader   : Compute Shader
+  switch (profile[0]) {
+  case 'v': return spv::ExecutionModel::Vertex;
+  case 'h': return spv::ExecutionModel::TessellationControl;
+  case 'd': return spv::ExecutionModel::TessellationEvaluation;
+  case 'g': return spv::ExecutionModel::Geometry;
+  case 'p': return spv::ExecutionModel::Fragment;
+  case 'c': return spv::ExecutionModel::GLCompute;
+  default:
+    assert(false && "Unknown HLSL Profile");
+    return spv::ExecutionModel::Fragment;
+  }
+}
+
+} // namespace
+
 namespace clang {
 namespace {
 
 class SPIRVEmitter : public ASTConsumer {
 public:
-  explicit SPIRVEmitter(raw_ostream *out)
-      : outStream(*out), theContext(), theBuilder(&theContext) {}
+  explicit SPIRVEmitter(CompilerInstance &ci)
+      : theCompilerInstance(ci), outStream(*ci.getOutStream()), theContext(),
+        theBuilder(&theContext) {}
+
+  void AddRequiredCapabilitiesForExecutionModel(spv::ExecutionModel em) {
+    if (em == spv::ExecutionModel::TessellationControl ||
+        em == spv::ExecutionModel::TessellationEvaluation) {
+      theBuilder.requireCapability(spv::Capability::Tessellation);
+      assert(false && "Tasselation Shaders are currently not supported.");
+    } else if (em == spv::ExecutionModel::Geometry) {
+      theBuilder.requireCapability(spv::Capability::Geometry);
+      assert(false && "Geometry Shaders are currently not supported.");
+    } else {
+      theBuilder.requireCapability(spv::Capability::Shader);
+    }
+  }
 
   void HandleTranslationUnit(ASTContext &context) override {
-    theBuilder.requireCapability(spv::Capability::Shader);
+    const spv::ExecutionModel em = getSpirvShaderKindFromHlslProfile(
+        theCompilerInstance.getCodeGenOpts().HLSLProfile.c_str());
+    AddRequiredCapabilitiesForExecutionModel(em);
 
     // Addressing and memory model are required in a valid SPIR-V module.
     theBuilder.setAddressingModel(spv::AddressingModel::Logical);
@@ -58,14 +99,34 @@ public:
     const uint32_t funcType = translateFunctionType(decl);
     const uint32_t retType = translateType(decl->getReturnType());
 
-    theBuilder.beginFunction(funcType, retType);
+    const uint32_t funcId = theBuilder.beginFunction(funcType, retType);
     // TODO: handle function parameters
     // TODO: handle function body
     const uint32_t entryLabel = theBuilder.bbCreate();
     theBuilder.bbReturn(entryLabel);
     theBuilder.endFunction();
-  }
 
+    // Add an entry point to the module if necessary
+    const std::string hlslEntryFn =
+        theCompilerInstance.getCodeGenOpts().HLSLEntryFunction;
+    if (hlslEntryFn == decl->getNameInfo().getAsString()) {
+      const spv::ExecutionModel em = getSpirvShaderKindFromHlslProfile(
+          theCompilerInstance.getCodeGenOpts().HLSLProfile.c_str());
+      // TODO: Pass correct input/output interfaces to addEntryPoint.
+      theBuilder.addEntryPoint(em, funcId, hlslEntryFn, {});
+
+      // OpExecutionMode declares an execution mode for an entry point.
+      std::vector<uint32_t> execModeInstr;
+      spirv::InstBuilder ib([&execModeInstr](std::vector<uint32_t> &&words) {
+        execModeInstr = std::move(words);
+      });
+      // TODO: Implement the logic to determine the proper Execution Mode based
+      // on Shader Stage and other semantics. (currently using OriginUpperLeft
+      // as default)
+      ib.opExecutionMode(funcId, spv::ExecutionMode::OriginUpperLeft).x();
+      theBuilder.addExecutionMode(execModeInstr);
+    }
+  }
   uint32_t translateFunctionType(FunctionDecl *decl) {
     const uint32_t retType = translateType(decl->getReturnType());
     std::vector<uint32_t> paramTypes;
@@ -110,12 +171,13 @@ private:
   raw_ostream &outStream;
   spirv::SPIRVContext theContext;
   spirv::ModuleBuilder theBuilder;
+  CompilerInstance &theCompilerInstance;
 };
 
 } // namespace
 
 std::unique_ptr<ASTConsumer>
 EmitSPIRVAction::CreateASTConsumer(CompilerInstance &CI, StringRef InFile) {
-  return llvm::make_unique<SPIRVEmitter>(CI.getOutStream());
+  return llvm::make_unique<SPIRVEmitter>(CI);
 }
 } // end namespace clang

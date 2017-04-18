@@ -54,6 +54,15 @@ public:
   inline void setAddressingModel(spv::AddressingModel);
   inline void setMemoryModel(spv::MemoryModel);
 
+  /// \brief Adds an Entry Point for the module under construction. We only
+  /// support a single entry point per module for now.
+  inline void addEntryPoint(spv::ExecutionModel em, uint32_t targetId,
+                            std::string targetName,
+                            std::initializer_list<uint32_t> interfaces);
+
+  /// \brief Adds an Execution Mode to <theModule>
+  inline void addExecutionMode(Instruction &);
+
   uint32_t getVoidType();
   uint32_t getFloatType();
   uint32_t getVec2Type(uint32_t elemType);
@@ -91,6 +100,16 @@ void ModuleBuilder::setMemoryModel(spv::MemoryModel mm) {
 
 void ModuleBuilder::requireCapability(spv::Capability cap) {
   theModule.addCapability(cap);
+}
+
+void ModuleBuilder::addEntryPoint(spv::ExecutionModel em, uint32_t targetId,
+                                  std::string targetName,
+                                  std::initializer_list<uint32_t> interfaces) {
+  theModule.addEntryPoint(em, targetId, targetName, interfaces);
+}
+
+void ModuleBuilder::addExecutionMode(Instruction &execMode) {
+  theModule.addExecutionMode(std::move(execMode));
 }
 
 } // end namespace spirv
