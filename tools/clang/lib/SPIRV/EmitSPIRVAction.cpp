@@ -108,6 +108,17 @@ public:
           theCompilerInstance.getCodeGenOpts().HLSLProfile.c_str());
       spirv::EntryPoint ep(em, funcId, hlslEntryFn, /* Interfaces (TODO) */ {});
       theBuilder.addEntryPoint(ep);
+
+      // OpExecutionMode declares an execution mode for an entry point.
+      std::vector<uint32_t> execModeInstr;
+      spirv::InstBuilder ib([&execModeInstr](std::vector<uint32_t> &&words) {
+        execModeInstr = std::move(words);
+      });
+      // TODO: Implement the logic to determine the proper Execution Mode based
+      // on Shader Stage and other semantics. (currently using OriginUpperLeft
+      // as default)
+      ib.opExecutionMode(funcId, spv::ExecutionMode::OriginUpperLeft).x();
+      theBuilder.addExecutionMode(execModeInstr);
     }
   }
   uint32_t translateFunctionType(FunctionDecl *decl) {

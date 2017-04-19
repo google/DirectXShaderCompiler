@@ -60,6 +60,9 @@ public:
   /// \brief Adds an Entry Point to <theModule>
   inline void addEntryPoint(EntryPoint);
 
+  /// \brief Adds an Execution Mode to <theModule>
+  inline void addExecutionMode(Instruction&);
+
   uint32_t getVoidType();
   uint32_t getFloatType();
   uint32_t getVec2Type(uint32_t elemType);
@@ -105,6 +108,10 @@ void ModuleBuilder::requireCapability(spv::Capability cap) {
 
 void ModuleBuilder::addEntryPoint(EntryPoint ep) {
   theModule.addEntryPoint(ep);
+}
+
+void ModuleBuilder::addExecutionMode(Instruction& execMode) {
+  theModule.addExecutionMode(std::move(execMode));
 }
 
 } // end namespace spirv
