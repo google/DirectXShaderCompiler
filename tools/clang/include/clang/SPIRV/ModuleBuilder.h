@@ -60,7 +60,7 @@ public:
                             std::string targetName,
                             std::initializer_list<uint32_t> interfaces);
 
-  /// \brief Adds an Execution Mode to <theModule>
+  /// \brief Adds an Execution Mode to the module under construction.
   inline void addExecutionMode(Instruction &);
 
   uint32_t getVoidType();
