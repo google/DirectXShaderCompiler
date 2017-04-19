@@ -10,6 +10,7 @@ add_clang_library(clangSPIRV
   ModuleBuilder.cpp
   SPIRVContext.cpp
   Structure.cpp
+  Type.cpp
   Utils.cpp
 
   LINK_LIBS
