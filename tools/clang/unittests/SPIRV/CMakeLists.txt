@@ -11,6 +11,7 @@ add_clang_unittest(clang-spirv-tests
   SPIRVContextTest.cpp
   StructureTest.cpp
   TestMain.cpp
+  TypeTest.cpp
   UtilsTest.cpp
   )
 
