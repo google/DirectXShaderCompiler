@@ -112,10 +112,11 @@ void ModuleBuilder::addEntryPoint(spv::ExecutionModel em, uint32_t targetId,
 void ModuleBuilder::addExecutionMode(uint32_t entryPointId,
                                      spv::ExecutionMode em,
                                      const std::vector<uint32_t> &params) {
-  instBuilder.opExecutionMode(entryPointId, em).x();
+  instBuilder.opExecutionMode(entryPointId, em);
   for (const auto &param : params) {
     instBuilder.literalInteger(param);
   }
+  instBuilder.x();
   theModule.addExecutionMode(std::move(constructSite));
 }
 
