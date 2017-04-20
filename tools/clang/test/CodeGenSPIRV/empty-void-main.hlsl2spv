@@ -4,11 +4,6 @@ void main()
 
 }
 
-
-// TODO:
-// Implement logic to determine ExecutionMode (currently using OriginUpperLeft by default)
-
-
 // CHECK-WHOLE-SPIR-V:
 // ; SPIR-V
 // ; Version: 1.0

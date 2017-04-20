@@ -175,6 +175,7 @@ struct TypeIdPair {
 /// \brief The struct representing a constant and its type.
 struct Constant {
   inline Constant(const Type &ty, Instruction &&value);
+
   const Type &type;
   Instruction constant;
 };

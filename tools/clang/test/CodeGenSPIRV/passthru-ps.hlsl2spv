@@ -6,9 +6,7 @@ float4 main(float4 input: COLOR): SV_TARGET
 
 
 // TODO:
-// OpEntryPoint Fragment %main "main" %f4_inputVar %f4_outputVar
-// --> Input/Output interfaces are missing from OpEntryPoint
-// Implement logic to determine ExecutionMode (currently using OriginUpperLeft by default)
+// Input/Output interfaces are missing from OpEntryPoint
 // Semantics
 // Function parameter
 // Function return value

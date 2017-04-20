@@ -39,7 +39,6 @@ float4 VSmain(float4 position: POSITION, float4 color: COLOR) {
 // OpCapability Shader
 // OpMemoryModel Logical GLSL450
 // OpEntryPoint Vertex %4 "VSmain"
-// OpExecutionMode %4 OriginUpperLeft
 // %float = OpTypeFloat 32
 // %v4float = OpTypeVector %float 4
 // %3 = OpTypeFunction %v4float %v4float %v4float

@@ -22,9 +22,9 @@
 #include "llvm/Support/raw_ostream.h"
 
 namespace {
-spv::ExecutionModel getSpirvShaderKindFromHlslProfile(const char *profile) {
+spv::ExecutionModel getSpirvShaderStageFromHlslProfile(const char *profile) {
   // DXIL Models are:
-  // Profile (DXIL Model) : HLSL Shader Kind : SPIRV Shader Kind
+  // Profile (DXIL Model) : HLSL Shader Kind : SPIR-V Shader Kind
   // vs_<version>         : Vertex Shader    : Vertex Shader
   // hs_<version>         : Hull Shader      : Tassellation Control Shader
   // ds_<version>         : Domain Shader    : Tessellation Evaluation Shader
@@ -68,8 +68,24 @@ public:
     }
   }
 
+  /// \brief Adds the execution mode for the given entry point based on the
+  /// execution model.
+  void AddExecutionModeForEntryPoint(spv::ExecutionModel execModel,
+                                     uint32_t entryPointId) {
+    if (execModel == spv::ExecutionModel::Fragment) {
+      // TODO: Implement the logic to determine the proper Execution Mode for
+      // fragment shaders. Currently using OriginUpperLeft as default.
+      theBuilder.addExecutionMode(entryPointId,
+                                  spv::ExecutionMode::OriginUpperLeft, {});
+    }
+    else {
+      // TODO: Implement logic for adding proper execution mode for other shader
+      // stages. Silently skipping for now.
+    }
+  }
+
   void HandleTranslationUnit(ASTContext &context) override {
-    const spv::ExecutionModel em = getSpirvShaderKindFromHlslProfile(
+    const spv::ExecutionModel em = getSpirvShaderStageFromHlslProfile(
         theCompilerInstance.getCodeGenOpts().HLSLProfile.c_str());
     AddRequiredCapabilitiesForExecutionModel(em);
 
@@ -110,21 +126,13 @@ public:
     const std::string hlslEntryFn =
         theCompilerInstance.getCodeGenOpts().HLSLEntryFunction;
     if (hlslEntryFn == decl->getNameInfo().getAsString()) {
-      const spv::ExecutionModel em = getSpirvShaderKindFromHlslProfile(
+      const spv::ExecutionModel em = getSpirvShaderStageFromHlslProfile(
           theCompilerInstance.getCodeGenOpts().HLSLProfile.c_str());
       // TODO: Pass correct input/output interfaces to addEntryPoint.
       theBuilder.addEntryPoint(em, funcId, hlslEntryFn, {});
 
       // OpExecutionMode declares an execution mode for an entry point.
-      std::vector<uint32_t> execModeInstr;
-      spirv::InstBuilder ib([&execModeInstr](std::vector<uint32_t> &&words) {
-        execModeInstr = std::move(words);
-      });
-      // TODO: Implement the logic to determine the proper Execution Mode based
-      // on Shader Stage and other semantics. (currently using OriginUpperLeft
-      // as default)
-      ib.opExecutionMode(funcId, spv::ExecutionMode::OriginUpperLeft).x();
-      theBuilder.addExecutionMode(execModeInstr);
+      AddExecutionModeForEntryPoint(em, funcId);
     }
   }
   uint32_t translateFunctionType(FunctionDecl *decl) {

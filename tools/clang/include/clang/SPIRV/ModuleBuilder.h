@@ -61,7 +61,8 @@ public:
                             std::initializer_list<uint32_t> interfaces);
 
   /// \brief Adds an Execution Mode to the module under construction.
-  inline void addExecutionMode(Instruction &);
+  inline void addExecutionMode(uint32_t entryPointId, spv::ExecutionMode em,
+                               const std::vector<uint32_t> &params);
 
   uint32_t getVoidType();
   uint32_t getFloatType();
@@ -108,8 +109,14 @@ void ModuleBuilder::addEntryPoint(spv::ExecutionModel em, uint32_t targetId,
   theModule.addEntryPoint(em, targetId, targetName, interfaces);
 }
 
-void ModuleBuilder::addExecutionMode(Instruction &execMode) {
-  theModule.addExecutionMode(std::move(execMode));
+void ModuleBuilder::addExecutionMode(uint32_t entryPointId,
+                                     spv::ExecutionMode em,
+                                     const std::vector<uint32_t> &params) {
+  instBuilder.opExecutionMode(entryPointId, em).x();
+  for (const auto &param : params) {
+    instBuilder.literalInteger(param);
+  }
+  theModule.addExecutionMode(std::move(constructSite));
 }
 
 } // end namespace spirv
