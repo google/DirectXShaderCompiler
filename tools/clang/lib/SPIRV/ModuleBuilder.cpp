@@ -38,7 +38,7 @@ uint32_t ModuleBuilder::beginFunction(uint32_t funcType, uint32_t returnType,
 
   // Add debug name for the function (OpName ...)
   if (!funcName.empty()) {
-    theModule.addDebugName(fId, funcName);
+    theModule.addDebugName(fId, std::move(funcName));
   }
 
   return fId;

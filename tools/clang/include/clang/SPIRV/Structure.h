@@ -304,7 +304,7 @@ EntryPoint::EntryPoint(spv::ExecutionModel em, uint32_t id, std::string name,
 
 DebugName::DebugName(uint32_t id, std::string targetName,
                      llvm::Optional<uint32_t> index)
-    : targetId(id), memberIndex(index), name(std::move(targetName)) {}
+    : targetId(id), name(std::move(targetName)), memberIndex(index) {}
 
 DecorationIdPair::DecorationIdPair(const Decoration &decor, uint32_t id)
     : decoration(decor), targetId(id) {}
