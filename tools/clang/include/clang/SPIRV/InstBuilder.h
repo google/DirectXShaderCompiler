@@ -147,6 +147,8 @@ public:
                                     spv::StorageClass storage_class);
   InstBuilder &opConstantTrue(uint32_t result_type, uint32_t result_id);
   InstBuilder &opConstantFalse(uint32_t result_type, uint32_t result_id);
+  InstBuilder &opConstant(uint32_t result_type, uint32_t result_id,
+                          llvm::ArrayRef<uint32_t> value);
   InstBuilder &opConstantComposite(uint32_t result_type, uint32_t result_id,
                                    llvm::ArrayRef<uint32_t> constituents);
   InstBuilder &
