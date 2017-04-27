@@ -25,6 +25,15 @@ std::vector<uint32_t> encodeSPIRVString(std::string s);
 /// It follows the SPIR-V string encoding requirements.
 std::string decodeSPIRVString(const std::vector<uint32_t> &vec);
 
+/// \brief Performs bitwise copy of source to the destination type Dest.
+template <typename Dest, typename Src> Dest BitwiseCast(Src source) {
+  Dest dest;
+  static_assert(sizeof(source) == sizeof(dest),
+                "BitwiseCast: source and destination must have the same size.");
+  std::memcpy(&dest, &source, sizeof(dest));
+  return dest;
+}
+
 } // end namespace utils
 } // end namespace spirv
 } // end namespace clang

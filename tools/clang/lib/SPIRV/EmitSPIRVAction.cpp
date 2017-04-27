@@ -654,7 +654,37 @@ public:
         emitError("Decl '%0' in MemberExpr is not supported yet.")
             << memberDecl->getDeclKindName();
       }
-    }
+    } else if (auto *cxxFunctionalCastExpr =
+                   dyn_cast<CXXFunctionalCastExpr>(expr)) {
+      // Explicit cast is a NO-OP (e.g. vector<float, 4> -> float4)
+      if (cxxFunctionalCastExpr->getCastKind() == CK_NoOp) {
+        return doExpr(cxxFunctionalCastExpr->getSubExpr());
+      } else {
+        emitError("Found unhandled CXXFunctionalCastExpr cast type: %0")
+            << cxxFunctionalCastExpr->getCastKindName();
+      }
+    } else if (auto *initListExpr = dyn_cast<InitListExpr>(expr)) {
+      const bool isConstantInitializer = expr->isConstantInitializer(
+          theCompilerInstance.getASTContext(), false);
+      const uint32_t resultType =
+          translateType(initListExpr->getType(), theBuilder);
+      std::vector<uint32_t> constituents;
+      for (size_t i = 0; i < initListExpr->getNumInits(); ++i) {
+        constituents.push_back(doExpr(initListExpr->getInit(i)));
+      }
+      if (isConstantInitializer) {
+        return theBuilder.getConstantComposite(resultType, constituents);
+      } else {
+        // TODO: use OpCompositeConstruct if it is not a constant initializer
+        // list.
+        emitError("Non-const initializer lists are currently not supported.");
+      }
+    } else if (auto *floatingLiteral = dyn_cast<FloatingLiteral>(expr)) {
+      const uint32_t resultType =
+          translateType(floatingLiteral->getType(), theBuilder);
+      const float value = floatingLiteral->getValue().convertToFloat();
+      return theBuilder.getConstantFloat32(resultType, value);
+    } 
     emitError("Expr '%0' is not supported yet.") << expr->getStmtClassName();
     // TODO: handle other expressions
     return 0;

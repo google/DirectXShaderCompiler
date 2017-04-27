@@ -142,6 +142,37 @@ void ModuleBuilder::createReturnValue(uint32_t value) {
   insertPoint->appendInstruction(std::move(constructSite));
 }
 
+uint32_t
+ModuleBuilder::getConstantComposite(uint32_t typeId,
+                                    llvm::ArrayRef<uint32_t> constituents) {
+  const Constant *constant =
+      Constant::getComposite(theContext, typeId, constituents);
+  const uint32_t constId = theContext.getResultIdForConstant(constant);
+  theModule.addConstant(constant, constId);
+  return constId;
+}
+
+uint32_t ModuleBuilder::getConstantFloat32(uint32_t typeId, float value) {
+  const Constant *constant = Constant::getFloat32(theContext, typeId, value);
+  const uint32_t constId = theContext.getResultIdForConstant(constant);
+  theModule.addConstant(constant, constId);
+  return constId;
+}
+
+uint32_t ModuleBuilder::getConstantInt32(uint32_t typeId, int32_t value) {
+  const Constant *constant = Constant::getInt32(theContext, typeId, value);
+  const uint32_t constId = theContext.getResultIdForConstant(constant);
+  theModule.addConstant(constant, constId);
+  return constId;
+}
+
+uint32_t ModuleBuilder::getConstantUint32(uint32_t typeId, uint32_t value) {
+  const Constant *constant = Constant::getUint32(theContext, typeId, value);
+  const uint32_t constId = theContext.getResultIdForConstant(constant);
+  theModule.addConstant(constant, constId);
+  return constId;
+}
+
 uint32_t ModuleBuilder::getVoidType() {
   const Type *type = Type::getVoid(theContext);
   const uint32_t typeId = theContext.getResultIdForType(type);
