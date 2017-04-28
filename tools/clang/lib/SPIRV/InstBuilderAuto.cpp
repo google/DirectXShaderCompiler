@@ -801,6 +801,30 @@ InstBuilder &InstBuilder::opConstantFalse(uint32_t result_type,
   return *this;
 }
 
+InstBuilder &InstBuilder::opConstant(uint32_t result_type, uint32_t result_id,
+                                     llvm::ArrayRef<uint32_t> value) {
+  if (!TheInst.empty()) {
+    TheStatus = Status::NestedInst;
+    return *this;
+  }
+  if (result_type == 0) {
+    TheStatus = Status::ZeroResultType;
+    return *this;
+  }
+  if (result_id == 0) {
+    TheStatus = Status::ZeroResultId;
+    return *this;
+  }
+
+  TheInst.reserve(4);
+  TheInst.emplace_back(static_cast<uint32_t>(spv::Op::OpConstant));
+  TheInst.emplace_back(result_type);
+  TheInst.emplace_back(result_id);
+  TheInst.insert(TheInst.end(), value.begin(), value.end());
+
+  return *this;
+}
+
 InstBuilder &
 InstBuilder::opConstantComposite(uint32_t result_type, uint32_t result_id,
                                  llvm::ArrayRef<uint32_t> constituents) {

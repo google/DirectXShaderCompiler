@@ -475,6 +475,7 @@ public:
 
   void doReturnStmt(ReturnStmt *stmt) {
     const uint32_t retValue = doExpr(stmt->getRetValue());
+    assert(retValue && "Got result-id of 0 from return statement.");
     const uint32_t interfaceVarId =
         declIdMapper.getRemappedDeclResultId(curFunction);
 
@@ -506,8 +507,41 @@ public:
         return theBuilder.createLoad(resultType, fromValue);
       }
       return fromValue;
+    } else if (auto *cxxFunctionalCastExpr =
+                   dyn_cast<CXXFunctionalCastExpr>(expr)) {
+      // Explicit cast that is a NO-OP (e.g. vector<float, 4> -> float4)
+      if (cxxFunctionalCastExpr->getCastKind() == CK_NoOp) {
+        return doExpr(cxxFunctionalCastExpr->getSubExpr());
+      } else {
+        emitError("Found unhandled CXXFunctionalCastExpr cast type: %0")
+            << cxxFunctionalCastExpr->getCastKindName();
+      }
+    } else if (auto *initListExpr = dyn_cast<InitListExpr>(expr)) {
+      bool isConstantInitializer = expr->isConstantInitializer(
+          theCompilerInstance.getASTContext(), false);
+      const uint32_t resultType =
+          translateType(initListExpr->getType(), theBuilder);
+      std::vector<uint32_t> constituents;
+      for (size_t i = 0; i < initListExpr->getNumInits(); ++i) {
+        constituents.push_back(doExpr(initListExpr->getInit(i)));
+      }
+      if (isConstantInitializer) {
+        return theBuilder.getConstantComposite(resultType, constituents);
+      } else {
+        // TODO: use OpCompositeConstruct if it is not a constant initializer
+        // list.
+        emitWarning("Non-const initializer lists are currently not supported.");
+      }
+      // ehsan
+    } else if (auto *floatingLiteral = dyn_cast<FloatingLiteral>(expr)) {
+      const uint32_t resultType =
+          translateType(floatingLiteral->getType(), theBuilder);
+      const uint32_t value = floatingLiteral->getValue().convertToFloat();
+      return theBuilder.getConstantNumeric(resultType, {value});
+    } else {
+      emitWarning("Found unhandled expression.");
+      // TODO: handle other expressions
     }
-    // TODO: handle other expressions
     return 0;
   }
 
@@ -523,7 +557,8 @@ private:
   const llvm::StringRef entryFunctionName;
   const spv::ExecutionModel shaderStage;
 
-  /// <result-id> for the entry function. Initially it is zero and will be reset
+  /// <result-id> for the entry function. Initially it is zero and will be
+  /// reset
   /// when starting to translate the entry function.
   uint32_t entryFunctionId;
   /// The current function under traversal.

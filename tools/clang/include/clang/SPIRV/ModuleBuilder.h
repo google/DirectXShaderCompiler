@@ -118,6 +118,11 @@ public:
   uint32_t getFunctionType(uint32_t returnType,
                            const std::vector<uint32_t> &paramTypes);
 
+  // === Constant ===
+  uint32_t getConstantNumeric(uint32_t typeId, llvm::ArrayRef<uint32_t> value);
+  uint32_t getConstantComposite(uint32_t typeId,
+                                llvm::ArrayRef<uint32_t> constituents);
+
 private:
   /// \brief Map from basic blocks' <label-id> to their structured
   /// representation.
