@@ -4,6 +4,7 @@ set(LLVM_LINK_COMPONENTS
 
 add_clang_library(clangSPIRV
   Constant.cpp
+  DeclResultIdMapper.cpp
   Decoration.cpp
   EmitSPIRVAction.cpp
   InstBuilderAuto.cpp
@@ -12,6 +13,7 @@ add_clang_library(clangSPIRV
   SPIRVContext.cpp
   Structure.cpp
   Type.cpp
+  TypeTranslator.cpp
   Utils.cpp
 
   LINK_LIBS
