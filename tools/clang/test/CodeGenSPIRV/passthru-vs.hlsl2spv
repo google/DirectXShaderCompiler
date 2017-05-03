@@ -12,9 +12,6 @@ PSInput VSmain(float4 position: POSITION, float4 color: COLOR) {
   return result;
 }
 
-// TODO:
-// Deduplicate integer constants
-
 
 // CHECK-WHOLE-SPIR-V:
 // ; SPIR-V
