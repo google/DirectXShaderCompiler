@@ -7,9 +7,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "FileTestFixture.h"
 #include "WholeFileCheck.h"
 
 namespace {
+using clang::spirv::FileTest;
 using clang::spirv::WholeFileTest;
 
 TEST_F(WholeFileTest, EmptyVoidMain) {
@@ -34,5 +36,10 @@ TEST_F(WholeFileTest, ConstantPixelShader) {
   runWholeFileTest("constant-ps.hlsl2spv",
                    /*generateHeader*/ true,
                    /*runValidation*/ true);
+}
+
+TEST_F(FileTest, CheckMemoryModelAndEntryPoint) {
+  runFileTest("check-entrypoint.hlsl2spv",
+              /*runValidation*/ true);
 }
 }
