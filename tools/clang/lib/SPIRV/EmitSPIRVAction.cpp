@@ -608,7 +608,7 @@ public:
         const uint32_t ptrType = theBuilder.getPointerType(
             typeTranslator.translateType(field->getType()),
             spv::StorageClass::Function);
-        const uint32_t indexId = theBuilder.getInt32Value(fieldIndex++);
+        const uint32_t indexId = theBuilder.getConstantInt32(fieldIndex++);
         const uint32_t valuePtr =
             theBuilder.createAccessChain(ptrType, retValue, {indexId});
         const uint32_t value = theBuilder.createLoad(valueType, valuePtr);
@@ -644,7 +644,8 @@ public:
       const uint32_t base = doExpr(memberExpr->getBase());
       auto *memberDecl = memberExpr->getMemberDecl();
       if (auto *fieldDecl = dyn_cast<FieldDecl>(memberDecl)) {
-        const auto index = theBuilder.getInt32Value(fieldDecl->getFieldIndex());
+        const auto index =
+            theBuilder.getConstantInt32(fieldDecl->getFieldIndex());
         const uint32_t fieldType =
             typeTranslator.translateType(fieldDecl->getType());
         const uint32_t ptrType =
@@ -667,7 +668,7 @@ public:
       const bool isConstantInitializer = expr->isConstantInitializer(
           theCompilerInstance.getASTContext(), false);
       const uint32_t resultType =
-          translateType(initListExpr->getType(), theBuilder);
+          typeTranslator.translateType(initListExpr->getType());
       std::vector<uint32_t> constituents;
       for (size_t i = 0; i < initListExpr->getNumInits(); ++i) {
         constituents.push_back(doExpr(initListExpr->getInit(i)));
@@ -680,11 +681,10 @@ public:
         emitError("Non-const initializer lists are currently not supported.");
       }
     } else if (auto *floatingLiteral = dyn_cast<FloatingLiteral>(expr)) {
-      const uint32_t resultType =
-          translateType(floatingLiteral->getType(), theBuilder);
+      // TODO: use floatingLiteral->getType() to also handle float64 cases.
       const float value = floatingLiteral->getValue().convertToFloat();
-      return theBuilder.getConstantFloat32(resultType, value);
-    } 
+      return theBuilder.getConstantFloat32(value);
+    }
     emitError("Expr '%0' is not supported yet.") << expr->getStmtClassName();
     // TODO: handle other expressions
     return 0;

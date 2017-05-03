@@ -152,22 +152,26 @@ ModuleBuilder::getConstantComposite(uint32_t typeId,
   return constId;
 }
 
-uint32_t ModuleBuilder::getConstantFloat32(uint32_t typeId, float value) {
-  const Constant *constant = Constant::getFloat32(theContext, typeId, value);
+uint32_t ModuleBuilder::getConstantFloat32(float value) {
+  const uint32_t floatTypeId = getFloatType();
+  const Constant *constant =
+      Constant::getFloat32(theContext, floatTypeId, value);
   const uint32_t constId = theContext.getResultIdForConstant(constant);
   theModule.addConstant(constant, constId);
   return constId;
 }
 
-uint32_t ModuleBuilder::getConstantInt32(uint32_t typeId, int32_t value) {
-  const Constant *constant = Constant::getInt32(theContext, typeId, value);
+uint32_t ModuleBuilder::getConstantInt32(int32_t value) {
+  const uint32_t intTypeId = getInt32Type();
+  const Constant *constant = Constant::getInt32(theContext, intTypeId, value);
   const uint32_t constId = theContext.getResultIdForConstant(constant);
   theModule.addConstant(constant, constId);
   return constId;
 }
 
-uint32_t ModuleBuilder::getConstantUint32(uint32_t typeId, uint32_t value) {
-  const Constant *constant = Constant::getUint32(theContext, typeId, value);
+uint32_t ModuleBuilder::getConstantUint32(uint32_t value) {
+  const uint32_t uintTypeId = getUint32Type();
+  const Constant *constant = Constant::getUint32(theContext, uintTypeId, value);
   const uint32_t constId = theContext.getResultIdForConstant(constant);
   theModule.addConstant(constant, constId);
   return constId;
@@ -175,6 +179,13 @@ uint32_t ModuleBuilder::getConstantUint32(uint32_t typeId, uint32_t value) {
 
 uint32_t ModuleBuilder::getVoidType() {
   const Type *type = Type::getVoid(theContext);
+  const uint32_t typeId = theContext.getResultIdForType(type);
+  theModule.addType(type, typeId);
+  return typeId;
+}
+
+uint32_t ModuleBuilder::getUint32Type() {
+  const Type *type = Type::getUint32(theContext);
   const uint32_t typeId = theContext.getResultIdForType(type);
   theModule.addType(type, typeId);
   return typeId;
@@ -240,15 +251,6 @@ uint32_t ModuleBuilder::getPointerType(uint32_t pointeeType,
   const uint32_t typeId = theContext.getResultIdForType(type);
   theModule.addType(type, typeId);
   return typeId;
-}
-
-uint32_t ModuleBuilder::getInt32Value(uint32_t value) {
-  const Type *i32Type = Type::getInt32(theContext);
-  const uint32_t i32TypeId = getInt32Type();
-  const uint32_t constantId = theContext.takeNextId();
-  instBuilder.opConstant(i32TypeId, constantId, value).x();
-  theModule.addConstant(*i32Type, std::move(constructSite));
-  return constantId;
 }
 
 uint32_t ModuleBuilder::addStageIOVariable(uint32_t type,
