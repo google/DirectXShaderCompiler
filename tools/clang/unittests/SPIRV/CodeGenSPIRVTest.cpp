@@ -35,4 +35,11 @@ TEST_F(WholeFileTest, ConstantPixelShader) {
                    /*generateHeader*/ true,
                    /*runValidation*/ true);
 }
+
+// TODO: convert to FileCheck style tests
+TEST_F(WholeFileTest, PrimitiveTypes) {
+  runWholeFileTest("primitive-types.hlsl",
+                   /*generateHeader*/ false,
+                   /*runValidation*/ true);
+}
 }
