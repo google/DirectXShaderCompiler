@@ -26,7 +26,7 @@ bool FileTest::parseInputFile() {
 
   try {
     inputFile.open(inputFilePath);
-    for (std::string line; !inputFile.eof() && std::getline(inputFile, line);) {
+    for (std::string line; std::getline(inputFile, line);) {
       if (line.find(hlslStartLabel) != std::string::npos) {
         foundRunCommand = true;
         if (!utils::processRunCommandArgs(line, &targetProfile, &entryPoint)) {
@@ -36,25 +36,27 @@ bool FileTest::parseInputFile() {
       }
       checkCommandStream << line << std::endl;
     }
-
-    if (!foundRunCommand) {
-      fprintf(stderr, "Error: Missing \"Run:\" command.\n");
+  } catch (...) {
+    if (!inputFile.eof()) {
+      fprintf(
+          stderr,
+          "Error: Exception occurred while opening/reading the input file %s\n",
+          inputFilePath.c_str());
       return false;
     }
+  }
 
-    // Reached the end of the file. Check commands have ended.
-    // Store them so they can be passed to effcee.
-    checkCommands = checkCommandStream.str();
-
-    // Close the input file.
-    inputFile.close();
-  } catch (...) {
-    fprintf(
-        stderr,
-        "Error: Exception occurred while opening/reading the input file %s\n",
-        inputFilePath.c_str());
+  if (!foundRunCommand) {
+    fprintf(stderr, "Error: Missing \"Run:\" command.\n");
     return false;
   }
+
+  // Reached the end of the file. Check commands have ended.
+  // Store them so they can be passed to effcee.
+  checkCommands = checkCommandStream.str();
+
+  // Close the input file.
+  inputFile.close();
 
   // Everything was successful.
   return true;

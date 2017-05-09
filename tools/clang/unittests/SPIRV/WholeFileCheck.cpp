@@ -28,7 +28,7 @@ bool WholeFileTest::parseInputFile() {
   inputFile.exceptions(std::ifstream::failbit);
   try {
     inputFile.open(inputFilePath);
-    for (std::string line; !inputFile.eof() && std::getline(inputFile, line);) {
+    for (std::string line; std::getline(inputFile, line);) {
       if (line.find(hlslStartLabel) != std::string::npos) {
         foundRunCommand = true;
         if (!utils::processRunCommandArgs(line, &targetProfile, &entryPoint)) {
@@ -52,29 +52,31 @@ bool WholeFileTest::parseInputFile() {
         outString << line << std::endl;
       }
     }
-
-    if (!foundRunCommand) {
-      fprintf(stderr, "Error: Missing \"Run:\" command.\n");
-      return false;
-    }
-    if (!parseSpirv) {
-      fprintf(stderr, "Error: Missing \"CHECK-WHOLE-SPIR-V:\" command.\n");
-      return false;
-    }
-
-    // Reached the end of the file. SPIR-V source has ended. Store it for
-    // comparison.
-    expectedSpirvAsm = outString.str();
-
-    // Close the input file.
-    inputFile.close();
   } catch (...) {
-    fprintf(
-        stderr,
-        "Error: Exception occurred while opening/reading the input file %s\n",
-        inputFilePath.c_str());
+    if (!inputFile.eof()) {
+      fprintf(
+          stderr,
+          "Error: Exception occurred while opening/reading the input file %s\n",
+          inputFilePath.c_str());
+      return false;
+    }
+  }
+
+  if (!foundRunCommand) {
+    fprintf(stderr, "Error: Missing \"Run:\" command.\n");
     return false;
   }
+  if (!parseSpirv) {
+    fprintf(stderr, "Error: Missing \"CHECK-WHOLE-SPIR-V:\" command.\n");
+    return false;
+  }
+
+  // Reached the end of the file. SPIR-V source has ended. Store it for
+  // comparison.
+  expectedSpirvAsm = outString.str();
+
+  // Close the input file.
+  inputFile.close();
 
   // Everything was successful.
   return true;
