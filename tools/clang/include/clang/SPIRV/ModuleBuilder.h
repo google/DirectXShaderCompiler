@@ -97,11 +97,15 @@ public:
                           uint32_t rhs);
 
   // \brief Creates an unconditional branch to the given target label.
-  void createBranch(uint32_t targetLabel);
+  // An OpLoopMerge instruction will also be created if both continueLabel
+  // and mergeLabel are not 0.
+  void createBranch(uint32_t targetLabel, uint32_t continueLabel = 0,
+                    uint32_t mergeLabel = 0);
   // \brief Creates a conditional branch. The OpSelectionMerge instruction
-  // required for the conditional branch will also be created.
+  // required for the conditional branch will also be created if mergeLabel
+  // is not 0.
   void createConditionalBranch(uint32_t condition, uint32_t trueLabel,
-                               uint32_t falseLabel, uint32_t mergeLabel);
+                               uint32_t falseLabel, uint32_t mergeLabel = 0);
 
   /// \brief Creates a return instruction.
   void createReturn();
