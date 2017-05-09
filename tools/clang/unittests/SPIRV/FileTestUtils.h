@@ -20,7 +20,7 @@
 
 namespace clang {
 namespace spirv {
-namespace fileTestUtils {
+namespace utils {
 
 /// \brief Passes the given SPIR-V binary to SPIR-V tools disassembler. The
 /// SPIR-V assembly is returned via 'generatedSpirvAsm' argument.
@@ -57,7 +57,7 @@ bool runCompilerWithSpirvGeneration(const llvm::StringRef inputFilePath,
                                     const llvm::StringRef targetProfile,
                                     std::vector<uint32_t> *generatedBinary);
 
-} // end namespace fileTestUtils
+} // end namespace utils
 } // end namespace spirv
 } // end namespace clang
 

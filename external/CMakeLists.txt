@@ -61,12 +61,14 @@ if (${ENABLE_SPIRV_CODEGEN})
 
   # We need Effcee for SPIR-V codegen testing.
   if (${SPIRV_BUILD_TESTS})
+    # re2 is needed since it's required by effcee.
     set(DXC_RE2_DIR "${DXC_EXTERNAL_ROOT_DIR}/re2" CACHE STRING "Location of RE2 source")
     set(DXC_EFFCEE_DIR "${DXC_EXTERNAL_ROOT_DIR}/effcee" CACHE STRING "Location of Effcee source")
 
     if (IS_DIRECTORY ${DXC_RE2_DIR})
-      # Silence some level-3 and level-4 warnings from RE2.
-      add_compile_options(/wd4201 /wd4815 /EHs)
+      # Avoid exception handling warning from MSVC.
+      # This add_compile_options() will only affect the current directory and its subdirectories.
+      add_compile_options(/EHs)
       # Don't build/run re2's tests.
       set(RE2_BUILD_TESTING OFF CACHE BOOL "Skip RE2 tests")
       add_subdirectory(${DXC_RE2_DIR})
@@ -75,7 +77,6 @@ if (${ENABLE_SPIRV_CODEGEN})
     if (IS_DIRECTORY ${DXC_EFFCEE_DIR})
       # Configure effcee
       set(EFFCEE_RE2_DIR "${DXC_RE2_DIR}" CACHE STRING "Location of RE2 for effcee")
-      set(EFFCEE_GOOGLETEST_DIR "${DXC_GTEST_DIR}" CACHE STRING "Location of googletest for effcee")
       set(EFFCEE_ENABLE_SHARED_CRT ON CACHE BOOL "Enable using shared C Runtime")
       # Don't build/run effcee's tests.
       set(EFFCEE_BUILD_TESTING OFF CACHE BOOL "Skip effcee tests")

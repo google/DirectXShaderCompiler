@@ -39,7 +39,7 @@ TEST_F(WholeFileTest, ConstantPixelShader) {
 }
 
 TEST_F(FileTest, CheckMemoryModelAndEntryPoint) {
-  runFileTest("check-entrypoint.hlsl2spv",
+  runFileTest("check-entrypoint.hlsl",
               /*runValidation*/ true);
 }
-}
+} // namespace

@@ -18,7 +18,7 @@ namespace spirv {
 namespace {
 const char hlslStartLabel[] = "// Run:";
 const char spirvStartLabel[] = "// CHECK-WHOLE-SPIR-V:";
-}
+} // namespace
 
 bool WholeFileTest::parseInputFile() {
   bool foundRunCommand = false;
@@ -31,8 +31,7 @@ bool WholeFileTest::parseInputFile() {
     for (std::string line; !inputFile.eof() && std::getline(inputFile, line);) {
       if (line.find(hlslStartLabel) != std::string::npos) {
         foundRunCommand = true;
-        if (!fileTestUtils::processRunCommandArgs(line, &targetProfile,
-                                                  &entryPoint)) {
+        if (!utils::processRunCommandArgs(line, &targetProfile, &entryPoint)) {
           // An error has occured when parsing the Run command.
           return false;
         }
@@ -84,25 +83,25 @@ bool WholeFileTest::parseInputFile() {
 void WholeFileTest::runWholeFileTest(llvm::StringRef filename,
                                      bool generateHeader,
                                      bool runSpirvValidation) {
-  inputFilePath = fileTestUtils::getAbsPathOfInputDataFile(filename);
+  inputFilePath = utils::getAbsPathOfInputDataFile(filename);
 
   // Parse the input file.
   ASSERT_TRUE(parseInputFile());
 
   // Feed the HLSL source into the Compiler.
-  ASSERT_TRUE(fileTestUtils::runCompilerWithSpirvGeneration(
+  ASSERT_TRUE(utils::runCompilerWithSpirvGeneration(
       inputFilePath, entryPoint, targetProfile, &generatedBinary));
 
   // Disassemble the generated SPIR-V binary.
-  ASSERT_TRUE(fileTestUtils::disassembleSpirvBinary(
-      generatedBinary, &generatedSpirvAsm, generateHeader));
+  ASSERT_TRUE(utils::disassembleSpirvBinary(generatedBinary, &generatedSpirvAsm,
+                                            generateHeader));
 
   // Compare the expected and the generted SPIR-V code.
   EXPECT_EQ(expectedSpirvAsm, generatedSpirvAsm);
 
   // Run SPIR-V validation if requested.
   if (runSpirvValidation) {
-    EXPECT_TRUE(fileTestUtils::validateSpirvBinary(generatedBinary));
+    EXPECT_TRUE(utils::validateSpirvBinary(generatedBinary));
   }
 }
 

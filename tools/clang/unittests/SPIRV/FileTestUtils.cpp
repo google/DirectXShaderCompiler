@@ -15,7 +15,7 @@
 
 namespace clang {
 namespace spirv {
-namespace fileTestUtils {
+namespace utils {
 
 bool disassembleSpirvBinary(std::vector<uint32_t> &binary,
                             std::string *generatedSpirvAsm,
@@ -158,6 +158,6 @@ bool runCompilerWithSpirvGeneration(const llvm::StringRef inputFilePath,
   return success;
 }
 
-} // end namespace fileTestUtils
+} // end namespace utils
 } // end namespace spirv
 } // end namespace clang
