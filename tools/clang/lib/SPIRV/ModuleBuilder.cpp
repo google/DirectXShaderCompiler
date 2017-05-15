@@ -151,16 +151,8 @@ uint32_t ModuleBuilder::createBinaryOp(spv::Op op, uint32_t resultType,
   return id;
 }
 
-void ModuleBuilder::createBranch(uint32_t targetLabel, uint32_t continueLabel,
-                                 uint32_t mergeLabel) {
+void ModuleBuilder::createBranch(uint32_t targetLabel) {
   assert(insertPoint && "null insert point");
-
-  if (mergeLabel && continueLabel) {
-    instBuilder
-        .opLoopMerge(mergeLabel, continueLabel, spv::LoopControlMask::MaskNone)
-        .x();
-    insertPoint->appendInstruction(std::move(constructSite));
-  }
 
   instBuilder.opBranch(targetLabel).x();
   insertPoint->appendInstruction(std::move(constructSite));
@@ -169,14 +161,23 @@ void ModuleBuilder::createBranch(uint32_t targetLabel, uint32_t continueLabel,
 void ModuleBuilder::createConditionalBranch(uint32_t condition,
                                             uint32_t trueLabel,
                                             uint32_t falseLabel,
-                                            uint32_t mergeLabel) {
+                                            uint32_t mergeLabel,
+                                            uint32_t continueLabel) {
   assert(insertPoint && "null insert point");
 
   if (mergeLabel) {
-    instBuilder
-        .opSelectionMerge(mergeLabel, spv::SelectionControlMask::MaskNone)
-        .x();
-    insertPoint->appendInstruction(std::move(constructSite));
+    if (continueLabel) {
+      instBuilder
+          .opLoopMerge(mergeLabel, continueLabel,
+                       spv::LoopControlMask::MaskNone)
+          .x();
+      insertPoint->appendInstruction(std::move(constructSite));
+    } else {
+      instBuilder
+          .opSelectionMerge(mergeLabel, spv::SelectionControlMask::MaskNone)
+          .x();
+      insertPoint->appendInstruction(std::move(constructSite));
+    }
   }
 
   instBuilder.opBranchConditional(condition, trueLabel, falseLabel, {}).x();

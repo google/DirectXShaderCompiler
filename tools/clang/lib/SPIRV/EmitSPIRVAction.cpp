@@ -384,6 +384,7 @@ public:
     // structured control flow, we need two more basic blocks, <header>
     // and <merge>. <header> is the block before control flow diverges,
     // while <merge> is the block where control flow subsequently converges.
+    // The <check> block can take the responsibility of the <header> block.
     // The final CFG should normally be like the following. Exceptions will
     // occur with non-local exits like loop breaks or early returns.
     //             +--------+
@@ -391,14 +392,10 @@ public:
     //             +--------+
     //                 |
     //                 v
-    //             +--------+
-    //             | header | <----------------+
-    //             +--------+                  |
-    //                 |                       |
-    //                 v                       |
-    //             +--------+                  |
-    //             | check  |                  |
-    //             +--------+                  |
+    //            +----------+
+    //            |  header  | <---------------+
+    //            | (check)  |                 |
+    //            +----------+                 |
     //                 |                       |
     //         +-------+-------+               |
     //         | false         | true          |
@@ -413,7 +410,6 @@ public:
     // For more details, see "2.11. Structured Control Flow" in the SPIR-V spec.
 
     // Create basic blocks
-    const uint32_t headerBB = theBuilder.createBasicBlock("for.head");
     const uint32_t checkBB = theBuilder.createBasicBlock("for.check");
     const uint32_t bodyBB = theBuilder.createBasicBlock("for.body");
     const uint32_t continueBB = theBuilder.createBasicBlock("for.continue");
@@ -423,11 +419,7 @@ public:
     if (const Stmt *initStmt = forStmt->getInit()) {
       doStmt(initStmt);
     }
-    theBuilder.createBranch(headerBB);
-
-    // Process the <header> block
-    theBuilder.setInsertPoint(headerBB);
-    theBuilder.createBranch(checkBB, continueBB, mergeBB);
+    theBuilder.createBranch(checkBB);
 
     // Process the <check> block
     theBuilder.setInsertPoint(checkBB);
@@ -437,7 +429,9 @@ public:
     } else {
       condition = theBuilder.getConstantBool(true);
     }
-    theBuilder.createConditionalBranch(condition, bodyBB, mergeBB);
+    theBuilder.createConditionalBranch(condition, bodyBB,
+                                       /*false branch*/ mergeBB,
+                                       /*merge*/ mergeBB, continueBB);
 
     // Process the <body> block
     theBuilder.setInsertPoint(bodyBB);
@@ -451,7 +445,7 @@ public:
     if (const Expr *cont = forStmt->getInc()) {
       doExpr(cont);
     }
-    theBuilder.createBranch(headerBB); // <continue> should jump back to header
+    theBuilder.createBranch(checkBB); // <continue> should jump back to header
 
     // Set insertion point to the <merge> block for subsequent statements
     theBuilder.setInsertPoint(mergeBB);
@@ -464,7 +458,7 @@ public:
       assert(referredDecl && "found non-NamedDecl referenced");
       return declIdMapper.getDeclResultId(referredDecl);
     } else if (auto *parenExpr = dyn_cast<ParenExpr>(expr)) {
-      // Juse need to return what's inside the parentheses.
+      // Just need to return what's inside the parentheses.
       return doExpr(parenExpr->getSubExpr());
     } else if (auto *memberExpr = dyn_cast<MemberExpr>(expr)) {
       const uint32_t base = doExpr(memberExpr->getBase());
