@@ -86,6 +86,7 @@ public:
   /// \brief Finalizes the building and returns the generated SPIR-V words.
   /// Returns an empty vector if errors happened during the construction.
   std::vector<uint32_t> take();
+
   /// \brief Clears the current instruction under building.
   void clear();
 
