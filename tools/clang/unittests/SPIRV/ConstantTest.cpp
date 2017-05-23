@@ -108,15 +108,17 @@ TEST(Constant, SpecInt32) {
   SPIRVContext ctx;
   const Constant *c = Constant::getSpecInt32(ctx, 2, -7);
   const auto result = c->withResultId(3);
-  const auto expected = constructInst(spv::Op::OpSpecConstant, {2, 3, 0xFFFFFFF9});
+  const auto expected =
+      constructInst(spv::Op::OpSpecConstant, {2, 3, 0xFFFFFFF9});
   EXPECT_THAT(result, ContainerEq(expected));
 }
 TEST(Constant, SpecFloat32) {
   SPIRVContext ctx;
   const Constant *c = Constant::getSpecFloat32(ctx, 2, 7.0);
   const auto result = c->withResultId(3);
-  const auto expected = constructInst(
-      spv::Op::OpSpecConstant, {2, 3, utils::BitwiseCast<uint32_t, float>(7.0)});
+  const auto expected =
+      constructInst(spv::Op::OpSpecConstant,
+                    {2, 3, utils::BitwiseCast<uint32_t, float>(7.0)});
   EXPECT_THAT(result, ContainerEq(expected));
 }
 TEST(Constant, SpecComposite) {
@@ -259,6 +261,20 @@ TEST(Constant, DecoratedSpecComposite) {
   EXPECT_EQ(c->getTypeId(), 8);
   EXPECT_THAT(c->getArgs(), ElementsAre(4, 5, 6, 7));
   EXPECT_THAT(c->getDecorations(), ElementsAre(d));
+}
+
+TEST(Constant, ConstantsWithSameBitPatternButDifferentTypeIdAreNotEqual) {
+  SPIRVContext ctx;
+
+  const Constant *int1 = Constant::getInt32(ctx, /*type_id*/ 1, 0);
+  const Constant *uint1 = Constant::getUint32(ctx, /*type_id*/ 2, 0);
+  const Constant *float1 = Constant::getFloat32(ctx, /*type_id*/ 3, 0);
+  const Constant *anotherInt1 = Constant::getInt32(ctx, /*type_id*/ 4, 0);
+
+  EXPECT_FALSE(*int1 == *uint1);
+  EXPECT_FALSE(*int1 == *float1);
+  EXPECT_FALSE(*uint1 == *float1);
+  EXPECT_FALSE(*int1 == *anotherInt1);
 }
 
 } // anonymous namespace
