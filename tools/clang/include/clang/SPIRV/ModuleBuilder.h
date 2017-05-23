@@ -72,13 +72,13 @@ public:
   void addSuccessor(uint32_t successorLabel);
 
   /// \brief Sets the merge target to the basic block with the given <label-id>.
-  /// Must make sure the current basic block contains an OpSelectionMerge or
-  /// OpLoopMerge instruction.
+  /// The caller must make sure the current basic block contains an
+  /// OpSelectionMerge or OpLoopMerge instruction.
   void setMergeTarget(uint32_t mergeLabel);
 
   /// \brief Sets the continue target to the basic block with the given
-  /// <label-id>. Must make sure the current basic block contains an OpLoopMerge
-  /// instruction.
+  /// <label-id>. The caller must make sure the current basic block contains an
+  /// OpLoopMerge instruction.
   void setContinueTarget(uint32_t continueLabel);
 
   /// \brief Returns true if the current basic block inserting into is

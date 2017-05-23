@@ -112,10 +112,10 @@ public:
   inline void addSuccessor(BasicBlock *);
 
   /// \brief Gets all successor basic blocks.
-  inline llvm::SmallVector<BasicBlock *, 2> getSuccessors() const;
+  inline const llvm::SmallVector<BasicBlock *, 2> &getSuccessors() const;
 
   /// \brief Sets the merge target to the given basic block.
-  /// Must make sure this basic block contains an OpSelectionMerge or
+  /// The caller must make sure this basic block contains an OpSelectionMerge or
   /// OpLoopMerge instruction.
   inline void setMergeTarget(BasicBlock *);
 
@@ -124,7 +124,8 @@ public:
   inline BasicBlock *getMergeTarget() const;
 
   /// \brief Sets the continue target to the given basic block.
-  /// Must make sure this basic block contains an OpLoopMerge instruction.
+  /// The caller must make sure this basic block contains an OpLoopMerge
+  /// instruction.
   inline void setContinueTarget(BasicBlock *);
 
   /// \brief Returns the continue target if this basic block contains an
@@ -373,7 +374,7 @@ void BasicBlock::addSuccessor(BasicBlock *successor) {
   successors.push_back(successor);
 }
 
-llvm::SmallVector<BasicBlock *, 2> BasicBlock::getSuccessors() const {
+const llvm::SmallVector<BasicBlock *, 2> &BasicBlock::getSuccessors() const {
   return successors;
 }
 

@@ -11,7 +11,7 @@
 // dominator-tree direction (ie, dominator before the dominated).  This is,
 // actually, easy to achieve: any pre-order CFG traversal algorithm will do it.
 // Because such algorithms visit a block only after traversing some path to it
-// from the root, they necessarily visit the block's idom first.
+// from the root, they necessarily visit the block's immediate dominator first.
 //
 // But not every graph-traversal algorithm outputs blocks in an order that
 // appears logical to human readers.  The problem is that unrelated branches may

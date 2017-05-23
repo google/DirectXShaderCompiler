@@ -606,13 +606,13 @@ public:
     const QualType toType = expr->getType();
 
     switch (expr->getCastKind()) {
-    // Integer literals in the AST are represented using 64bit APInt
-    // themselves and then implicitly casted into the expected bitwidth.
-    // We need special treatment of integer literals here because generating
-    // a 64bit constant and then explicit casting in SPIR-V requires Int64
-    // capability. We should avoid introducing unnecessary capabilities to
-    // our best.
     case CastKind::CK_IntegralCast: {
+      // Integer literals in the AST are represented using 64bit APInt
+      // themselves and then implicitly casted into the expected bitwidth.
+      // We need special treatment of integer literals here because generating
+      // a 64bit constant and then explicit casting in SPIR-V requires Int64
+      // capability. We should avoid introducing unnecessary capabilities to
+      // our best.
       llvm::APSInt intValue;
       if (expr->EvaluateAsInt(intValue, astContext, Expr::SE_NoSideEffects)) {
         return translateAPInt(intValue, toType);
@@ -622,6 +622,8 @@ public:
       }
     }
     case CastKind::CK_FloatingCast: {
+      // First try to see if we can do constant folding for floating point
+      // numbers like what we are doing for integers in the above.
       Expr::EvalResult evalResult;
       if (expr->EvaluateAsRValue(evalResult, astContext) &&
           !evalResult.HasSideEffects) {
