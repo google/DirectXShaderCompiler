@@ -56,6 +56,24 @@ bool isFloatOrVecOfFloatType(QualType type) {
           hlsl::GetHLSLVecElementType(type)->isFloatingType());
 }
 
+bool isCompoundAssignment(BinaryOperatorKind opcode) {
+  switch (opcode) {
+  case BO_AddAssign:
+  case BO_SubAssign:
+  case BO_MulAssign:
+  case BO_DivAssign:
+  case BO_RemAssign:
+  case BO_AndAssign:
+  case BO_OrAssign:
+  case BO_XorAssign:
+  case BO_ShlAssign:
+  case BO_ShrAssign:
+    return true;
+  default:
+    return false;
+  }
+}
+
 } // namespace
 
 /// SPIR-V emitter class. It consumes the HLSL AST and emits SPIR-V words.
@@ -610,6 +628,10 @@ public:
       return doUnaryOperator(unaryOp);
     }
 
+    if (const auto *vecElemExpr = dyn_cast<HLSLVectorElementExpr>(expr)) {
+      return doHLSLVectorElementExpr(vecElemExpr);
+    }
+
     if (const auto *funcCall = dyn_cast<CallExpr>(expr)) {
       return doCallExpr(funcCall);
     }
@@ -694,30 +716,129 @@ public:
     return theBuilder.createCompositeConstruct(resultType, constituents);
   }
 
-  uint32_t doBinaryOperator(const BinaryOperator *expr) {
-    const auto opcode = expr->getOpcode();
+  /// Tries to emit instructions for assigning to the given vector element
+  /// accessing expression. Returns 0 if the trial fails and no instructions
+  /// are generated.
+  ///
+  /// This method handles the cases that we are writing to neither one element
+  /// or all elements in their original order. For other cases, 0 will be
+  /// returned and the normal assignment process should be used.
+  uint32_t tryToAssignToVectorElements(const Expr *lhs, const uint32_t rhs) {
+    // Assigning to a vector swizzling lhs is tricky if we are neither
+    // writing to one element nor all elements in their original order.
+    // Under such cases, we need to create a new vector swizzling involving
+    // both the lhs and rhs vectors and then write the result of this swizzling
+    // into the base vector of lhs.
+    // For example, for vec4.yz = vec2, we nee to do the following:
+    //
+    //   %vec4Val = OpLoad %v4float %vec4
+    //   %vec2Val = OpLoad %v2float %vec2
+    //   %shuffle = OpVectorShuffle %v4float %vec4Val %vec2Val 0 4 5 3
+    //   OpStore %vec4 %shuffle
+    //
+    // When doing the vector shuffle, we use the lhs base vector as the first
+    // vector and the rhs vector as the second vector. We select all elements
+    // in the second vector and all elements untouched in the first vector.
 
-    // Handle assignment first since we need to evaluate rhs before lhs.
-    // For other binary operations, we need to evaluate lhs before rhs.
-    if (opcode == BO_Assign) {
-      const uint32_t rhs = doExpr(expr->getRHS());
-      const uint32_t lhs = doExpr(expr->getLHS());
+    if (!isa<HLSLVectorElementExpr>(lhs))
+      return 0;
 
-      theBuilder.createStore(lhs, rhs);
-      // Assignment returns a rvalue.
-      return rhs;
+    if (!isVectorShuffle(lhs)) {
+      // No vector shuffle needed to be generated for this assignment.
+      // Should fall back to the normal handling of assignment.
+      return 0;
     }
 
-    // Try to optimize floatN * float case
-    if (opcode == BO_Mul) {
-      if (const uint32_t result = tryToGenFloatVectorScale(expr))
-        return result;
+    const auto *vecElemExpr = cast<HLSLVectorElementExpr>(lhs);
+
+    const QualType baseType = vecElemExpr->getBase()->getType();
+    assert(hlsl::IsHLSLVecType(baseType));
+    const auto baseVecSize = hlsl::GetHLSLVecSize(baseType);
+
+    llvm::SmallVector<uint32_t, 4> selectors;
+    selectors.resize(baseVecSize);
+    // Assume we are selecting all original elements first.
+    for (uint32_t i = 0; i < baseVecSize; ++i) {
+      selectors[i] = i;
     }
 
-    const uint32_t lhs = doExpr(expr->getLHS());
-    const uint32_t rhs = doExpr(expr->getRHS());
-    const uint32_t typeId = typeTranslator.translateType(expr->getType());
-    const QualType elemType = expr->getLHS()->getType();
+    // Now fix up the elements that actually got overwritten by the rhs vector.
+    // Since we are using the rhs vector as the second vector, their index
+    // should be offset'ed by the size of the lhs base vector.
+    const auto accessors = vecElemExpr->getEncodedElementAccess();
+    for (uint32_t i = 0; i < accessors.Count; ++i) {
+      uint32_t position;
+      accessors.GetPosition(i, &position);
+      selectors[position] = baseVecSize + i;
+    }
+
+    const uint32_t baseTypeId = typeTranslator.translateType(baseType);
+    const uint32_t vec1 = doExpr(vecElemExpr->getBase());
+    const uint32_t vec1Val = theBuilder.createLoad(baseTypeId, vec1);
+    const uint32_t shuffle =
+        theBuilder.createVectorShuffle(baseTypeId, vec1Val, rhs, selectors);
+
+    theBuilder.createStore(vec1, shuffle);
+
+    // TODO: OK, this return value is incorrect for compound assignments, for
+    // which cases we should return lvalues. Should at least emit errors if
+    // this return value is used (can be checked via ASTContext.getParents).
+    return rhs;
+  }
+
+  /// Generates the necessary instructions for assigning rhs to lhs. If lhsPtr
+  /// is not zero, it will be used as the pointer from lhs instead of evaluating
+  /// lhs again.
+  uint32_t processAssignment(const Expr *lhs, const uint32_t rhs,
+                             bool isCompoundAssignment, uint32_t lhsPtr = 0) {
+    // Assigning to vector swizzling should be handled differently.
+    if (const uint32_t result = tryToAssignToVectorElements(lhs, rhs)) {
+      return result;
+    }
+
+    // Normal assignment procedure
+    if (lhsPtr == 0)
+      lhsPtr = doExpr(lhs);
+
+    theBuilder.createStore(lhsPtr, rhs);
+    // Plain assignment returns a rvalue, while compound assignment returns
+    // lvalue.
+    return isCompoundAssignment ? lhsPtr : rhs;
+  }
+
+  /// Generates the necessary instructions for conducting the given binary
+  /// operation on lhs and rhs. If lhsResultId is not nullptr, the evaluated
+  /// pointer from lhs during the process will be written into it. If
+  /// mandateGenOpcode is not spv::Op::Max, it will used as the SPIR-V opcode
+  /// instead of deducing from Clang frontend opcode.
+  uint32_t processBinaryOp(const Expr *lhs, const Expr *rhs,
+                           const BinaryOperatorKind opcode,
+                           const uint32_t resultType,
+                           uint32_t *lhsResultId = nullptr,
+                           const spv::Op mandateGenOpcode = spv::Op::Max) {
+    const spv::Op spvOp = (mandateGenOpcode == spv::Op::Max)
+                              ? translateOp(opcode, lhs->getType())
+                              : mandateGenOpcode;
+
+    uint32_t rhsVal, lhsPtr, lhsVal;
+    if (isCompoundAssignment(opcode)) {
+      // Evalute rhs before lhs
+      rhsVal = doExpr(rhs);
+      lhsVal = lhsPtr = doExpr(lhs);
+      // This is a compound assignment. We need to load the lhs value if lhs
+      // does not generate a vector shuffle.
+      if (!isVectorShuffle(lhs)) {
+        const uint32_t lhsTy = typeTranslator.translateType(lhs->getType());
+        lhsVal = theBuilder.createLoad(lhsTy, lhsPtr);
+      }
+    } else {
+      // Evalute lhs before rhs
+      lhsVal = lhsPtr = doExpr(lhs);
+      rhsVal = doExpr(rhs);
+    }
+
+    if (lhsResultId)
+      *lhsResultId = lhsPtr;
 
     switch (opcode) {
     case BO_Add:
@@ -737,21 +858,45 @@ public:
     case BO_Shl:
     case BO_Shr:
     case BO_LAnd:
-    case BO_LOr: {
-      const spv::Op spvOp = translateOp(opcode, elemType);
-      return theBuilder.createBinaryOp(spvOp, typeId, lhs, rhs);
-    }
-    case BO_Assign: {
-      llvm_unreachable("assignment already handled before");
-    } break;
+    case BO_LOr:
+    case BO_AddAssign:
+    case BO_SubAssign:
+    case BO_MulAssign:
+    case BO_DivAssign:
+    case BO_RemAssign:
+    case BO_AndAssign:
+    case BO_OrAssign:
+    case BO_XorAssign:
+    case BO_ShlAssign:
+    case BO_ShrAssign:
+      return theBuilder.createBinaryOp(spvOp, resultType, lhsVal, rhsVal);
+    case BO_Assign:
+      llvm_unreachable("assignment should not be handled here");
     default:
       break;
     }
 
     emitError("BinaryOperator '%0' is not supported yet.")
-        << expr->getOpcodeStr(opcode);
-    expr->dump();
+        << BinaryOperator::getOpcodeStr(opcode);
     return 0;
+  }
+
+  uint32_t doBinaryOperator(const BinaryOperator *expr) {
+    const auto opcode = expr->getOpcode();
+
+    // Handle assignment first since we need to evaluate rhs before lhs.
+    // For other binary operations, we need to evaluate lhs before rhs.
+    if (opcode == BO_Assign)
+      return processAssignment(expr->getLHS(), doExpr(expr->getRHS()), false);
+
+    // Try to optimize floatN * float case
+    if (opcode == BO_Mul) {
+      if (const uint32_t result = tryToGenFloatVectorScale(expr))
+        return result;
+    }
+
+    const uint32_t resultType = typeTranslator.translateType(expr->getType());
+    return processBinaryOp(expr->getLHS(), expr->getRHS(), opcode, resultType);
   }
 
   uint32_t doCompoundAssignOperator(const CompoundAssignOperator *expr) {
@@ -766,37 +911,11 @@ public:
     const auto *rhs = expr->getRHS();
     const auto *lhs = expr->getLHS();
 
-    switch (opcode) {
-    case BO_AddAssign:
-    case BO_SubAssign:
-    case BO_MulAssign:
-    case BO_DivAssign:
-    case BO_RemAssign:
-    case BO_AndAssign:
-    case BO_OrAssign:
-    case BO_XorAssign:
-    case BO_ShlAssign:
-    case BO_ShrAssign: {
-      const uint32_t resultType = typeTranslator.translateType(expr->getType());
-
-      // Evalute rhs before lhs
-      const uint32_t rhsVal = doExpr(rhs);
-      const uint32_t lhsPtr = doExpr(lhs);
-      const uint32_t lhsVal = theBuilder.createLoad(resultType, lhsPtr);
-
-      const spv::Op spvOp = translateOp(opcode, expr->getType());
-      const uint32_t result =
-          theBuilder.createBinaryOp(spvOp, resultType, lhsVal, rhsVal);
-      theBuilder.createStore(lhsPtr, result);
-
-      // Compound assign operators return lvalues.
-      return lhsPtr;
-    }
-    default:
-      emitError("CompoundAssignOperator '%0' unimplemented")
-          << expr->getOpcodeStr(opcode);
-      return 0;
-    }
+    uint32_t lhsPtr = 0;
+    const uint32_t resultType = typeTranslator.translateType(expr->getType());
+    const uint32_t result =
+        processBinaryOp(lhs, rhs, opcode, resultType, &lhsPtr);
+    return processAssignment(lhs, result, true, lhsPtr);
   }
 
   uint32_t doUnaryOperator(const UnaryOperator *expr) {
@@ -852,6 +971,130 @@ public:
     return 0;
   }
 
+  /// Processes the given expression and emits SPIR-V instructions. If the
+  /// result is a GLValue, does an additional load.
+  ///
+  /// This method is useful for cases where ImplicitCastExpr (LValueToRValue) is
+  /// missing when using an lvalue as rvalue in the AST, e.g., DeclRefExpr will
+  /// not be wrapped in ImplicitCastExpr (LValueToRValue) when appearing in
+  /// HLSLVectorElementExpr.
+  uint32_t loadIfGLValue(const Expr *expr) {
+    const uint32_t result = doExpr(expr);
+    if (expr->isGLValue()) {
+      const uint32_t baseTyId = typeTranslator.translateType(expr->getType());
+      return theBuilder.createLoad(baseTyId, result);
+    }
+
+    return result;
+  }
+
+  uint32_t doHLSLVectorElementExpr(const HLSLVectorElementExpr *expr) {
+    const QualType baseType = expr->getBase()->getType();
+
+    assert(hlsl::IsHLSLVecType(baseType));
+    const auto baseSize = hlsl::GetHLSLVecSize(baseType);
+
+    const uint32_t type = typeTranslator.translateType(expr->getType());
+    const auto accessors = expr->getEncodedElementAccess();
+    const auto accessorSize = expr->getNumElements();
+
+    // Depending on the number of elements selected, we emit different
+    // instructions.
+    // For vectors of size greater than 1, if we are only selecting one element,
+    // typical access chain or composite extraction should be fine. But if we
+    // are selecting more than one elements, we must resolve to vector specific
+    // operations.
+    // For size-1 vectors, if we are selecting their single elements multiple
+    // times, we need composite construct instructions.
+
+    if (accessorSize == 1) {
+      const uint32_t base = doExpr(expr->getBase());
+      if (baseSize == 1) {
+        // Selecting one element from a size-1 vector. The underlying vector is
+        // already treated as a scalar.
+        return base;
+      }
+
+      // If the base is an lvalue, we should emit an access chain instruction
+      // so that we can load/store the specified element. For rvalue base,
+      // we should use composite extraction.
+      if (expr->getBase()->isGLValue()) { // E.g., v.x;
+        // TODO: select the correct storage class
+        const uint32_t ptrType =
+            theBuilder.getPointerType(type, spv::StorageClass::Function);
+        const uint32_t index = theBuilder.getConstantInt32(accessors.Swz0);
+        return theBuilder.createAccessChain(ptrType, base, {index});
+      } else { // E.g., (v + w).x;
+               // base should already be a rvalue. So no need to load.
+        return theBuilder.createCompositeExtract(type, base, {accessors.Swz0});
+      }
+    }
+
+    const Expr *base = expr->getBase();
+    if (baseSize == 1) {
+      // Selecting one element from a size-1 vector. Construct the vector.
+      llvm::SmallVector<uint32_t, 4> components(
+          static_cast<size_t>(accessorSize), loadIfGLValue(base));
+      return theBuilder.createCompositeConstruct(type, components);
+    }
+
+    llvm::SmallVector<uint32_t, 4> selectors;
+    selectors.resize(accessors.Count);
+    // Whether we are selecting elements in the original order
+    bool originalOrder = baseSize == accessorSize;
+    for (uint32_t i = 0; i < accessors.Count; ++i) {
+      accessors.GetPosition(i, &selectors[i]);
+      // We can select more elements than the vector provides. This handles
+      // that case too.
+      originalOrder &= selectors[i] == i;
+    }
+
+    if (originalOrder)
+      return doExpr(base);
+
+    const uint32_t baseVal = loadIfGLValue(base);
+    // Use base for both vectors. But we are only selecting values from the
+    // first one.
+    return theBuilder.createVectorShuffle(type, baseVal, baseVal, selectors);
+  }
+
+  /// Returns true if the given expression will be translated into a vector
+  /// shuffle instruction in SPIR-V.
+  ///
+  /// We emit a vector shuffle instruction iff selecting neither one elements
+  /// from a vector nor the original vector.
+  bool isVectorShuffle(const Expr *expr) {
+    // TODO: the following check is essentially duplicated from
+    // doHLSLVectorElementExpr. Should unify them.
+    if (const auto *vecElemExpr = dyn_cast<HLSLVectorElementExpr>(expr)) {
+      const auto accessorSize = vecElemExpr->getNumElements();
+      if (accessorSize == 1) {
+        // Selecting only one element. OpAccessChain or OpCompositeExtract for
+        // such cases.
+        return false;
+      }
+
+      const auto baseSize =
+          hlsl::GetHLSLVecSize(vecElemExpr->getBase()->getType());
+      if (accessorSize != baseSize)
+        return true;
+
+      const auto accessors = vecElemExpr->getEncodedElementAccess();
+
+      for (uint32_t i = 0; i < accessors.Count; ++i) {
+        uint32_t accessor;
+        accessors.GetPosition(i, &accessor);
+        if (accessor != i)
+          return true;
+      }
+
+      // Selecting exactly the original vector. No vector shuffle generated.
+      return false;
+    }
+
+    return false;
+  }
+
   uint32_t doCastExpr(const CastExpr *expr) {
     const Expr *subExpr = expr->getSubExpr();
     const QualType toType = expr->getType();
@@ -859,6 +1102,14 @@ public:
     switch (expr->getCastKind()) {
     case CastKind::CK_LValueToRValue: {
       const uint32_t fromValue = doExpr(subExpr);
+      if (isVectorShuffle(subExpr)) {
+        // By reaching here, it means the vector element accessing operation is
+        // an lvalue. If we generated a vector shuffle for it and trying to use
+        // it as a rvalue, we cannot do the load here as normal. Need the upper
+        // nodes in the AST tree to handle it properly.
+        return fromValue;
+      }
+
       // Using lvalue as rvalue means we need to OpLoad the contents from
       // the parameter/variable first.
       const uint32_t resultType = typeTranslator.translateType(toType);
@@ -1201,20 +1452,15 @@ public:
           const uint32_t vecType =
               typeTranslator.translateType(expr->getType());
           if (isa<CompoundAssignOperator>(expr)) {
-            // For floatN * float cases. We'll need to do the load/store and
-            // return the lhs.
-            const uint32_t rhsVal = doExpr(cast->getSubExpr());
-            const uint32_t lhsPtr = doExpr(lhs);
-            const uint32_t lhsVal = theBuilder.createLoad(vecType, lhsPtr);
-            const uint32_t result = theBuilder.createBinaryOp(
-                spv::Op::OpVectorTimesScalar, vecType, lhsVal, rhsVal);
-            theBuilder.createStore(lhsPtr, result);
-            return lhsPtr;
+            uint32_t lhsPtr = 0;
+            const uint32_t result =
+                processBinaryOp(lhs, cast->getSubExpr(), expr->getOpcode(),
+                                vecType, &lhsPtr, spv::Op::OpVectorTimesScalar);
+            return processAssignment(lhs, result, true, lhsPtr);
           } else {
-            const uint32_t lhsId = doExpr(lhs);
-            const uint32_t rhsId = doExpr(cast->getSubExpr());
-            return theBuilder.createBinaryOp(spv::Op::OpVectorTimesScalar,
-                                             vecType, lhsId, rhsId);
+            return processBinaryOp(lhs, cast->getSubExpr(), expr->getOpcode(),
+                                   vecType, nullptr,
+                                   spv::Op::OpVectorTimesScalar);
           }
         }
       }
@@ -1226,10 +1472,12 @@ public:
         if (cast->getCastKind() == CK_HLSLVectorSplat) {
           const uint32_t vecType =
               typeTranslator.translateType(expr->getType());
-          const uint32_t lhsId = doExpr(cast->getSubExpr());
-          const uint32_t rhsId = doExpr(rhs);
-          return theBuilder.createBinaryOp(spv::Op::OpVectorTimesScalar,
-                                           vecType, rhsId, lhsId);
+          // We need to switch the positions of lhs and rhs here because
+          // OpVectorTimesScalar requires the first operand to be a vector and
+          // the second to be a scalar.
+          return processBinaryOp(rhs, cast->getSubExpr(), expr->getOpcode(),
+                                 vecType, nullptr,
+                                 spv::Op::OpVectorTimesScalar);
         }
       }
     }
