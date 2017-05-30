@@ -74,7 +74,7 @@ public:
   /// \brief Returns the <result-id> for the given decl if already registered;
   /// otherwise, treats the given decl as a normal decl and returns a newly
   /// assigned <result-id> for it.
-  uint32_t getOrRegDeclResultId(const NamedDecl *decl);
+  uint32_t getOrRegisterDeclResultId(const NamedDecl *decl);
 
   /// \brief Returns the <result-id> for the given remapped decl. Returns zero
   /// if it is not a registered remapped decl.

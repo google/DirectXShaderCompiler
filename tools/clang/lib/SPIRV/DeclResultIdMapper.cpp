@@ -47,7 +47,7 @@ uint32_t DeclResultIdMapper::getDeclResultId(const NamedDecl *decl) const {
   return 0;
 }
 
-uint32_t DeclResultIdMapper::getOrRegDeclResultId(const NamedDecl *decl) {
+uint32_t DeclResultIdMapper::getOrRegisterDeclResultId(const NamedDecl *decl) {
   if (const uint32_t id = getNormalDeclResultId(decl))
     return id;
   if (const uint32_t id = getRemappedDeclResultId(decl))

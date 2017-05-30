@@ -149,7 +149,7 @@ Normal scalar types
 Minimal precision scalar types
 ++++++++++++++++++++++++++++++
 
-HLSL also supports various `minimal precision scalar types <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509646(v=vs.85).aspx>`_, which graphics drivers can implement by using any precision greater than or equal to their specified bit precision. 
+HLSL also supports various `minimal precision scalar types <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509646(v=vs.85).aspx>`_, which graphics drivers can implement by using any precision greater than or equal to their specified bit precision.
 
 - ``min16float`` - minimum 16-bit floating point value
 - ``min10float`` - minimum 10-bit floating point value
@@ -268,7 +268,7 @@ All functions reachable from the entry-point function will be translated into SP
 Function parameter
 ++++++++++++++++++
 
-For a function ``f`` who has a parameter of type ``T``, the generated SPIR-V signature will use type ``T*`` for the parameter. At every call site of ``f``, additional local variables will be allocated to hold the actual arguments. The local variables are passed in as direct function arguments. For example::
+For a function ``f`` which has a parameter of type ``T``, the generated SPIR-V signature will use type ``T*`` for the parameter. At every call site of ``f``, additional local variables will be allocated to hold the actual arguments. The local variables are passed in as direct function arguments. For example::
 
   // HLSL source code
 

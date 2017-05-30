@@ -692,7 +692,7 @@ public:
           typeTranslator.translateType(callExpr->getType());
 
       // Get or forward declare the function <result-id>
-      const uint32_t funcId = declIdMapper.getOrRegDeclResultId(callee);
+      const uint32_t funcId = declIdMapper.getOrRegisterDeclResultId(callee);
 
       // Evaluate parameters
       llvm::SmallVector<uint32_t, 4> params;
