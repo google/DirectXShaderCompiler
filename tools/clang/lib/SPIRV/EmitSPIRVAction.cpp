@@ -651,7 +651,7 @@ public:
 
     // Try to optimize floatN * float case
     if (opcode == BO_Mul) {
-      if (const uint32_t result = translateScalarVecMul(expr))
+      if (const uint32_t result = tryToGenFloatVectorScale(expr))
         return result;
     }
 
@@ -822,7 +822,7 @@ public:
   /// Translates a floatN * float multiplication into SPIR-V instructions and
   /// returns the <result-id>. Returns 0 if the given binary operation is not
   /// floatN * float.
-  uint32_t translateScalarVecMul(const BinaryOperator *expr) {
+  uint32_t tryToGenFloatVectorScale(const BinaryOperator *expr) {
     const QualType type = expr->getType();
     // We can only translate floatN * float into OpVectorTimesScalar.
     // So the result type must be floatN.
