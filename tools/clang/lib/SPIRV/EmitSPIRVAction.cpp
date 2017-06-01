@@ -740,7 +740,9 @@ public:
     // vector and the rhs vector as the second vector. We select all elements
     // in the second vector and all elements untouched in the first vector.
 
-    if (!isa<HLSLVectorElementExpr>(lhs))
+    const auto *lhsExpr = dyn_cast<HLSLVectorElementExpr>(lhs);
+
+    if (!lhsExpr)
       return 0;
 
     if (!isVectorShuffle(lhs)) {
@@ -749,31 +751,32 @@ public:
       return 0;
     }
 
-    const auto *vecElemExpr = cast<HLSLVectorElementExpr>(lhs);
+    const Expr *base = nullptr;
+    hlsl::VectorMemberAccessPositions accessor;
+    condenseVectorElementExpr(lhsExpr, &base, &accessor);
 
-    const QualType baseType = vecElemExpr->getBase()->getType();
+    const QualType baseType = base->getType();
     assert(hlsl::IsHLSLVecType(baseType));
-    const auto baseVecSize = hlsl::GetHLSLVecSize(baseType);
+    const auto baseSizse = hlsl::GetHLSLVecSize(baseType);
 
     llvm::SmallVector<uint32_t, 4> selectors;
-    selectors.resize(baseVecSize);
+    selectors.resize(baseSizse);
     // Assume we are selecting all original elements first.
-    for (uint32_t i = 0; i < baseVecSize; ++i) {
+    for (uint32_t i = 0; i < baseSizse; ++i) {
       selectors[i] = i;
     }
 
     // Now fix up the elements that actually got overwritten by the rhs vector.
     // Since we are using the rhs vector as the second vector, their index
     // should be offset'ed by the size of the lhs base vector.
-    const auto accessors = vecElemExpr->getEncodedElementAccess();
-    for (uint32_t i = 0; i < accessors.Count; ++i) {
+    for (uint32_t i = 0; i < accessor.Count; ++i) {
       uint32_t position;
-      accessors.GetPosition(i, &position);
-      selectors[position] = baseVecSize + i;
+      accessor.GetPosition(i, &position);
+      selectors[position] = baseSizse + i;
     }
 
     const uint32_t baseTypeId = typeTranslator.translateType(baseType);
-    const uint32_t vec1 = doExpr(vecElemExpr->getBase());
+    const uint32_t vec1 = doExpr(base);
     const uint32_t vec1Val = theBuilder.createLoad(baseTypeId, vec1);
     const uint32_t shuffle =
         theBuilder.createVectorShuffle(baseTypeId, vec1Val, rhs, selectors);
@@ -977,7 +980,8 @@ public:
   /// This method is useful for cases where ImplicitCastExpr (LValueToRValue) is
   /// missing when using an lvalue as rvalue in the AST, e.g., DeclRefExpr will
   /// not be wrapped in ImplicitCastExpr (LValueToRValue) when appearing in
-  /// HLSLVectorElementExpr.
+  /// HLSLVectorElementExpr since the generated HLSLVectorElementExpr itself can
+  /// be lvalue or rvalue.
   uint32_t loadIfGLValue(const Expr *expr) {
     const uint32_t result = doExpr(expr);
     if (expr->isGLValue()) {
@@ -988,15 +992,57 @@ public:
     return result;
   }
 
-  uint32_t doHLSLVectorElementExpr(const HLSLVectorElementExpr *expr) {
-    const QualType baseType = expr->getBase()->getType();
+  /// Condenses a sequence of HLSLVectorElementExpr starting from the given
+  /// expr into one. Writes the original base into *basePtr and the condensed
+  /// accessor into *flattenedAccessor.
+  void condenseVectorElementExpr(
+      const HLSLVectorElementExpr *expr, const Expr **basePtr,
+      hlsl::VectorMemberAccessPositions *flattenedAccessor) {
+    llvm::SmallVector<hlsl::VectorMemberAccessPositions, 2> accessors;
+    accessors.push_back(expr->getEncodedElementAccess());
 
+    // Recursively dencending until we find the true base vector. In the
+    // meanwhile, collecting accessors in the reverse order.
+    *basePtr = expr->getBase();
+    while (const auto *vecElemBase =
+               dyn_cast<HLSLVectorElementExpr>(*basePtr)) {
+      accessors.push_back(vecElemBase->getEncodedElementAccess());
+      *basePtr = vecElemBase->getBase();
+    }
+
+    *flattenedAccessor = accessors.back();
+    for (int32_t i = accessors.size() - 2; i >= 0; --i) {
+      const auto &currentAccessor = accessors[i];
+
+      // Apply the current level of accessor to the flattened accessor of all
+      // previous levels of ones.
+      hlsl::VectorMemberAccessPositions combinedAccessor;
+      for (uint32_t j = 0; j < currentAccessor.Count; ++j) {
+        uint32_t currentPosition = 0;
+        currentAccessor.GetPosition(j, &currentPosition);
+        uint32_t previousPosition = 0;
+        flattenedAccessor->GetPosition(currentPosition, &previousPosition);
+        combinedAccessor.SetPosition(j, previousPosition);
+      }
+      combinedAccessor.Count = currentAccessor.Count;
+      combinedAccessor.IsValid =
+          flattenedAccessor->IsValid && currentAccessor.IsValid;
+
+      *flattenedAccessor = combinedAccessor;
+    }
+  }
+
+  uint32_t doHLSLVectorElementExpr(const HLSLVectorElementExpr *expr) {
+    const Expr *baseExpr = nullptr;
+    hlsl::VectorMemberAccessPositions accessor;
+    condenseVectorElementExpr(expr, &baseExpr, &accessor);
+
+    const QualType baseType = baseExpr->getType();
     assert(hlsl::IsHLSLVecType(baseType));
     const auto baseSize = hlsl::GetHLSLVecSize(baseType);
 
     const uint32_t type = typeTranslator.translateType(expr->getType());
-    const auto accessors = expr->getEncodedElementAccess();
-    const auto accessorSize = expr->getNumElements();
+    const auto accessorSize = accessor.Count;
 
     // Depending on the number of elements selected, we emit different
     // instructions.
@@ -1008,51 +1054,55 @@ public:
     // times, we need composite construct instructions.
 
     if (accessorSize == 1) {
-      const uint32_t base = doExpr(expr->getBase());
       if (baseSize == 1) {
         // Selecting one element from a size-1 vector. The underlying vector is
         // already treated as a scalar.
-        return base;
+        return doExpr(baseExpr);
       }
 
       // If the base is an lvalue, we should emit an access chain instruction
       // so that we can load/store the specified element. For rvalue base,
-      // we should use composite extraction.
+      // we should use composite extraction. We should check the immediate base
+      // instead of the original base here since we can have something like
+      // v.xyyz to turn a lvalue v into rvalue.
       if (expr->getBase()->isGLValue()) { // E.g., v.x;
         // TODO: select the correct storage class
         const uint32_t ptrType =
             theBuilder.getPointerType(type, spv::StorageClass::Function);
-        const uint32_t index = theBuilder.getConstantInt32(accessors.Swz0);
-        return theBuilder.createAccessChain(ptrType, base, {index});
+        const uint32_t index = theBuilder.getConstantInt32(accessor.Swz0);
+        // We need a lvalue here. Do not try to load.
+        return theBuilder.createAccessChain(ptrType, doExpr(baseExpr), {index});
       } else { // E.g., (v + w).x;
-               // base should already be a rvalue. So no need to load.
-        return theBuilder.createCompositeExtract(type, base, {accessors.Swz0});
+        // The original base vector may not be a rvalue. Need to load it if
+        // it is lvalue since ImplicitCastExpr (LValueToRValue) will be missing
+        // for that case.
+        return theBuilder.createCompositeExtract(type, loadIfGLValue(baseExpr),
+                                                 {accessor.Swz0});
       }
     }
 
-    const Expr *base = expr->getBase();
     if (baseSize == 1) {
       // Selecting one element from a size-1 vector. Construct the vector.
       llvm::SmallVector<uint32_t, 4> components(
-          static_cast<size_t>(accessorSize), loadIfGLValue(base));
+          static_cast<size_t>(accessorSize), loadIfGLValue(baseExpr));
       return theBuilder.createCompositeConstruct(type, components);
     }
 
     llvm::SmallVector<uint32_t, 4> selectors;
-    selectors.resize(accessors.Count);
+    selectors.resize(accessorSize);
     // Whether we are selecting elements in the original order
     bool originalOrder = baseSize == accessorSize;
-    for (uint32_t i = 0; i < accessors.Count; ++i) {
-      accessors.GetPosition(i, &selectors[i]);
+    for (uint32_t i = 0; i < accessorSize; ++i) {
+      accessor.GetPosition(i, &selectors[i]);
       // We can select more elements than the vector provides. This handles
       // that case too.
       originalOrder &= selectors[i] == i;
     }
 
     if (originalOrder)
-      return doExpr(base);
+      return doExpr(baseExpr);
 
-    const uint32_t baseVal = loadIfGLValue(base);
+    const uint32_t baseVal = loadIfGLValue(baseExpr);
     // Use base for both vectors. But we are only selecting values from the
     // first one.
     return theBuilder.createVectorShuffle(type, baseVal, baseVal, selectors);
@@ -1067,24 +1117,25 @@ public:
     // TODO: the following check is essentially duplicated from
     // doHLSLVectorElementExpr. Should unify them.
     if (const auto *vecElemExpr = dyn_cast<HLSLVectorElementExpr>(expr)) {
-      const auto accessorSize = vecElemExpr->getNumElements();
+      const Expr *base = nullptr;
+      hlsl::VectorMemberAccessPositions accessor;
+      condenseVectorElementExpr(vecElemExpr, &base, &accessor);
+
+      const auto accessorSize = accessor.Count;
       if (accessorSize == 1) {
         // Selecting only one element. OpAccessChain or OpCompositeExtract for
         // such cases.
         return false;
       }
 
-      const auto baseSize =
-          hlsl::GetHLSLVecSize(vecElemExpr->getBase()->getType());
+      const auto baseSize = hlsl::GetHLSLVecSize(base->getType());
       if (accessorSize != baseSize)
         return true;
 
-      const auto accessors = vecElemExpr->getEncodedElementAccess();
-
-      for (uint32_t i = 0; i < accessors.Count; ++i) {
-        uint32_t accessor;
-        accessors.GetPosition(i, &accessor);
-        if (accessor != i)
+      for (uint32_t i = 0; i < accessorSize; ++i) {
+        uint32_t position;
+        accessor.GetPosition(i, &position);
+        if (position != i)
           return true;
       }
 

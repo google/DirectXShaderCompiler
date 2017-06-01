@@ -1,7 +1,5 @@
 // Run: %dxc -T vs_6_0 -E main
 
-// TODO: continuous selection
-
 // Tests should cover vector swizzling
 // * from lvalue/rvalue
 // * used as lvalue/rvalue
@@ -108,5 +106,36 @@ void main() {
     v2f = 2.0 * v3f1.xy * v3f2.yz;
 
     // Continuous selection
-    //v4f2.zwxy.rgab = v3f1.bgr.xyyz;
+
+    // v2f.(1, 0).(1, 0, 1) -> v2f.(0, 1, 0)
+    // v4f2.(3, 2, 0).(1, 0, 2) -> v4f2.(2, 3, 0)
+    // Write rhs.0 (+4 = 4) to lhs.2
+    // Write rhs.1 (+4 = 5) to lhs.3
+    // Write rhs.2 (+4 = 6) to lhs.0
+    // Keep lhs.1
+    // So final selectors to write to lhs.(0, 1, 2, 3): 6, 1, 4, 5
+// CHECK-NEXT: [[v22:%\d+]] = OpLoad %v2float %v2f
+// CHECK-NEXT: [[vs15:%\d+]] = OpVectorShuffle %v3float [[v22]] [[v22]] 0 1 0
+// CHECK-NEXT: [[v23:%\d+]] = OpLoad %v4float %v4f2
+// CHECK-NEXT: [[vs16:%\d+]] = OpVectorShuffle %v4float [[v23]] [[vs15]] 6 1 4 5
+// CHECK-NEXT: OpStore %v4f2 [[vs16]]
+    v4f2.wzx.grb = v2f.gr.yxy; // select more than original, write to a part
+
+// CHECK-NEXT: [[v24:%\d+]] = OpLoad %v4float %v4f1
+// CHECK-NEXT: OpStore %v4f2 [[v24]]
+    v4f2.wzyx.abgr.xywz.rgab = v4f1.xyzw.xyzw.rgab.rgab; // from original vector to original vector
+
+    // Note that we cannot generate OpAccessChain for v4f1 since v4f1.xzyx is
+    // already not a lvalue!
+// CHECK-NEXT: [[v24:%\d+]] = OpLoad %v4float %v4f1
+// CHECK-NEXT: [[ce1:%\d+]] = OpCompositeExtract %float [[v24]] 2
+// CHECK-NEXT: [[ac4:%\d+]] = OpAccessChain %_ptr_Function_float %v4f2 %int_1
+// CHECK-NEXT: OpStore [[ac4]] [[ce1]]
+    v4f2.wzyx.zy.x = v4f1.xzyx.y.x; // from one element (rvalue) to one element (lvalue)
+
+// CHECK-NEXT: [[ac2:%\d+]] = OpAccessChain %_ptr_Function_float %v4f1 %int_1
+// CHECK-NEXT: [[e0:%\d+]] = OpLoad %float [[ac2]]
+// CHECK-NEXT: [[ac3:%\d+]] = OpAccessChain %_ptr_Function_float %v4f2 %int_3
+// CHECK-NEXT: OpStore [[ac3]] [[e0]]
+    v4f2.w.x.x.x = v4f1.y.x.x.x; // continuously selecting one element
 }
