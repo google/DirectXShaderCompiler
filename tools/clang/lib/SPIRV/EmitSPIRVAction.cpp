@@ -954,6 +954,9 @@ case BO_##kind : {                                                             \
       const uint32_t elemOneId = getValueOne(elemType);
 
       const size_t size = hlsl::GetHLSLVecSize(type);
+      if (size == 1)
+        return elemOneId;
+
       llvm::SmallVector<uint32_t, 4> elements(size, elemOneId);
 
       const uint32_t vecTypeId = typeTranslator.translateType(type);
