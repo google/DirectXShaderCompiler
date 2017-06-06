@@ -698,7 +698,7 @@ public:
 
     // Try to optimize floatN *= float case
     if (opcode == BO_MulAssign) {
-      if (const uint32_t result = translateScalarVecMul(expr))
+      if (const uint32_t result = tryToGenFloatVectorScale(expr))
         return result;
     }
 
