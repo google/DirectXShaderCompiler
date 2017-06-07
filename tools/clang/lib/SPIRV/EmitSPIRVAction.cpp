@@ -9,6 +9,7 @@
 
 #include "clang/SPIRV/EmitSPIRVAction.h"
 
+#include "dxc/HlslIntrinsicOp.h"
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
@@ -787,8 +788,86 @@ public:
     }
   }
 
+  uint32_t doIntrinsicCallExpr(const CallExpr *callExpr) {
+    const FunctionDecl *callee = callExpr->getDirectCallee();
+    const uint32_t returnType =
+        typeTranslator.translateType(callExpr->getType());
+
+    assert(hlsl::IsIntrinsicOp(callee) &&
+           "doIntrinsicCallExpr was called for a non-intrinsic function.");
+
+    // Figure out which intrinsic function to translate.
+    llvm::StringRef group;
+    uint32_t opcode;
+    hlsl::GetIntrinsicOp(callee, opcode, group);
+
+    switch (static_cast<hlsl::IntrinsicOp>(opcode)) {
+    case hlsl::IntrinsicOp::IOP_dot: {
+      // Get the function parameters.
+      assert(callExpr->getNumArgs() == 2u &&
+             "dot function may only take 2 parameters.");
+      const Expr *arg0 = callExpr->getArg(0);
+      const Expr *arg1 = callExpr->getArg(1);
+      const uint32_t id0 = doExpr(arg0);
+      const uint32_t id1 = doExpr(arg1);
+      QualType t0 = arg0->getType();
+      QualType t1 = arg1->getType();
+      const size_t vec0Size = hlsl::GetHLSLVecSize(t0);
+      const size_t vec1Size = hlsl::GetHLSLVecSize(t1);
+      const QualType vec0ComponentType = hlsl::GetHLSLVecElementType(t0);
+      const QualType vec1ComponentType = hlsl::GetHLSLVecElementType(t1);
+
+      assert(callExpr->getType() == vec1ComponentType &&
+             "The return type of the dot function must be the same as the "
+             "component type of the vectors passed to it.");
+
+      assert(vec0ComponentType == vec1ComponentType &&
+             "The component types of the vectors passed to the dot "
+             "function must be the same.");
+      assert(
+          vec0Size == vec1Size &&
+          "The two vectors passed to the dot function must of the same size.");
+      assert(
+          (vec0Size == 1 || vec0Size == 2 || vec0Size == 3 || vec0Size == 4) &&
+          "Vectors passed to the dot function must be of size 1, 2, 3, or 4.");
+
+      // According to HLSL reference, the dot function only works on integers
+      // and floats.
+      const auto returnTypeBuiltinKind =
+          dyn_cast<BuiltinType>(callExpr->getType().getTypePtr())->getKind();
+      assert((returnTypeBuiltinKind == BuiltinType::Float ||
+              returnTypeBuiltinKind == BuiltinType::Int) &&
+             "The dot function may only be applied to vectors of integers or "
+             "vectors of floats.");
+
+      // Special case: dot product of two vectors, each of size 1. That is
+      // basically the same as regular multiplication of 2 scalars.
+      if (vec0Size == 1) {
+        const spv::Op spvOp = translateOp(BO_Mul, t0);
+        return theBuilder.createBinaryOp(spvOp, returnType, id0, id1);
+      }
+
+      if (returnTypeBuiltinKind == BuiltinType::Float)
+        return theBuilder.createBinaryOp(spv::Op::OpDot, returnType, id0, id1);
+      if (returnTypeBuiltinKind == BuiltinType::Int)
+        return theBuilder.createIntegerDot(returnType, vec0Size, id0, id1);
+      break;
+    }
+    default:
+      break;
+    }
+
+    emitError("Intrinsic function not yet implemented.");
+    return 0;
+  }
+
   uint32_t doCallExpr(const CallExpr *callExpr) {
     const FunctionDecl *callee = callExpr->getDirectCallee();
+
+    // Intrinsic functions such as 'dot' or 'mul'
+    if (hlsl::IsIntrinsicOp(callee)) {
+      return doIntrinsicCallExpr(callExpr);
+    }
 
     if (callee) {
       const uint32_t returnType =

@@ -123,6 +123,15 @@ public:
   uint32_t createBinaryOp(spv::Op op, uint32_t resultType, uint32_t lhs,
                           uint32_t rhs);
 
+  /// \brief Creates all instructions necessary to perform a dot product on two
+  /// integer vectors. SPIR-V OpDot does not support integer vectors. This
+  /// method implements the dot operation for integer vectors using other SPIR-V
+  /// commands (addition and multiplication). Assumes vector size of 2, 3 or 4.
+  /// Returns the <result-id> for the result.
+  uint32_t ModuleBuilder::createIntegerDot(uint32_t resultType,
+                                           uint32_t vecSize, uint32_t vec1,
+                                           uint32_t vec2);
+
   // \brief Creates an unconditional branch to the given target label.
   void createBranch(uint32_t targetLabel);
 
