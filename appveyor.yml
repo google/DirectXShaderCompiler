@@ -8,7 +8,7 @@ environment:
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler.bin
 install:
 - ps: c:\projects\DirectXShaderCompiler\utils\appveyor\appveyor_setup.ps1
-- git submodules update --init --recursive
+- git submodule update --init --recursive
 build_script:
 - cmd: >-
     cd %HLSL_SRC_DIR%
