@@ -138,6 +138,16 @@ ModuleBuilder::createCompositeConstruct(uint32_t resultType,
   return resultId;
 }
 
+uint32_t
+ModuleBuilder::createCompositeExtract(uint32_t resultType, uint32_t composite,
+                                      llvm::ArrayRef<uint32_t> indexes) {
+  assert(insertPoint && "null insert point");
+  const uint32_t resultId = theContext.takeNextId();
+  instBuilder.opCompositeExtract(resultType, resultId, composite, indexes).x();
+  insertPoint->appendInstruction(std::move(constructSite));
+  return resultId;
+}
+
 uint32_t ModuleBuilder::createLoad(uint32_t resultType, uint32_t pointer) {
   assert(insertPoint && "null insert point");
   const uint32_t resultId = theContext.takeNextId();
@@ -178,48 +188,6 @@ uint32_t ModuleBuilder::createBinaryOp(spv::Op op, uint32_t resultType,
   instBuilder.binaryOp(op, resultType, id, lhs, rhs).x();
   insertPoint->appendInstruction(std::move(constructSite));
   return id;
-}
-
-uint32_t ModuleBuilder::createIntegerDot(uint32_t resultType, uint32_t vecSize,
-                                         uint32_t vec1, uint32_t vec2) {
-  assert(insertPoint && "null insert point");
-  assert(vecSize > 1 && vecSize <= 4 &&
-         "integer vector dot product may only be performed on vectors of size "
-         "2, 3, or 4.");
-
-  uint32_t result = 0;
-  llvm::SmallVector<uint32_t, 4> multIds;
-
-  for (unsigned int i = 0; i < vecSize; ++i) {
-    // Extract members from the first vector.
-    const uint32_t firstVecComponentId = theContext.takeNextId();
-    instBuilder.opCompositeExtract(resultType, firstVecComponentId, vec1, {i})
-        .x();
-    insertPoint->appendInstruction(std::move(constructSite));
-    // Extract members from the second vector.
-    const uint32_t secondVecComponentId = theContext.takeNextId();
-    instBuilder.opCompositeExtract(resultType, secondVecComponentId, vec2, {i})
-        .x();
-    insertPoint->appendInstruction(std::move(constructSite));
-    // Multiply the component of the first and the second vector.
-    const uint32_t multId = theContext.takeNextId();
-    instBuilder
-        .opIMul(resultType, multId, firstVecComponentId, secondVecComponentId)
-        .x();
-    insertPoint->appendInstruction(std::move(constructSite));
-    multIds.push_back(multId);
-  }
-
-  // Add all the multiplications.
-  result = multIds[0];
-  for (unsigned int i = 1; i < vecSize; ++i) {
-    const uint32_t additionId = theContext.takeNextId();
-    instBuilder.opIAdd(resultType, additionId, result, multIds[i]).x();
-    insertPoint->appendInstruction(std::move(constructSite));
-    result = additionId;
-  }
-
-  return result;
 }
 
 void ModuleBuilder::createBranch(uint32_t targetLabel) {
