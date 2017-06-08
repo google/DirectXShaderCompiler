@@ -349,10 +349,12 @@ For a function ``f`` which has a parameter of type ``T``, the generated SPIR-V s
 
 This approach gives us unified handling of function parameters and local variables: both of them are accessed via load/store instructions.
 
-Builtin functions
+Intrinsic functions
 -----------------
 
-[TODO]
+The following intrinsic HLSL functions are currently supported:
+
+- `dot` : performs dot product of two vectors, each containing floats or integeres.
 
 Logistics
 =========
