@@ -837,6 +837,8 @@ public:
     else {
       uint32_t result = 0;
       llvm::SmallVector<uint32_t, 4> multIds;
+      const spv::Op multSpvOp = translateOp(BO_Mul, arg0Type);
+      const spv::Op addSpvOp = translateOp(BO_Add, arg0Type);
 
       // Extract members from the two vectors and multiply them.
       for (unsigned int i = 0; i < vec0Size; ++i) {
@@ -844,17 +846,15 @@ public:
             theBuilder.createCompositeExtract(returnType, arg0Id, {i});
         const uint32_t vec1member =
             theBuilder.createCompositeExtract(returnType, arg1Id, {i});
-        const spv::Op spvOp = translateOp(BO_Mul, arg0Type);
         const uint32_t multId = theBuilder.createBinaryOp(
-            spvOp, returnType, vec0member, vec1member);
+            multSpvOp, returnType, vec0member, vec1member);
         multIds.push_back(multId);
       }
       // Add all the multiplications.
       result = multIds[0];
       for (unsigned int i = 1; i < vec0Size; ++i) {
-        const spv::Op spvOp = translateOp(BO_Add, arg0Type);
         const uint32_t additionId =
-            theBuilder.createBinaryOp(spvOp, returnType, result, multIds[i]);
+            theBuilder.createBinaryOp(addSpvOp, returnType, result, multIds[i]);
         result = additionId;
       }
       return result;
