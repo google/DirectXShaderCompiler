@@ -59,6 +59,13 @@ TEST_F(FileTest, UnaryOpPostfixDecrement) {
   runFileTest("unary-op.postfix-dec.hlsl");
 }
 
+// For unary operators
+TEST_F(FileTest, UnaryOpPlus) { runFileTest("unary-op.plus.hlsl"); }
+TEST_F(FileTest, UnaryOpMinus) { runFileTest("unary-op.minus.hlsl"); }
+TEST_F(FileTest, UnaryOpLogicalNot) {
+  runFileTest("unary-op.logical-not.hlsl");
+}
+
 // For assignments
 TEST_F(FileTest, BinaryOpAssign) { runFileTest("binary-op.assign.hlsl"); }
 
@@ -146,5 +153,7 @@ TEST_F(FileTest, ControlFlowConditionalOp) { runFileTest("cf.cond-op.hlsl"); }
 
 // For function calls
 TEST_F(FileTest, FunctionCall) { runFileTest("fn.call.hlsl"); }
+
+TEST_F(FileTest, IntrinsicsDot) { runFileTest("intrinsics.dot.hlsl"); }
 
 } // namespace

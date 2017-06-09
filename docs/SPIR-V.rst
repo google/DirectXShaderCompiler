@@ -337,6 +337,15 @@ Boolean math operators
 
 Please note that "unlike short-circuit evaluation of ``&&``, ``||``, and ``?:`` in C, HLSL expressions never short-circuit an evaluation because they are vector operations. All sides of the expression are always evaluated."
 
+Unary operators
++++++++++++++++
+
+FOr `unary operators <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509631(v=vs.85).aspx#Unary_Operators>`_:
+
+- ``!`` is translated into ``OpLogicalNot``. Parsing will gurantee the operands are of boolean types by inserting necessary casts.
+- ``+`` requires no additional SPIR-V instructions.
+- ``-`` is translated into ``OpSNegate`` and ``OpFNegate`` for (vectors of) integers and floats, respectively.
+
 Control flows
 -------------
 
@@ -387,10 +396,12 @@ For a function ``f`` which has a parameter of type ``T``, the generated SPIR-V s
 
 This approach gives us unified handling of function parameters and local variables: both of them are accessed via load/store instructions.
 
-Builtin functions
+Intrinsic functions
 -----------------
 
-[TODO]
+The following intrinsic HLSL functions are currently supported:
+
+- `dot` : performs dot product of two vectors, each containing floats or integers. If the two parameters are vectors of floats, we use SPIR-V's OpDot instruction to perform the translation. If the two parameters are vectors of integers, we multiply corresponding vector elementes using OpIMul and accumulate the results using OpIAdd to compute the dot product.
 
 Logistics
 =========
