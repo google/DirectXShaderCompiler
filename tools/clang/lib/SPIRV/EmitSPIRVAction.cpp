@@ -1110,13 +1110,26 @@ public:
 
   /// Processes the 'asfloat', 'asint', and 'asuint' intrinsic functions.
   uint32_t processIntrinsicAsType(const CallExpr *callExpr, spv::Op spvOp) {
-    const uint32_t returnType =
-        typeTranslator.translateType(callExpr->getType());
-
-    // Expect only 1 argument.
+    const QualType returnType = callExpr->getType();
+    const uint32_t returnTypeId = typeTranslator.translateType(returnType);
     assert(callExpr->getNumArgs() == 1u);
     const Expr *arg = callExpr->getArg(0);
     const QualType argType = arg->getType();
+
+    // asfloat may take a float or a float vector or a float matrix as argument.
+    // These cases would be a no-op.
+    const bool returnSameScalarType = returnType == argType;
+    const bool returnSameVectorType =
+        hlsl::IsHLSLVecType(argType) && hlsl::IsHLSLVecType(returnType) &&
+        hlsl::GetHLSLVecElementType(argType) ==
+            hlsl::GetHLSLVecElementType(returnType);
+    const bool returnSameMatrixType =
+        hlsl::IsHLSLMatType(argType) && hlsl::IsHLSLMatType(returnType) &&
+        hlsl::GetHLSLMatElementType(argType) ==
+            hlsl::GetHLSLMatElementType(returnType);
+
+    if (returnSameScalarType || returnSameVectorType || returnSameMatrixType)
+      return doExpr(arg);
 
     if (hlsl::IsHLSLMatType(argType)) {
       emitError("'asfloat', 'asint', and 'asuint' do not support matrix "
@@ -1124,10 +1137,8 @@ public:
       return 0;
     }
 
-    if (spvOp == spv::Op::OpTypeFloat)
-      return castToFloat(arg, callExpr->getType());
-    else
-      return castToInt(arg, callExpr->getType());
+    return theBuilder.createUnaryOp(spv::Op::OpBitcast, returnTypeId,
+                                    doExpr(arg));
   }
 
   uint32_t processIntrinsicCallExpr(const CallExpr *callExpr) {

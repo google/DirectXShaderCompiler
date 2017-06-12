@@ -15,7 +15,7 @@ void main() {
     result = asint(b);
 
     // CHECK-NEXT: [[c:%\d+]] = OpLoad %float %c
-    // CHECK-NEXT: [[c_as_int:%\d+]] = OpConvertFToS %int [[c]]
+    // CHECK-NEXT: [[c_as_int:%\d+]] = OpBitcast %int [[c]]
     // CHECK-NEXT: OpStore %result [[c_as_int]]
     float c;
     result = asint(c);
@@ -27,7 +27,7 @@ void main() {
     result = asint(e);
 
     // CHECK-NEXT: [[f:%\d+]] = OpLoad %float %f
-    // CHECK-NEXT: [[f_as_int:%\d+]] = OpConvertFToS %int [[f]]
+    // CHECK-NEXT: [[f_as_int:%\d+]] = OpBitcast %int [[f]]
     // CHECK-NEXT: OpStore %result [[f_as_int]]
     float1 f;
     result = asint(f);
@@ -39,7 +39,7 @@ void main() {
     result4 = asint(h);
 
     // CHECK-NEXT: [[i:%\d+]] = OpLoad %v4float %i
-    // CHECK-NEXT: [[i_as_int:%\d+]] = OpConvertFToS %v4int [[i]]
+    // CHECK-NEXT: [[i_as_int:%\d+]] = OpBitcast %v4int [[i]]
     // CHECK-NEXT: OpStore %result4 [[i_as_int]]
     float4 i;
     result4 = asint(i);

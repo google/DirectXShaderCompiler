@@ -15,7 +15,7 @@ void main() {
     result = asuint(b);
 
     // CHECK-NEXT: [[c:%\d+]] = OpLoad %float %c
-    // CHECK-NEXT: [[c_as_uint:%\d+]] = OpConvertFToU %uint [[c]]
+    // CHECK-NEXT: [[c_as_uint:%\d+]] = OpBitcast %uint [[c]]
     // CHECK-NEXT: OpStore %result [[c_as_uint]]
     float c;
     result = asuint(c);
@@ -27,7 +27,7 @@ void main() {
     result = asuint(e);
 
     // CHECK-NEXT: [[f:%\d+]] = OpLoad %float %f
-    // CHECK-NEXT: [[f_as_uint:%\d+]] = OpConvertFToU %uint [[f]]
+    // CHECK-NEXT: [[f_as_uint:%\d+]] = OpBitcast %uint [[f]]
     // CHECK-NEXT: OpStore %result [[f_as_uint]]
     float1 f;
     result = asuint(f);
@@ -39,7 +39,7 @@ void main() {
     result4 = asuint(h);
 
     // CHECK-NEXT: [[i:%\d+]] = OpLoad %v4float %i
-    // CHECK-NEXT: [[i_as_uint:%\d+]] = OpConvertFToU %v4uint [[i]]
+    // CHECK-NEXT: [[i_as_uint:%\d+]] = OpBitcast %v4uint [[i]]
     // CHECK-NEXT: OpStore %result4 [[i_as_uint]]
     float4 i;
     result4 = asuint(i);
