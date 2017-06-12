@@ -1108,6 +1108,28 @@ public:
     }
   }
 
+  /// Processes the 'asfloat', 'asint', and 'asuint' intrinsic functions.
+  uint32_t processIntrinsicAsType(const CallExpr *callExpr, spv::Op spvOp) {
+    const uint32_t returnType =
+        typeTranslator.translateType(callExpr->getType());
+
+    // Expect only 1 argument.
+    assert(callExpr->getNumArgs() == 1u);
+    const Expr *arg = callExpr->getArg(0);
+    const QualType argType = arg->getType();
+
+    if (hlsl::IsHLSLMatType(argType)) {
+      emitError("'asfloat', 'asint', and 'asuint' do not support matrix "
+                "arguments yet.");
+      return 0;
+    }
+
+    if (spvOp == spv::Op::OpTypeFloat)
+      return castToFloat(arg, callExpr->getType());
+    else
+      return castToInt(arg, callExpr->getType());
+  }
+
   uint32_t processIntrinsicCallExpr(const CallExpr *callExpr) {
     const FunctionDecl *callee = callExpr->getDirectCallee();
     assert(hlsl::IsIntrinsicOp(callee) &&
@@ -1125,6 +1147,11 @@ public:
       return processIntrinsicAllOrAny(callExpr, spv::Op::OpAll);
     case hlsl::IntrinsicOp::IOP_any:
       return processIntrinsicAllOrAny(callExpr, spv::Op::OpAny);
+    case hlsl::IntrinsicOp::IOP_asfloat:
+      return processIntrinsicAsType(callExpr, spv::Op::OpTypeFloat);
+    case hlsl::IntrinsicOp::IOP_asint:
+    case hlsl::IntrinsicOp::IOP_asuint:
+      return processIntrinsicAsType(callExpr, spv::Op::OpTypeInt);
     default:
       break;
     }
