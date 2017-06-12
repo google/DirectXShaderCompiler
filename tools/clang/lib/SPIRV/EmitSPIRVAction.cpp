@@ -1109,7 +1109,7 @@ public:
   }
 
   /// Processes the 'asfloat', 'asint', and 'asuint' intrinsic functions.
-  uint32_t processIntrinsicAsType(const CallExpr *callExpr, spv::Op spvOp) {
+  uint32_t processIntrinsicAsType(const CallExpr *callExpr, spv::Op toType) {
     const QualType returnType = callExpr->getType();
     const uint32_t returnTypeId = typeTranslator.translateType(returnType);
     assert(callExpr->getNumArgs() == 1u);
