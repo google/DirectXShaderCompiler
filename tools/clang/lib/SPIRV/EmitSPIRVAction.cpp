@@ -1108,6 +1108,29 @@ public:
     }
   }
 
+  /// Processes the 'asfloat', 'asint', and 'asuint' intrinsic functions.
+  uint32_t processIntrinsicAsType(const CallExpr *callExpr) {
+    const QualType returnType = callExpr->getType();
+    const uint32_t returnTypeId = typeTranslator.translateType(returnType);
+    assert(callExpr->getNumArgs() == 1u);
+    const Expr *arg = callExpr->getArg(0);
+    const QualType argType = arg->getType();
+
+    // asfloat may take a float or a float vector or a float matrix as argument.
+    // These cases would be a no-op.
+    if (returnType.getCanonicalType() == argType.getCanonicalType())
+      return doExpr(arg);
+
+    if (hlsl::IsHLSLMatType(argType)) {
+      emitError("'asfloat', 'asint', and 'asuint' do not support matrix "
+                "arguments yet.");
+      return 0;
+    }
+
+    return theBuilder.createUnaryOp(spv::Op::OpBitcast, returnTypeId,
+                                    doExpr(arg));
+  }
+
   uint32_t processIntrinsicCallExpr(const CallExpr *callExpr) {
     const FunctionDecl *callee = callExpr->getDirectCallee();
     assert(hlsl::IsIntrinsicOp(callee) &&
@@ -1125,6 +1148,10 @@ public:
       return processIntrinsicAllOrAny(callExpr, spv::Op::OpAll);
     case hlsl::IntrinsicOp::IOP_any:
       return processIntrinsicAllOrAny(callExpr, spv::Op::OpAny);
+    case hlsl::IntrinsicOp::IOP_asfloat:
+    case hlsl::IntrinsicOp::IOP_asint:
+    case hlsl::IntrinsicOp::IOP_asuint:
+      return processIntrinsicAsType(callExpr);
     default:
       break;
     }
