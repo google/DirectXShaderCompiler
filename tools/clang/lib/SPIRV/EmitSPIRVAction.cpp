@@ -1109,7 +1109,7 @@ public:
   }
 
   /// Processes the 'asfloat', 'asint', and 'asuint' intrinsic functions.
-  uint32_t processIntrinsicAsType(const CallExpr *callExpr, spv::Op toType) {
+  uint32_t processIntrinsicAsType(const CallExpr *callExpr) {
     const QualType returnType = callExpr->getType();
     const uint32_t returnTypeId = typeTranslator.translateType(returnType);
     assert(callExpr->getNumArgs() == 1u);
@@ -1118,17 +1118,7 @@ public:
 
     // asfloat may take a float or a float vector or a float matrix as argument.
     // These cases would be a no-op.
-    const bool returnSameScalarType = returnType == argType;
-    const bool returnSameVectorType =
-        hlsl::IsHLSLVecType(argType) && hlsl::IsHLSLVecType(returnType) &&
-        hlsl::GetHLSLVecElementType(argType) ==
-            hlsl::GetHLSLVecElementType(returnType);
-    const bool returnSameMatrixType =
-        hlsl::IsHLSLMatType(argType) && hlsl::IsHLSLMatType(returnType) &&
-        hlsl::GetHLSLMatElementType(argType) ==
-            hlsl::GetHLSLMatElementType(returnType);
-
-    if (returnSameScalarType || returnSameVectorType || returnSameMatrixType)
+    if (returnType.getCanonicalType() == argType.getCanonicalType())
       return doExpr(arg);
 
     if (hlsl::IsHLSLMatType(argType)) {
@@ -1159,10 +1149,9 @@ public:
     case hlsl::IntrinsicOp::IOP_any:
       return processIntrinsicAllOrAny(callExpr, spv::Op::OpAny);
     case hlsl::IntrinsicOp::IOP_asfloat:
-      return processIntrinsicAsType(callExpr, spv::Op::OpTypeFloat);
     case hlsl::IntrinsicOp::IOP_asint:
     case hlsl::IntrinsicOp::IOP_asuint:
-      return processIntrinsicAsType(callExpr, spv::Op::OpTypeInt);
+      return processIntrinsicAsType(callExpr);
     default:
       break;
     }
