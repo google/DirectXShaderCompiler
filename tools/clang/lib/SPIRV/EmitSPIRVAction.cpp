@@ -737,8 +737,8 @@ public:
     //   OpStore %vec4 %shuffle
     //
     // When doing the vector shuffle, we use the lhs base vector as the first
-    // vector and the rhs vector as the second vector. We select all elements
-    // in the second vector and all elements untouched in the first vector.
+    // vector and the rhs vector as the second vector. Therefore, all elements
+    // in the second vector will be selected into the shuffle result.
 
     const auto *lhsExpr = dyn_cast<HLSLVectorElementExpr>(lhs);
 
@@ -1001,7 +1001,7 @@ public:
     llvm::SmallVector<hlsl::VectorMemberAccessPositions, 2> accessors;
     accessors.push_back(expr->getEncodedElementAccess());
 
-    // Recursively dencending until we find the true base vector. In the
+    // Recursively descending until we find the true base vector. In the
     // meanwhile, collecting accessors in the reverse order.
     *basePtr = expr->getBase();
     while (const auto *vecElemBase =
@@ -1111,8 +1111,11 @@ public:
   /// Returns true if the given expression will be translated into a vector
   /// shuffle instruction in SPIR-V.
   ///
-  /// We emit a vector shuffle instruction iff selecting neither one elements
-  /// from a vector nor the original vector.
+  /// We emit a vector shuffle instruction iff
+  /// * We are not selecting only one element from the vector (OpAccessChain
+  ///   or OpCompositeExtract for such case);
+  /// * We are not selecting all elements in their original order (essentially
+  ///   the original vector, no shuffling needed).
   bool isVectorShuffle(const Expr *expr) {
     // TODO: the following check is essentially duplicated from
     // doHLSLVectorElementExpr. Should unify them.
