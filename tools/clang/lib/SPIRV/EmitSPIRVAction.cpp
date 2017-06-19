@@ -595,9 +595,173 @@ public:
     breakStack.pop();
   }
 
+  /// The AST for a switch statement may look arbitrarily different based on
+  /// several factors such as placement of cases, placement of breaks, placement
+  /// of braces, and fallthrough cases.
+  ///
+  /// A CaseStmt for instance is the child node of a CompoundStmt for
+  /// regular cases and it is the child node of another CaseStmt for fallthrough
+  /// cases.
+  ///
+  /// A BreakStmt for instance could be the child node of a CompoundStmt
+  /// for regular cases, or the child node of a CaseStmt for some fallthrough
+  /// cases.
+  //
+  /// This method flattens the AST representation of a switch statement to make
+  /// it easier to process for translation.
+  /// Stores the flattened switch AST in the given 'flatSwitch' argument.
+  /// For example:
+  /// switch(a) {
+  ///   case 1:
+  ///     <Stmt1>
+  ///   case 2:
+  ///     <Stmt2>
+  ///     break;
+  ///   case 3:
+  ///   case 4:
+  ///     <Stmt4>
+  ///     break;
+  ///   deafult:
+  ///     <Stmt5>
+  /// }
+  ///
+  /// is flattened to the following vector:
+  ///
+  /// +-------------------------------------------------------------------+
+  /// |Case1|Stmt1|Case2|Stmt2|Break|Case3|Case4|Stmt4|Break|Default|Stmt5|
+  /// +-------------------------------------------------------------------+
+  ///
+  void flattenSwitchStmtAST(const Stmt *root,
+                            std::vector<const Stmt *> *flatSwitch) {
+    const auto *caseStmt = dyn_cast<CaseStmt>(root);
+    const auto *compoundStmt = dyn_cast<CompoundStmt>(root);
+    const auto *defaultStmt = dyn_cast<DefaultStmt>(root);
+
+    if (!caseStmt && !compoundStmt && !defaultStmt) {
+      flatSwitch->push_back(root);
+      return;
+    }
+
+    if (compoundStmt) {
+      for (const auto *st : compoundStmt->body())
+        flattenSwitchStmtAST(st, flatSwitch);
+      return;
+    }
+
+    if (caseStmt) {
+      flatSwitch->push_back(root);
+      flattenSwitchStmtAST(caseStmt->getSubStmt(), flatSwitch);
+      return;
+    }
+
+    if (defaultStmt) {
+      flatSwitch->push_back(root);
+      flattenSwitchStmtAST(defaultStmt->getSubStmt(), flatSwitch);
+      return;
+    }
+  }
+
+  /// Translates a switch statement into SPIR-V using if statements.
+  /// This can be achieved by following this pattern:
+  /// if-elseif-elseif-elseif-...-else
+  /// Each case comparison is turned into an if statement, and the "Then" body
+  /// of the if statement will be the body of the case.
+  /// If a default statements exists, it becomes the body of the "else"
+  /// statement.
   void processSwitchStmtUsingIfStmts(const SwitchStmt *switchStmt) {
-    emitError("Translating Switch statements using If statements is not "
-              "implemented yet.");
+    std::vector<const Stmt *> flatSwitch;
+    flattenSwitchStmtAST(switchStmt->getBody(), &flatSwitch);
+
+    // First handle the condition variable DeclStmt if one exists.
+    // For example: handle 'int a = b' in the following:
+    // switch (int a = b) {...}
+    const auto *condVarDeclStmt = switchStmt->getConditionVariableDeclStmt();
+    if (condVarDeclStmt)
+      doStmt(condVarDeclStmt);
+
+    /// Figure out the indexes of CaseStmts (and DefaultStmt if it exists) in
+    /// the flattened switch AST.
+    /// For instance, for the following flat vector, the indexes are:
+    /// {0, 2, 5, 6, 9}
+    /// +-------------------------------------------------------------------+
+    /// |Case1|Stmt1|Case2|Stmt2|Break|Case3|Case4|Stmt4|Break|Default|Stmt5|
+    /// +-------------------------------------------------------------------+
+    std::vector<size_t> caseStmtLocs;
+    for (int i = 0; i < flatSwitch.size(); ++i)
+      if (dyn_cast<CaseStmt>(flatSwitch[i]) ||
+          dyn_cast<DefaultStmt>(flatSwitch[i]))
+        caseStmtLocs.push_back(i);
+
+    std::vector<std::shared_ptr<BinaryOperator>> comparisons;
+    std::vector<std::shared_ptr<CompoundStmt>> bodies;
+    std::shared_ptr<CompoundStmt> defaultBody;
+    std::vector<IfStmt> ifs;
+
+    // For each case, start at its index in the vector, and go forward
+    // accumulating statements until BreakStmt or end of vector is reached.
+    for (int caseNum = 0; caseNum < caseStmtLocs.size(); ++caseNum) {
+      size_t curCaseIndex = caseStmtLocs[caseNum];
+      const Stmt *curCase = flatSwitch[curCaseIndex];
+
+      // CompoundStmt to hold all statements for this case.
+      std::shared_ptr<CompoundStmt> cs =
+          std::make_shared<CompoundStmt>(CompoundStmt(Stmt::EmptyShell()));
+
+      // Accumulate all non-case/default/break statements as the body for the
+      // current case.
+      unsigned int numStatements = 0;
+      std::vector<Stmt *> statements;
+      for (int i = curCaseIndex + 1;
+           i < flatSwitch.size() && !dyn_cast<BreakStmt>(flatSwitch[i]); ++i) {
+        if (!dyn_cast<CaseStmt>(flatSwitch[i]) &&
+            !dyn_cast<DefaultStmt>(flatSwitch[i]) &&
+            !dyn_cast<BreakStmt>(flatSwitch[i])) {
+          numStatements++;
+          statements.push_back(const_cast<Stmt *>(flatSwitch[i]));
+        }
+      }
+      if (numStatements > 0)
+        cs->setStmts(astContext, statements.data(), numStatements);
+      bodies.push_back(cs);
+
+      // For non-default cases, generate the IfStmt that compares the switch
+      // value to the case value.
+      if (auto *caseStmt = dyn_cast<CaseStmt>(curCase)) {
+        IfStmt curIf = IfStmt({});
+        std::shared_ptr<BinaryOperator> curComparison =
+            std::make_shared<BinaryOperator>(BinaryOperator({}));
+        comparisons.push_back(curComparison);
+        curComparison->setLHS(const_cast<Expr *>(switchStmt->getCond()));
+        curComparison->setRHS(const_cast<Expr *>(caseStmt->getLHS()));
+        curComparison->setOpcode(BO_EQ);
+        curComparison->setType(BuiltinType(BuiltinType::Bool).desugar());
+        curIf.setCond(curComparison.get());
+        curIf.setThen(bodies.back().get());
+        ifs.push_back(curIf);
+      } else {
+        // Record the DefaultStmt body as it will be used as the body of the
+        // "else" block in the if-elseif-...-else pattern.
+        defaultBody = cs;
+      }
+    }
+
+    // Each If statement is the "else" of the previous if statement.
+    for (int i = 0; i < ifs.size(); ++i)
+      if (i + 1 < ifs.size())
+        ifs[i].setElse(&ifs[i + 1]);
+    // If a default case exists, it is the "else" of the last if statement.
+    if (!ifs.empty())
+      ifs.back().setElse(defaultBody.get());
+
+    // Since all else-if and else statements are the child nodes of the first
+    // IfStmt, we only need to call doStmt for the first IfStmt.
+    if (!ifs.empty())
+      doStmt(&ifs[0]);
+    // If there are no CaseStmt and there is only 1 DefaultStmt, there will be
+    // no if statements. The switch in that case only executes the body of the
+    // default case.
+    else if (defaultBody)
+      doStmt(defaultBody.get());
   }
 
   void doSwitchStmt(const SwitchStmt *switchStmt,
