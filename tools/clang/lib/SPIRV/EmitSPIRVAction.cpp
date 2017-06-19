@@ -2215,7 +2215,127 @@ public:
     return 0;
   }
 
+  /// Returns true if the given CXXOperatorCallExpr is indexing into a vector or
+  /// matrix using operator[].
+  /// On success, writes the base vector/matrix into *base, and the indices into
+  /// *index0 and *index1, if there are two levels of indexing. If there is only
+  /// one level of indexing, writes the index into *index0 and nullptr into
+  /// *index1.
+  /// Assumes base, index0, and index1 are not nullptr.
+  bool isVecMatIndexing(const CXXOperatorCallExpr *vecIndexExpr,
+                        const Expr **base, const Expr **index0,
+                        const Expr **index1) {
+    // matrix [] []         vector []
+    // +-------+
+    //  vector         or
+    // +----------+         +-------+
+    //    scalar             scalar
+
+    // Must be operator[]
+    if (vecIndexExpr->getOperator() != OverloadedOperatorKind::OO_Subscript)
+      return false;
+
+    // Get the base of this outer operator[]
+    const Expr *vecBase = vecIndexExpr->getArg(0);
+    // If the base of the outer operator[] is a vector, try to see if we have
+    // another inner operator[] on a matrix, i.e., two levels of indexing into
+    // the matrix.
+    if (hlsl::IsHLSLVecType(vecBase->getType())) {
+      const auto *matIndexExpr = dyn_cast<CXXOperatorCallExpr>(vecBase);
+
+      if (!matIndexExpr) {
+        // No inner operator[]. So this is just indexing into a vector.
+        *base = vecBase;
+        *index0 = vecIndexExpr->getArg(1);
+        *index1 = nullptr;
+
+        return true;
+      }
+
+      // Must be operator[]
+      if (matIndexExpr->getOperator() != OverloadedOperatorKind::OO_Subscript)
+        return false;
+
+      // Get the base of this inner operator[]
+      const Expr *matBase = matIndexExpr->getArg(0);
+      if (!hlsl::IsHLSLMatType(matBase->getType()))
+        return false;
+
+      *base = matBase;
+      *index0 = matIndexExpr->getArg(1);
+      *index1 = vecIndexExpr->getArg(1);
+
+      return true;
+    }
+
+    // The base of the outside operator[] is not a vector. Try to see whether it
+    // is a matrix. If true, it means we have only one level of indexing.
+    if (hlsl::IsHLSLMatType(vecBase->getType())) {
+      *base = vecBase;
+      *index0 = vecIndexExpr->getArg(1);
+      *index1 = nullptr;
+
+      return true;
+    }
+
+    return false;
+  }
+
+  uint32_t doCXXOperatorCallExpr(const CXXOperatorCallExpr *expr) {
+    { // First try to handle vector/matrix indexing
+      const Expr *baseExpr = nullptr;
+      const Expr *index0Expr = nullptr;
+      const Expr *index1Expr = nullptr;
+
+      if (isVecMatIndexing(expr, &baseExpr, &index0Expr, &index1Expr)) {
+        llvm::SmallVector<uint32_t, 2> indices;
+
+        if (hlsl::IsHLSLMatType(baseExpr->getType())) {
+          uint32_t rowCount = 0, colCount = 0;
+          hlsl::GetHLSLMatRowColCount(baseExpr->getType(), rowCount, colCount);
+
+          // Collect indices for this matrix indexing
+          if (rowCount > 1) {
+            indices.push_back(doExpr(index0Expr));
+          }
+          // Evalute index1Expr iff it is not nullptr
+          if (colCount > 1 && index1Expr) {
+            indices.push_back(doExpr(index1Expr));
+          }
+        } else { // Indexing into vector
+          if (hlsl::GetHLSLVecSize(baseExpr->getType()) > 1) {
+            indices.push_back(doExpr(index0Expr));
+          }
+        }
+
+        if (indices.size() == 0) {
+          return doExpr(baseExpr);
+        }
+
+        const uint32_t elemType = typeTranslator.translateType(expr->getType());
+        if (baseExpr->isGLValue()) { // e.g., mat[0]
+          // TODO: select storage type based on the underlying variable
+          const uint32_t ptrType =
+              theBuilder.getPointerType(elemType, spv::StorageClass::Function);
+
+          return theBuilder.createAccessChain(ptrType, doExpr(baseExpr),
+                                              indices);
+        } else { // e.g., (mat1 + mat2)[0]
+          return theBuilder.createCompositeExtract(elemType, doExpr(baseExpr),
+                                                   indices);
+        }
+      }
+    }
+
+    emitError("unimplemented C++ operator call: %0") << expr->getOperator();
+    expr->dump();
+    return 0;
+  }
+
   uint32_t doCallExpr(const CallExpr *callExpr) {
+    if (const auto *operatorCall = dyn_cast<CXXOperatorCallExpr>(callExpr))
+      return doCXXOperatorCallExpr(operatorCall);
+
     const FunctionDecl *callee = callExpr->getDirectCallee();
 
     // Intrinsic functions such as 'dot' or 'mul'
