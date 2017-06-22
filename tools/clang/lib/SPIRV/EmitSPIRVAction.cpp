@@ -450,7 +450,7 @@ public:
       return;
 
     // A switch case can only appear in DefaultStmt, CaseStmt, or
-    // CompoundStmt.For the rest, we can just just return.
+    // CompoundStmt. For the rest, we can just return.
     const auto *defaultStmt = dyn_cast<DefaultStmt>(root);
     const auto *caseStmt = dyn_cast<CaseStmt>(root);
     const auto *compoundStmt = dyn_cast<CompoundStmt>(root);
