@@ -407,7 +407,7 @@ public:
   /// \brief Returns true iff *all* the case values in the given switch
   /// statement are integer literals. In such cases OpSwitch can be used to
   /// represent the switch statement.
-  /// We only care about the case values to be compared with the selector.They
+  /// We only care about the case values to be compared with the selector. They
   /// may appear in the top level CaseStmt or be nested in a CompoundStmt.Fall
   /// through cases will result in the second situation.
   bool allSwitchCasesAreIntegerLiterals(const Stmt *root) {
@@ -440,7 +440,7 @@ public:
   /// active basic block.
   ///
   /// Writes a vector of (integer, basic block label) pairs for all cases to the
-  /// given 'target' argument. If a DefaultStmt is found, it also returns the
+  /// given 'targets' argument. If a DefaultStmt is found, it also returns the
   /// label for the default basic block through the defaultBB parameter. This
   /// method panics if it finds a case value that is not an integer literal.
   void discoverAllCaseStmtInSwitchStmt(
@@ -474,18 +474,21 @@ public:
       // When using OpSwitch, we only allow integer literal cases. e.g:
       // case <literal_integer>: {...; break;}
       const Expr *caseExpr = caseStmt->getLHS();
-      assert(caseExpr);
-      assert(caseExpr->isEvaluatable(astContext));
+      assert(caseExpr && caseExpr->isEvaluatable(astContext));
+      auto bitWidth = astContext.getIntWidth(caseExpr->getType());
+      if (bitWidth != 32)
+        emitError("Switch statement translation currently only supports 32-bit "
+                  "integer case values.");
       Expr::EvalResult evalResult;
       caseExpr->EvaluateAsRValue(evalResult, astContext);
       const int64_t value = evalResult.Val.getInt().getSExtValue();
       caseValue = static_cast<uint32_t>(value);
       caseLabel = "switch." + std::string(value < 0 ? "n" : "") +
-                  llvm::itostr(value < 0 ? -value : value);
+                  llvm::itostr(std::abs(value));
     }
     const uint32_t caseBB = theBuilder.createBasicBlock(caseLabel);
     theBuilder.addSuccessor(caseBB);
-    setStmtBasicBlock(root, caseBB);
+    stmtBasicBlock[root] = caseBB;
 
     // Add all cases to the 'targets' vector.
     if (caseStmt)
@@ -522,7 +525,7 @@ public:
     // target.
     const uint32_t mergeBB = theBuilder.createBasicBlock("switch.merge");
     theBuilder.setMergeTarget(mergeBB);
-    getBreakStack().push(mergeBB);
+    breakStack.push(mergeBB);
     uint32_t defaultBB = mergeBB;
 
     // (literal, labelId) pairs to pass to the OpSwitch instruction.
@@ -539,7 +542,7 @@ public:
     if (!theBuilder.isCurrentBasicBlockTerminated())
       theBuilder.createBranch(mergeBB);
     theBuilder.setInsertPoint(mergeBB);
-    getBreakStack().pop();
+    breakStack.pop();
   }
 
   void processSwitchStmtUsingIfStmts(const SwitchStmt *switchStmt) {
@@ -576,7 +579,6 @@ public:
     //             |       | <-------------------------------------+
     //             +-------+
 
-
     // If no attributes are given, or if "forcecase" attribute was provided,
     // we'll do our best to use OpSwitch if possible.
     // If any of the cases compares to a variable (rather than an integer
@@ -592,10 +594,10 @@ public:
       emitWarning("Ignored 'forcecase' attribute for the switch statement "
                   "since one or more case values are not integer literals.");
 
-      if (canUseSpirvOpSwitch)
-        processSwitchStmtUsingSpirvOpSwitch(switchStmt);
-      else
-        processSwitchStmtUsingIfStmts(switchStmt);
+    if (canUseSpirvOpSwitch)
+      processSwitchStmtUsingSpirvOpSwitch(switchStmt);
+    else
+      processSwitchStmtUsingIfStmts(switchStmt);
   }
 
   void processCaseStmtOrDefaultStmt(const Stmt *stmt) {
@@ -603,7 +605,7 @@ public:
     auto *defaultStmt = dyn_cast<DefaultStmt>(stmt);
     assert(caseStmt || defaultStmt);
 
-    uint32_t caseBB = getStmtBasicBlock(stmt);
+    uint32_t caseBB = stmtBasicBlock[stmt];
     if (!theBuilder.isCurrentBasicBlockTerminated()) {
       // We are about to handle the case passed in as parameter. If the current
       // basic block is not terminated, it means the previous case is a fall
@@ -616,7 +618,7 @@ public:
   }
 
   void doBreakStmt(const BreakStmt *breakStmt) {
-    uint32_t breakTargetBB = getBreakStack().top();
+    uint32_t breakTargetBB = breakStack.top();
     theBuilder.addSuccessor(breakTargetBB);
     theBuilder.createBranch(breakTargetBB);
   }
@@ -1795,19 +1797,6 @@ case BO_##kind : {                                                             \
     emitError("APFloat for target bitwidth '%0' is not supported yet.")
         << bitwidth;
     return 0;
-  }
-
-  /// \brief Returns the breakStack.
-  std::stack<uint32_t> &getBreakStack() { return breakStack; }
-
-  /// \brief Returns the first basic block associated with the given statement.
-  /// Returns zero if no basic block is associated with this statement.
-  uint32_t getStmtBasicBlock(const Stmt *st) { return stmtBasicBlock[st]; }
-
-  /// \brief Associates the given basic block as the first block for the given
-  /// statement.
-  void setStmtBasicBlock(const Stmt *st, uint32_t bb) {
-    stmtBasicBlock[st] = bb;
   }
 
 private:
