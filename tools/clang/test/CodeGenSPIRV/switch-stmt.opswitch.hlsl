@@ -226,8 +226,7 @@ void main() {
 // CHECK-NEXT: OpStore %result %int_25
 // CHECK-NEXT: OpBranch %switch_merge_5
     case 24:
-    case 25:
-      result = 25;
+    case 25: { result = 25; }
       break;
 // CHECK-NEXT: %switch_26 = OpLabel
 // CHECK-NEXT: OpBranch %switch_27
@@ -274,6 +273,11 @@ void main() {
 // CHECK-NEXT: OpSelectionMerge %switch_merge_7 None
 // CHECK-NEXT: OpSwitch [[result]] %switch_default_2 50 %switch_50 51 %switch_51 52 %switch_52 53 %switch_53 54 %switch_54
         switch(result) {
+// CHECK-NEXT: %switch_default_2 = OpLabel
+// CHECK-NEXT: OpStore %a %int_55
+// CHECK-NEXT: OpBranch %switch_50
+          default:
+            a = 55;
 // CHECK-NEXT: %switch_50 = OpLabel
 // CHECK-NEXT: OpStore %a %int_50
 // CHECK-NEXT: OpBranch %switch_merge_7
@@ -301,11 +305,6 @@ void main() {
             a = 54;
             break;
           }
-// CHECK-NEXT: %switch_default_2 = OpLabel
-// CHECK-NEXT: OpStore %a %int_55
-// CHECK-NEXT: OpBranch %switch_merge_7
-          default:
-            a = 55;
         }
 // CHECK-NEXT: %switch_merge_7 = OpLabel
 // CHECK-NEXT: OpBranch %switch_merge_6
@@ -313,6 +312,35 @@ void main() {
   }
 // CHECK-NEXT: %switch_merge_6 = OpLabel
 
+
+
+  ///////////////////////////////////////////////
+  // Constant integer variables as case values //
+  ///////////////////////////////////////////////
+
+  const int r = 35;
+  const int s = 45;
+  const int t = 2*r + s;  // evaluates to 115.
+
+// CHECK-NEXT: [[a8:%\d+]] = OpLoad %int %a
+// CHECK-NEXT: OpSelectionMerge %switch_merge_8 None
+// CHECK-NEXT: OpSwitch [[a8]] %switch_merge_8 35 %switch_35 115 %switch_115
+  switch(a) {
+// CHECK-NEXT: %switch_35 = OpLabel
+// CHECK-NEXT: [[r:%\d+]] = OpLoad %int %r
+// CHECK-NEXT: OpStore %result [[r]]
+// CHECK-NEXT: OpBranch %switch_115
+    case r:
+      result = r;
+// CHECK-NEXT: %switch_115 = OpLabel
+// CHECK-NEXT: [[t:%\d+]] = OpLoad %int %t
+// CHECK-NEXT: OpStore %result [[t]]
+// CHECK-NEXT: OpBranch %switch_merge_8
+    case t:
+      result = t;
+      break;
+// CHECK-NEXT: %switch_merge_8 = OpLabel
+  }
 
 // CHECK-NEXT: OpReturn
 // CHECK-NEXT: OpFunctionEnd

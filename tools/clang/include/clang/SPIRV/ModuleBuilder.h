@@ -41,17 +41,6 @@ public:
   /// module under construction.
   std::vector<uint32_t> takeModule();
 
-  /// \brief Returns the breakStack.
-  inline std::stack<uint32_t> &getBreakStack();
-
-  /// \brief Associates the given basic block as the first block for the given
-  /// statement.
-  inline void setStmtBasicBlock(const Stmt *, uint32_t bb);
-
-  /// \brief Returns the first basic block associated with the given statement.
-  /// Returns zero if no basic block is associated with this statement.
-  inline uint32_t getStmtBasicBlock(const Stmt *);
-
   // === Function and Basic Block ===
 
   /// \brief Begins building a SPIR-V function. Returns the <result-id> for the
@@ -250,34 +239,9 @@ private:
   /// The constructed instruction will appear in constructSite.
   InstBuilder instBuilder;
   std::vector<uint32_t> constructSite; ///< InstBuilder construction site.
-
-  /// For loops, while loops, and switch statements may encounter "break"
-  /// statements that alter their control flow. At any point the break statement
-  /// is observed, the control flow jumps to the inner-most scope's merge block.
-  /// For instance: the break in the following example should cause a branch to
-  /// the SwitchMergeBB, not ForLoopMergeBB:
-  /// for (...) {
-  ///   switch(...) {
-  ///     case 1: break;
-  ///   }
-  ///   <--- SwitchMergeBB ---->
-  /// }
-  /// <----- ForLoopMergeBB --->
-  /// This stack keeps track of the basic blocks to which branching could occur.
-  std::stack<uint32_t> breakStack;
-
-  /// Maps a given statement to the basic block that is associated with it.
-  std::unordered_map<const Stmt *, uint32_t> stmtBasicBlock;
 };
 
 SPIRVContext *ModuleBuilder::getSPIRVContext() { return &theContext; }
-std::stack<uint32_t> &ModuleBuilder::getBreakStack() { return breakStack; }
-void ModuleBuilder::setStmtBasicBlock(const Stmt *st, uint32_t bb) {
-  stmtBasicBlock[st] = bb;
-}
-uint32_t ModuleBuilder::getStmtBasicBlock(const Stmt *st) {
-  return stmtBasicBlock[st];
-}
 
 bool ModuleBuilder::isCurrentBasicBlockTerminated() const {
   return insertPoint && insertPoint->isTerminated();

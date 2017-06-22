@@ -323,9 +323,9 @@ public:
     } else if (const auto *switchStmt = dyn_cast<SwitchStmt>(stmt)) {
       doSwitchStmt(switchStmt, attrs);
     } else if (const auto *caseStmt = dyn_cast<CaseStmt>(stmt)) {
-      doCaseStmtOrDefaultStmt(stmt);
+      processCaseStmtOrDefaultStmt(stmt);
     } else if (const auto *defaultStmt = dyn_cast<DefaultStmt>(stmt)) {
-      doCaseStmtOrDefaultStmt(stmt);
+      processCaseStmtOrDefaultStmt(stmt);
     } else if (const auto *breakStmt = dyn_cast<BreakStmt>(stmt)) {
       doBreakStmt(breakStmt);
     } else if (const auto *forStmt = dyn_cast<ForStmt>(stmt)) {
@@ -407,6 +407,9 @@ public:
   /// \brief Returns true iff *all* the case values in the given switch
   /// statement are integer literals. In such cases OpSwitch can be used to
   /// represent the switch statement.
+  /// We only care about the case values to be compared with the selector.They
+  /// may appear in the top level CaseStmt or be nested in a CompoundStmt.Fall
+  /// through cases will result in the second situation.
   bool allSwitchCasesAreIntegerLiterals(const Stmt *root) {
     if (!root)
       return false;
@@ -418,36 +421,39 @@ public:
 
     if (caseStmt) {
       const Expr *caseExpr = caseStmt->getLHS();
-      const CastExpr *castExpr =
-          caseExpr ? dyn_cast<CastExpr>(caseExpr) : nullptr;
-      return (castExpr && castExpr->getCastKind() == CastKind::CK_IntegralCast);
+      return caseExpr && caseExpr->isEvaluatable(astContext);
     }
 
     // Recurse down if facing a compound statement.
-    bool result = true;
     for (auto *st : compoundStmt->body())
-      result = result && allSwitchCasesAreIntegerLiterals(st);
-    return result;
+      if (!allSwitchCasesAreIntegerLiterals(st))
+        return false;
+
+    return true;
   }
 
-  /// \brief Discovers all CaseStmt and DefaultStmt under the sub-tree of the
-  /// given root. Recursively goes down the tree iff it finds a CompoundStmt. It
-  /// does not recurse on other statement types. For each discovered case, a
-  /// basic block is created and registered within the module.
+  /// \brief Recursively discovers all CaseStmt and DefaultStmt under the
+  /// sub-tree of the given root. Recursively goes down the tree iff it finds a
+  /// CaseStmt, DefaultStmt, or CompoundStmt. It does not recurse on other
+  /// statement types. For each discovered case, a basic block is created and
+  /// registered within the module, and added as a successor to the current
+  /// active basic block.
   ///
-  /// Returns a vector of (integer, basic block label) pairs for all cases. If a
-  /// DefaultStmt is found, it also returns the label for the default basic
-  /// block through the defaultBB parameter. This method panics if it finds a
-  /// case value that is not an integer literal.
+  /// Writes a vector of (integer, basic block label) pairs for all cases to the
+  /// given 'target' argument. If a DefaultStmt is found, it also returns the
+  /// label for the default basic block through the defaultBB parameter. This
+  /// method panics if it finds a case value that is not an integer literal.
   void discoverAllCaseStmtInSwitchStmt(
       const Stmt *root, uint32_t *defaultBB,
       std::vector<std::pair<uint32_t, uint32_t>> *targets) {
     if (!root)
       return;
+
+    // A switch case can only appear in DefaultStmt, CaseStmt, or
+    // CompoundStmt.For the rest, we can just just return.
     const auto *defaultStmt = dyn_cast<DefaultStmt>(root);
     const auto *caseStmt = dyn_cast<CaseStmt>(root);
     const auto *compoundStmt = dyn_cast<CompoundStmt>(root);
-
     if (!defaultStmt && !caseStmt && !compoundStmt)
       return;
 
@@ -469,35 +475,35 @@ public:
       // case <literal_integer>: {...; break;}
       const Expr *caseExpr = caseStmt->getLHS();
       assert(caseExpr);
-      const auto *castExpr = dyn_cast<CastExpr>(caseExpr);
-      assert(castExpr);
-      assert(castExpr->getCastKind() == CastKind::CK_IntegralCast);
-      llvm::APSInt intValue;
-      assert(castExpr->EvaluateAsInt(intValue, astContext,
-                                     Expr::SE_NoSideEffects));
-      const int64_t value = intValue.getSExtValue();
+      assert(caseExpr->isEvaluatable(astContext));
+      Expr::EvalResult evalResult;
+      caseExpr->EvaluateAsRValue(evalResult, astContext);
+      const int64_t value = evalResult.Val.getInt().getSExtValue();
       caseValue = static_cast<uint32_t>(value);
       caseLabel = "switch." + std::string(value < 0 ? "n" : "") +
-                  llvm::itostr(value < 0 ? -1 * value : value);
+                  llvm::itostr(value < 0 ? -value : value);
     }
     const uint32_t caseBB = theBuilder.createBasicBlock(caseLabel);
     theBuilder.addSuccessor(caseBB);
-    theBuilder.setStmtBasicBlock(root, caseBB);
+    setStmtBasicBlock(root, caseBB);
 
-    // The default label is not part of the 'targets' array that is passed
-    // to the OpSwitch instruction.
+    // Add all cases to the 'targets' vector.
     if (caseStmt)
-      targets->push_back(std::make_pair(caseValue, caseBB));
+      targets->emplace_back(caseValue, caseBB);
 
-    // If default statement was discovered, return its label
+    // The default label is not part of the 'targets' vector that is passed
+    // to the OpSwitch instruction.
+    // If default statement was discovered, return its label via defaultBB.
     if (defaultStmt)
       *defaultBB = caseBB;
 
-    // Add all cases including the default case to the vector to be
-    // processed.
-    const Stmt *subStmt =
-        caseStmt ? caseStmt->getSubStmt() : defaultStmt->getSubStmt();
-    discoverAllCaseStmtInSwitchStmt(subStmt, defaultBB, targets);
+    // Process cases nested in other cases. It happens when we have fall through
+    // cases. For example:
+    // case 1: case 2: ...; break;
+    // will result in the CaseSmt for case 2 nested in the one for case 1.
+    discoverAllCaseStmtInSwitchStmt(caseStmt ? caseStmt->getSubStmt()
+                                             : defaultStmt->getSubStmt(),
+                                    defaultBB, targets);
   }
 
   void processSwitchStmtUsingSpirvOpSwitch(const SwitchStmt *switchStmt) {
@@ -516,7 +522,7 @@ public:
     // target.
     const uint32_t mergeBB = theBuilder.createBasicBlock("switch.merge");
     theBuilder.setMergeTarget(mergeBB);
-    theBuilder.getBreakStack().push(mergeBB);
+    getBreakStack().push(mergeBB);
     uint32_t defaultBB = mergeBB;
 
     // (literal, labelId) pairs to pass to the OpSwitch instruction.
@@ -533,10 +539,13 @@ public:
     if (!theBuilder.isCurrentBasicBlockTerminated())
       theBuilder.createBranch(mergeBB);
     theBuilder.setInsertPoint(mergeBB);
-    theBuilder.getBreakStack().pop();
+    getBreakStack().pop();
   }
 
-  void processSwitchStmtUsingIfStmts(const SwitchStmt *switchStmt) {}
+  void processSwitchStmtUsingIfStmts(const SwitchStmt *switchStmt) {
+    emitError("Translating Switch statements using If statements is not "
+              "implemented yet.");
+  }
 
   void doSwitchStmt(const SwitchStmt *switchStmt,
                     llvm::ArrayRef<const Attr *> attrs = {}) {
@@ -548,63 +557,57 @@ public:
     //     <DefaultStmt> (optional)
     //   }
     //
-    //             +-------+
-    //             | check |
-    //             +-------+
-    //                 |
+    //                             +-------+
+    //                             | check |
+    //                             +-------+
+    //                                 |
     //         +-------+-------+----------------+---------------+
-    //         | 1             | 2              | 3             | (else)
+    //         | 1             | 2              | 3             | (others)
     //         v               v                v               v
     //     +-------+      +-------------+     +-------+     +------------+
     //     | case1 |      | case2       |     | case3 | ... | default    |
     //     |       |      |(fallthrough)|---->|       |     | (optional) |
     //     +-------+      |+------------+     +-------+     +------------+
     //         |                                  |                |
+    //         |                                  |                |
     //         |   +-------+                      |                |
-    //         |   |       |                      |                |
-    //         +-> | merge |                      |                |
-    //             |       | <--------------------+                |
-    //             +-------+ <-------------------------------------+
+    //         |   |       | <--------------------+                |
+    //         +-> | merge |                                       |
+    //             |       | <-------------------------------------+
+    //             +-------+
 
+
+    // If no attributes are given, or if "forcecase" attribute was provided,
+    // we'll do our best to use OpSwitch if possible.
     // If any of the cases compares to a variable (rather than an integer
     // literal), we cannot use OpSwitch because OpSwitch expects literal
     // numbers as parameters.
-    bool canUseSpirvOpSwitch =
+    const bool isAttrForceCase =
+        !attrs.empty() && attrs.front()->getKind() == attr::HLSLForceCase;
+    const bool canUseSpirvOpSwitch =
+        (attrs.empty() || isAttrForceCase) &&
         allSwitchCasesAreIntegerLiterals(switchStmt->getBody());
 
-    // If no attributes are given, we'll do our best to use OpSwitch if
-    // possible. We'll use if statements otherwise.
-    if (attrs.empty()) {
+    if (isAttrForceCase && !canUseSpirvOpSwitch)
+      emitWarning("Ignored 'forcecase' attribute for the switch statement "
+                  "since one or more case values are not integer literals.");
+
       if (canUseSpirvOpSwitch)
         processSwitchStmtUsingSpirvOpSwitch(switchStmt);
       else
         processSwitchStmtUsingIfStmts(switchStmt);
-      return;
-    }
-
-    // If ForceCase attribute was specified, use OpSwitch if possible.
-    if (!attrs.empty() && attrs[0]->getKind() == attr::HLSLForceCase) {
-      if (canUseSpirvOpSwitch) {
-        processSwitchStmtUsingSpirvOpSwitch(switchStmt);
-      } else {
-        emitWarning("Ignored 'forcecase' attribute for the switch statement "
-                    "since one or more case values are not integer literals.");
-        processSwitchStmtUsingIfStmts(switchStmt);
-      }
-      return;
-    }
-
-    // For all other attributes (flatten, branch, call), emit if statements.
-    processSwitchStmtUsingIfStmts(switchStmt);
   }
 
-  void doCaseStmtOrDefaultStmt(const Stmt *stmt) {
+  void processCaseStmtOrDefaultStmt(const Stmt *stmt) {
     auto *caseStmt = dyn_cast<CaseStmt>(stmt);
     auto *defaultStmt = dyn_cast<DefaultStmt>(stmt);
     assert(caseStmt || defaultStmt);
 
-    uint32_t caseBB = theBuilder.getStmtBasicBlock(stmt);
+    uint32_t caseBB = getStmtBasicBlock(stmt);
     if (!theBuilder.isCurrentBasicBlockTerminated()) {
+      // We are about to handle the case passed in as parameter. If the current
+      // basic block is not terminated, it means the previous case is a fall
+      // through case. We need to link it to the case to be processed.
       theBuilder.createBranch(caseBB);
       theBuilder.addSuccessor(caseBB);
     }
@@ -613,7 +616,7 @@ public:
   }
 
   void doBreakStmt(const BreakStmt *breakStmt) {
-    uint32_t breakTargetBB = theBuilder.getBreakStack().top();
+    uint32_t breakTargetBB = getBreakStack().top();
     theBuilder.addSuccessor(breakTargetBB);
     theBuilder.createBranch(breakTargetBB);
   }
@@ -1794,6 +1797,19 @@ case BO_##kind : {                                                             \
     return 0;
   }
 
+  /// \brief Returns the breakStack.
+  std::stack<uint32_t> &getBreakStack() { return breakStack; }
+
+  /// \brief Returns the first basic block associated with the given statement.
+  /// Returns zero if no basic block is associated with this statement.
+  uint32_t getStmtBasicBlock(const Stmt *st) { return stmtBasicBlock[st]; }
+
+  /// \brief Associates the given basic block as the first block for the given
+  /// statement.
+  void setStmtBasicBlock(const Stmt *st, uint32_t bb) {
+    stmtBasicBlock[st] = bb;
+  }
+
 private:
   /// \brief Wrapper method to create an error message and report it
   /// in the diagnostic engine associated with this consumer.
@@ -1837,6 +1853,24 @@ private:
   uint32_t entryFunctionId;
   /// The current function under traversal.
   const FunctionDecl *curFunction;
+
+  /// For loops, while loops, and switch statements may encounter "break"
+  /// statements that alter their control flow. At any point the break statement
+  /// is observed, the control flow jumps to the inner-most scope's merge block.
+  /// For instance: the break in the following example should cause a branch to
+  /// the SwitchMergeBB, not ForLoopMergeBB:
+  /// for (...) {
+  ///   switch(...) {
+  ///     case 1: break;
+  ///   }
+  ///   <--- SwitchMergeBB ---->
+  /// }
+  /// <----- ForLoopMergeBB --->
+  /// This stack keeps track of the basic blocks to which branching could occur.
+  std::stack<uint32_t> breakStack;
+
+  /// Maps a given statement to the basic block that is associated with it.
+  llvm::DenseMap<const Stmt *, uint32_t> stmtBasicBlock;
 };
 
 } // end namespace spirv
