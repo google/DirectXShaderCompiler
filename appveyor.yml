@@ -2,6 +2,7 @@ version: 1.0.{build}
 image: Visual Studio 2017
 platform: x64
 configuration: Debug
+clone_depth: 10
 clone_folder: c:\projects\DirectXShaderCompiler
 environment:
   HLSL_SRC_DIR: c:\projects\DirectXShaderCompiler
@@ -9,13 +10,13 @@ environment:
 install:
 - ps: c:\projects\DirectXShaderCompiler\utils\appveyor\appveyor_setup.ps1
 - git submodule update --init --recursive
-build_script:
-- cmd: >-
-    cd %HLSL_SRC_DIR%
-
-    call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
-
-    call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -vs2017 -spirvtest
+before_build:
+- cmd: cd %HLSL_SRC_DIR%
+- cmd: call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
+- cmd: call utils\hct\hctbuild -s -%PLATFORM% -%CONFIGURATION% -vs2017 -spirvtest
+build:
+  parallel: true
+  project: %HLSL_BLD_DIR%\LLVM.sln
 test_script:
 - cmd: >-
     cd %HLSL_SRC_DIR%
