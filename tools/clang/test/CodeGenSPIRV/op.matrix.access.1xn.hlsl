@@ -65,4 +65,16 @@ void main() {
 // CHECK-NEXT: [[access10:%\d+]] = OpAccessChain %_ptr_Function_float %mat [[index0]]
 // CHECK-NEXT: OpStore [[access10]] [[load12]]
     mat[0][index] = scalar; // Used as lvalue
+
+    // On level indexing (from rvalue)
+    // For the following case:
+    // vec3 = (mat + mat)[0];
+    // The AST for operator[] is actually accessing into a vector. Both mat will
+    // be implicitly casted (HLSLMatrixToVectorCast) to vector before doing
+    // operator+. So the whole rhs is actually a vector splatting.
+
+    // Two level indexing (from rvalue)
+    // The following statements will trigger errors:
+    //   subscripted value is not an array, matrix, or vector
+    // scalar = (mat * mat)[0][index];
 }

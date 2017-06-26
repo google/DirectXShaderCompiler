@@ -49,4 +49,10 @@ void main() {
 // CHECK-NEXT: [[load12:%\d+]] = OpLoad %float %scalar
 // CHECK-NEXT: OpStore %mat [[load12]]
     mat[0][index] = scalar; // Used as lvalue
+
+    // One/two level indexing (from rvalue)
+    // The following statements will trigger errors:
+    //   subscripted value is not an array, matrix, or vector
+    // vec1 = (mat + mat)[0];
+    // scalar = (mat * mat)[0][index];
 }

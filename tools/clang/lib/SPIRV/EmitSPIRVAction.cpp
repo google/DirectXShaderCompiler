@@ -2288,11 +2288,12 @@ public:
       const Expr *index1Expr = nullptr;
 
       if (isVecMatIndexing(expr, &baseExpr, &index0Expr, &index1Expr)) {
+        const auto baseType = baseExpr->getType();
         llvm::SmallVector<uint32_t, 2> indices;
 
-        if (hlsl::IsHLSLMatType(baseExpr->getType())) {
+        if (hlsl::IsHLSLMatType(baseType)) {
           uint32_t rowCount = 0, colCount = 0;
-          hlsl::GetHLSLMatRowColCount(baseExpr->getType(), rowCount, colCount);
+          hlsl::GetHLSLMatRowColCount(baseType, rowCount, colCount);
 
           // Collect indices for this matrix indexing
           if (rowCount > 1) {
@@ -2303,7 +2304,7 @@ public:
             indices.push_back(doExpr(index1Expr));
           }
         } else { // Indexing into vector
-          if (hlsl::GetHLSLVecSize(baseExpr->getType()) > 1) {
+          if (hlsl::GetHLSLVecSize(baseType) > 1) {
             indices.push_back(doExpr(index0Expr));
           }
         }
@@ -2312,18 +2313,28 @@ public:
           return doExpr(baseExpr);
         }
 
-        const uint32_t elemType = typeTranslator.translateType(expr->getType());
-        if (baseExpr->isGLValue()) { // e.g., mat[0]
-          // TODO: select storage type based on the underlying variable
-          const uint32_t ptrType =
-              theBuilder.getPointerType(elemType, spv::StorageClass::Function);
-
-          return theBuilder.createAccessChain(ptrType, doExpr(baseExpr),
-                                              indices);
-        } else { // e.g., (mat1 + mat2)[0]
-          return theBuilder.createCompositeExtract(elemType, doExpr(baseExpr),
-                                                   indices);
+        uint32_t base = doExpr(baseExpr);
+        // If we are indexing into a rvalue, to use OpAccessChain, we need first
+        // to create a local variable to hold the rvalue.
+        //
+        // TODO: We can optimize the codegen by emitting OpCompositeExtract if
+        // all indices are contant integers.
+        if (!baseExpr->isGLValue()) {
+          const uint32_t compositeType = typeTranslator.translateType(baseType);
+          const uint32_t ptrType = theBuilder.getPointerType(
+              compositeType, spv::StorageClass::Function);
+          const uint32_t tempVar =
+              theBuilder.addFnVariable(ptrType, "temp.var");
+          theBuilder.createStore(tempVar, base);
+          base = tempVar;
         }
+
+        const uint32_t elemType = typeTranslator.translateType(expr->getType());
+        // TODO: select storage type based on the underlying variable
+        const uint32_t ptrType =
+            theBuilder.getPointerType(elemType, spv::StorageClass::Function);
+
+        return theBuilder.createAccessChain(ptrType, base, indices);
       }
     }
 

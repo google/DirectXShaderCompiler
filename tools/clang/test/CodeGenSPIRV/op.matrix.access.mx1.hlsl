@@ -86,4 +86,25 @@ void main() {
 // CHECK-NEXT: [[access10:%\d+]] = OpAccessChain %_ptr_Function_float %mat [[index1]]
 // CHECK-NEXT: OpStore [[access10]] [[load12]]
     mat[index][0] = scalar; // Used as lvalue
+
+    // On level indexing (from rvalue)
+// CHECK-NEXT: [[load13:%\d+]] = OpLoad %v3float %mat
+// CHECK-NEXT: [[load14:%\d+]] = OpLoad %v3float %mat
+// CHECK-NEXT: [[add:%\d+]] = OpFAdd %v3float [[load13]] [[load14]]
+// CHECK-NEXT: OpStore %temp_var [[add]]
+// CHECK-NEXT: [[access11:%\d+]] = OpAccessChain %_ptr_Function_float %temp_var %uint_0
+// CHECK-NEXT: [[load15:%\d+]] = OpLoad %float [[access11]]
+// CHECK-NEXT: OpStore %vec1 [[load15]]
+    vec1 = (mat + mat)[0];
+
+    // Two level indexing (from rvalue)
+// CHECK-NEXT: [[index2:%\d+]] = OpLoad %uint %index
+// CHECK-NEXT: [[load16:%\d+]] = OpLoad %v3float %mat
+// CHECK-NEXT: [[load17:%\d+]] = OpLoad %v3float %mat
+// CHECK-NEXT: [[mul:%\d+]] = OpFMul %v3float [[load16]] [[load17]]
+// CHECK-NEXT: OpStore %temp_var_0 [[mul]]
+// CHECK-NEXT: [[access12:%\d+]] = OpAccessChain %_ptr_Function_float %temp_var_0 [[index2]]
+// CHECK-NEXT: [[load18:%\d+]] = OpLoad %float [[access12]]
+// CHECK-NEXT: OpStore %scalar [[load18]]
+    scalar = (mat * mat)[index][0];
 }
