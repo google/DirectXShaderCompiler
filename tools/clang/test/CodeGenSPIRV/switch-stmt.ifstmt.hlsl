@@ -7,6 +7,8 @@ void main() {
 // CHECK:      %a = OpVariable %_ptr_Function_int Function
 // CHECK-NEXT: %b = OpVariable %_ptr_Function_int Function
 // CHECK-NEXT: %c = OpVariable %_ptr_Function_int Function
+
+// TODO: We should try not to emit OpVariable for constant variables.
 // CHECK-NEXT: %r = OpVariable %_ptr_Function_int Function %int_20
 // CHECK-NEXT: %s = OpVariable %_ptr_Function_int Function %int_40
 // CHECK-NEXT: %t = OpVariable %_ptr_Function_int Function %int_140
@@ -125,6 +127,7 @@ void main() {
 // CHECK-NEXT: OpBranch %if_merge_5
 // CHECK-NEXT: %if_false_5 = OpLabel
 // CHECK-NEXT: [[d3:%\d+]] = OpLoad %int %d
+// TODO: We should try to const fold `t` and avoid the following OpLoad:
 // CHECK-NEXT: [[t:%\d+]] = OpLoad %int %t
 // CHECK-NEXT: [[is_d_eq_t:%\d+]] = OpIEqual %bool [[d3]] [[t]]
 // CHECK-NEXT: OpSelectionMerge %if_merge_6 None
