@@ -688,7 +688,7 @@ public:
         caseStmtLocs.push_back(i);
 
     std::vector<IfStmt *> ifs;
-    CompoundStmt *myDefaultBody = nullptr;
+    CompoundStmt *defaultBody = nullptr;
 
     // For each case, start at its index in the vector, and go forward
     // accumulating statements until BreakStmt or end of vector is reached.
@@ -725,7 +725,7 @@ public:
       } else {
         // Record the DefaultStmt body as it will be used as the body of the
         // "else" block in the if-elseif-...-else pattern.
-        myDefaultBody = cs;
+        defaultBody = cs;
       }
     }
 
@@ -735,7 +735,7 @@ public:
         ifs[i]->setElse(ifs[i + 1]);
     // If a default case exists, it is the "else" of the last if statement.
     if (!ifs.empty())
-      ifs.back()->setElse(myDefaultBody);
+      ifs.back()->setElse(defaultBody);
 
     // Since all else-if and else statements are the child nodes of the first
     // IfStmt, we only need to call doStmt for the first IfStmt.
@@ -744,8 +744,8 @@ public:
     // If there are no CaseStmt and there is only 1 DefaultStmt, there will be
     // no if statements. The switch in that case only executes the body of the
     // default case.
-    else if (myDefaultBody)
-      doStmt(myDefaultBody);
+    else if (defaultBody)
+      doStmt(defaultBody);
   }
 
   void doSwitchStmt(const SwitchStmt *switchStmt,
