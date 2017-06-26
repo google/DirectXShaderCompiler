@@ -851,7 +851,7 @@ public:
       accessor.GetPosition(i, &row, &col);
 
       llvm::SmallVector<uint32_t, 2> indices;
-      // If the matrix only have one row/column, we are indexing into a vector
+      // If the matrix only has one row/column, we are indexing into a vector
       // then. Only one index is needed for such cases.
       if (rowCount > 1)
         indices.push_back(row);
