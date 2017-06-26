@@ -682,12 +682,13 @@ public:
     // +-------------------------------------------------------------------+
     // |Case1|Stmt1|Case2|Stmt2|Break|Case3|Case4|Stmt4|Break|Default|Stmt5|
     // +-------------------------------------------------------------------+
-    std::vector<size_t> caseStmtLocs;
+    std::vector<uint32_t> caseStmtLocs;
     for (uint32_t i = 0; i < flatSwitch.size(); ++i)
       if (isa<CaseStmt>(flatSwitch[i]) || isa<DefaultStmt>(flatSwitch[i]))
         caseStmtLocs.push_back(i);
 
-    std::vector<IfStmt *> ifs;
+    IfStmt *prevIfStmt = nullptr;
+    IfStmt *rootIfStmt = nullptr;
     CompoundStmt *defaultBody = nullptr;
 
     // For each case, start at its index in the vector, and go forward
@@ -706,7 +707,7 @@ public:
         if (!isa<CaseStmt>(flatSwitch[i]) && !isa<DefaultStmt>(flatSwitch[i]))
           statements.push_back(const_cast<Stmt *>(flatSwitch[i]));
       }
-      if (statements.size() > 0)
+      if (!statements.empty())
         cs->setStmts(astContext, statements.data(), statements.size());
 
       // For non-default cases, generate the IfStmt that compares the switch
@@ -721,7 +722,12 @@ public:
         bo->setType(astContext.getLogicalOperationType());
         curIf->setCond(bo);
         curIf->setThen(cs);
-        ifs.push_back(curIf);
+        // Each If statement is the "else" of the previous if statement.
+        if (prevIfStmt)
+          prevIfStmt->setElse(curIf);
+        else
+          rootIfStmt = curIf;
+        prevIfStmt = curIf;
       } else {
         // Record the DefaultStmt body as it will be used as the body of the
         // "else" block in the if-elseif-...-else pattern.
@@ -729,18 +735,14 @@ public:
       }
     }
 
-    // Each If statement is the "else" of the previous if statement.
-    for (int i = 0; i < ifs.size(); ++i)
-      if (i + 1 < ifs.size())
-        ifs[i]->setElse(ifs[i + 1]);
     // If a default case exists, it is the "else" of the last if statement.
-    if (!ifs.empty())
-      ifs.back()->setElse(defaultBody);
+    if (prevIfStmt)
+      prevIfStmt->setElse(defaultBody);
 
     // Since all else-if and else statements are the child nodes of the first
     // IfStmt, we only need to call doStmt for the first IfStmt.
-    if (!ifs.empty())
-      doStmt(ifs[0]);
+    if (rootIfStmt)
+      doStmt(rootIfStmt);
     // If there are no CaseStmt and there is only 1 DefaultStmt, there will be
     // no if statements. The switch in that case only executes the body of the
     // default case.
