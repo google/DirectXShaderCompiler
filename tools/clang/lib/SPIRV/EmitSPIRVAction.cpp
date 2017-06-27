@@ -2225,11 +2225,11 @@ public:
   bool isVecMatIndexing(const CXXOperatorCallExpr *vecIndexExpr,
                         const Expr **base, const Expr **index0,
                         const Expr **index1) {
-    // matrix [] []         vector []
-    // +-------+
-    //  vector         or
-    // +----------+         +-------+
-    //    scalar             scalar
+    // matrix [index0] [index1]         vector [index0]
+    // +--------------+
+    //  vector                     or
+    // +----------------------+         +-------------+
+    //         scalar                        scalar
 
     // Must be operator[]
     if (vecIndexExpr->getOperator() != OverloadedOperatorKind::OO_Subscript)
@@ -2314,7 +2314,7 @@ public:
         }
 
         uint32_t base = doExpr(baseExpr);
-        // If we are indexing into a rvalue, to use OpAccessChain, we need first
+        // If we are indexing into a rvalue, to use OpAccessChain, we first need
         // to create a local variable to hold the rvalue.
         //
         // TODO: We can optimize the codegen by emitting OpCompositeExtract if
