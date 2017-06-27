@@ -384,7 +384,38 @@ The ``[]`` operator can also be used to access elements in a matrix or vector. A
 Control flows
 -------------
 
-[TODO]
+Switch Statements
++++++++++++++++++
+
+HLSL switch statements can be translated to SPIR-V in two different ways as detailed in the table below:
+
++-----------------------------+-------------------------------------------------------------------------------------------+
+|     Translation Method      |                                    Used When                                              |
++-----------------------------+-------------------------------------------------------------------------------------------+
+|          OpSwitch           |   All case values are integer literals or constant integer variables (No HLSL attributes) |
+|                             +-------------------------------------------------------------------------------------------+
+|                             |   ``forcecase`` attribute was provided                                                    |
++-----------------------------+-------------------------------------------------------------------------------------------+
+|   Series of If statements   |   All other scenarios (e.g. ``flatten``, ``branch``, or ``call`` attribute was provided   |
++-----------------------------+-------------------------------------------------------------------------------------------+
+
+Loops
++++++
+
+HLSL ``for`` statements and ``while`` statements are translated into SPIR-V by constructing all necessary basic blocks and using ``OpLoopMerge``, and ``OpBranchConditional``.
+The HLSL attributes for these statements are translated as detailed in the table below:
+
++-------------------------+--------------------------------------------------+
+|   HLSL loop attribute   |            SPIR-V Loop Control Mask              |
++-------------------------+--------------------------------------------------+
+|        ``unroll(x)``    |                ``Unroll``                        |
++-------------------------+--------------------------------------------------+
+|         ``loop``        |              ``DontUnroll``                      |
++-------------------------+--------------------------------------------------+
+|        ``fastopt``      |              ``DontUnroll``                      |
++-------------------------+--------------------------------------------------+
+| ``allow_uav_condition`` |  N/A. Emits error. There is no SPIR-V equivalent |
++-------------------------+--------------------------------------------------+
 
 Functions
 ---------
