@@ -1,39 +1,24 @@
 // Run: %dxc -T ps_6_0 -E main
 
 // Constants
-// CHECK-DAG: %float_1 = OpConstant %float 1
-// CHECK-DAG: %float_2 = OpConstant %float 2
-// CHECK-DAG: %float_3 = OpConstant %float 3
-// CHECK-DAG: %float_4 = OpConstant %float 4
-// CHECK-DAG: %int_1 = OpConstant %int 1
-// CHECK-DAG: %int_2 = OpConstant %int 2
-// CHECK-DAG: [[float4constant:%\d+]] = OpConstantComposite %v4float %float_1 %float_2 %float_3 %float_4
-// CHECK-DAG: [[int2constant:%\d+]] = OpConstantComposite %v2int %int_1 %int_2
+// CHECK: [[float4constant:%\d+]] = OpConstantComposite %v4float %float_1 %float_2 %float_3 %float_4
+// CHECK: [[int2constant:%\d+]] = OpConstantComposite %v2int %int_1 %int_2
 
 // Stage IO variables
-// CHECK-DAG: [[component:%\d+]] = OpVariable %_ptr_Input_float Input
+// CHECK: [[component:%\d+]] = OpVariable %_ptr_Input_float Input
 
 float4 main(float component: COLOR) : SV_TARGET {
 // CHECK-LABEL: %bb_entry = OpLabel
 
-// CHECK-NEXT: %a = OpVariable %_ptr_Function_int Function %int_0
-// CHECK-NEXT: %b = OpVariable %_ptr_Function_int Function
+// CHECK: %a = OpVariable %_ptr_Function_int Function %int_0
 
-// CHECK-NEXT: %i = OpVariable %_ptr_Function_float Function %float_3
-// CHECK-NEXT: %j = OpVariable %_ptr_Function_float Function
+// CHECK: %i = OpVariable %_ptr_Function_float Function %float_3
 
-// CHECK-NEXT: %m = OpVariable %_ptr_Function_v4float Function
-// CHECK-NEXT: %n = OpVariable %_ptr_Function_v4float Function
-// CHECK-NEXT: %o = OpVariable %_ptr_Function_v4float Function
-
-// CHECK-NEXT: %p = OpVariable %_ptr_Function_v2int Function [[int2constant]]
-// CHECK-NEXT: %q = OpVariable %_ptr_Function_v3int Function
-
-// CHECK-NEXT: %x = OpVariable %_ptr_Function_uint Function
+// CHECK: %p = OpVariable %_ptr_Function_v2int Function [[int2constant]]
 
 // Initializer already attached to the var definition
     int a = 0; // From constant
-// CHECK-NEXT: [[a0:%\d+]] = OpLoad %int %a
+// CHECK:      [[a0:%\d+]] = OpLoad %int %a
 // CHECK-NEXT: OpStore %b [[a0]]
     int b = a; // From local variable
 
@@ -67,6 +52,17 @@ float4 main(float component: COLOR) : SV_TARGET {
 
 // CHECK-NEXT: OpStore %x %uint_1
     uint1 x = uint1(1); // Special case: vector of size 1
+
+    float2 y;
+// CHECK-NEXT: [[y0:%\d+]] = OpLoad %v2float %y
+// CHECK-NEXT: [[ce0:%\d+]] = OpCompositeExtract %float [[y0]] 0
+// CHECK-NEXT: [[ce1:%\d+]] = OpCompositeExtract %float [[y0]] 1
+// CHECK-NEXT: [[y1:%\d+]] = OpLoad %v2float %y
+// CHECK-NEXT: [[ce2:%\d+]] = OpCompositeExtract %float [[y1]] 0
+// CHECK-NEXT: [[ce3:%\d+]] = OpCompositeExtract %float [[y1]] 1
+// CHECK-NEXT: [[zinit:%\d+]] = OpCompositeConstruct %v4float [[ce0]] [[ce1]] [[ce2]] [[ce3]]
+// CHECK-NEXT: OpStore %z [[zinit]]
+    float4 z = {y, y};
 
     return o;
 }
