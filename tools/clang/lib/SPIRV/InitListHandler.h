@@ -45,7 +45,7 @@ namespace spirv {
 /// Resulting from the above reasons, the logic for handling initalizer lists
 /// are complicated. So we have this dedicated class for it. It is built on
 /// top of the SPIRVEmitter class and calls into SPIRVEmitter for normal
-/// translating tasks. This gives better code structure.
+/// translation tasks. This gives better code structure.
 ///
 /// The logic for handling initalizer lists is largely the following:
 ///
@@ -54,7 +54,7 @@ namespace spirv {
 /// braces of even wired forms like float2x2 mat = {{1.}, {2., {{3.}}}, 4.};
 ///
 /// Then we construct the final SPIR-V composite from the initializer list
-/// by traversing the type of the composte. This is done recursively in the
+/// by traversing the type of the composite. This is done recursively in the
 /// depth first search manner, using the type of the composite as the root.
 ///
 /// When we reach a scalar type, we will try to decode a scalar value from the
@@ -114,7 +114,9 @@ private:
 
   /// A queue keeping track of unused AST nodes for initializers
   std::deque<const Expr *> initializers;
-  /// A queue keeping track of previously extracted but unused scalars
+  /// A queue keeping track of previously extracted but unused scalars.
+  /// Each element is a pair, with the first element as the SPIR-V <result-id>
+  /// and the second element as the AST type of the scalar value.
   std::deque<std::pair<uint32_t, QualType>> scalars;
 };
 

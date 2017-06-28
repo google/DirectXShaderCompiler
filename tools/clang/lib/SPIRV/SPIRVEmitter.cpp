@@ -2094,21 +2094,26 @@ uint32_t SPIRVEmitter::getValueZero(QualType type) {
     QualType elemType = {};
     uint32_t size = {};
     if (TypeTranslator::isVectorType(type, &elemType, &size)) {
-      const uint32_t elemZeroId = getValueZero(elemType);
-
-      if (size == 1)
-        return elemZeroId;
-
-      llvm::SmallVector<uint32_t, 4> elements(size_t(size), elemZeroId);
-
-      const uint32_t vecTypeId = typeTranslator.translateType(type);
-      return theBuilder.getConstantComposite(vecTypeId, elements);
+      return getVecValueZero(elemType, size);
     }
   }
 
   emitError("getting value 0 for type '%0' unimplemented")
       << type.getAsString();
   return 0;
+}
+
+uint32_t SPIRVEmitter::getVecValueZero(QualType elemType, uint32_t size) {
+  const uint32_t elemZeroId = getValueZero(elemType);
+
+  if (size == 1)
+    return elemZeroId;
+
+  llvm::SmallVector<uint32_t, 4> elements(size_t(size), elemZeroId);
+  const uint32_t vecType =
+      theBuilder.getVecType(typeTranslator.translateType(elemType), size);
+
+  return theBuilder.getConstantComposite(vecType, elements);
 }
 
 uint32_t SPIRVEmitter::getValueOne(QualType type) {

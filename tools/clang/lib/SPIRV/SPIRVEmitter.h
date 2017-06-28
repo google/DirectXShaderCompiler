@@ -214,6 +214,10 @@ private:
   /// Returns the <result-id> for constant value 0 of the given type.
   uint32_t getValueZero(QualType type);
 
+  /// Returns the <result-id> for a constant zero vector of the given size and
+  /// element type.
+  uint32_t getVecValueZero(QualType elemType, uint32_t size);
+
   /// Returns the <result-id> for constant value 1 of the given type.
   uint32_t getValueOne(QualType type);
 
