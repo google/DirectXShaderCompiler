@@ -424,7 +424,7 @@ spv::LoopControlMask SPIRVEmitter::translateLoopAttribute(const Attr &attr) {
   case attr::HLSLUnroll:
     return spv::LoopControlMask::Unroll;
   case attr::HLSLAllowUAVCondition:
-    emitError("No translation exists for loop attribute 'allow_uav_condition'");
+    emitWarning("Unsupported allow_uav_condition attribute ignored.");
     break;
   default:
     emitError("Found unknown loop attribute.");
@@ -465,7 +465,7 @@ void SPIRVEmitter::doWhileStmt(const WhileStmt *whileStmt,
   //
   // For more details, see "2.11. Structured Control Flow" in the SPIR-V spec.
 
-  spv::LoopControlMask loopControl =
+  const spv::LoopControlMask loopControl =
       attrs.empty() ? spv::LoopControlMask::MaskNone
                     : translateLoopAttribute(*attrs.front());
 
@@ -558,7 +558,7 @@ void SPIRVEmitter::doForStmt(const ForStmt *forStmt,
   //     +-------+
   //
   // For more details, see "2.11. Structured Control Flow" in the SPIR-V spec.
-  spv::LoopControlMask loopControl =
+  const spv::LoopControlMask loopControl =
       attrs.empty() ? spv::LoopControlMask::MaskNone
                     : translateLoopAttribute(*attrs.front());
 

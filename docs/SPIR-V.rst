@@ -353,7 +353,7 @@ Please note that "unlike short-circuit evaluation of ``&&``, ``||``, and ``?:`` 
 Unary operators
 +++++++++++++++
 
-FOr `unary operators <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509631(v=vs.85).aspx#Unary_Operators>`_:
+For `unary operators <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509631(v=vs.85).aspx#Unary_Operators>`_:
 
 - ``!`` is translated into ``OpLogicalNot``. Parsing will gurantee the operands are of boolean types by inserting necessary casts.
 - ``+`` requires no additional SPIR-V instructions.
@@ -387,23 +387,16 @@ Control flows
 Switch Statements
 +++++++++++++++++
 
-HLSL switch statements can be translated to SPIR-V in two different ways as detailed in the table below:
+HLSL `switch statements <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509669(v=vs.85).aspx>`_ are translated into SPIR-V using:
 
-+-----------------------------+-------------------------------------------------------------------------------------------+
-|     Translation Method      |                                    Used When                                              |
-+-----------------------------+-------------------------------------------------------------------------------------------+
-|          OpSwitch           |   All case values are integer literals or constant integer variables (No HLSL attributes) |
-|                             +-------------------------------------------------------------------------------------------+
-|                             |   ``forcecase`` attribute was provided                                                    |
-+-----------------------------+-------------------------------------------------------------------------------------------+
-|   Series of If statements   |   All other scenarios (e.g. ``flatten``, ``branch``, or ``call`` attribute was provided   |
-+-----------------------------+-------------------------------------------------------------------------------------------+
+- **OpSwitch**: if (all case values are integer literals or constant integer variables) and (no attribute or the ``forcecase`` attribute is specified)
+- **A series of if statements**: for all other scenarios (e.g., when ``flatten``, ``branch``, or ``call`` attribute is specified)
 
 Loops
 +++++
 
-HLSL ``for`` statements and ``while`` statements are translated into SPIR-V by constructing all necessary basic blocks and using ``OpLoopMerge``, and ``OpBranchConditional``.
-The HLSL attributes for these statements are translated as detailed in the table below:
+HLSL `for statements <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509602(v=vs.85).aspx>`_ and `while statements <https://msdn.microsoft.com/en-us/library/windows/desktop/bb509708(v=vs.85).aspx>`_ are translated into SPIR-V by constructing all necessary basic blocks and using ``OpLoopMerge`` to organize as structured loops.
+The HLSL attributes for these statements are translated into SPIR-V loop control masks according to the following table:
 
 +-------------------------+--------------------------------------------------+
 |   HLSL loop attribute   |            SPIR-V Loop Control Mask              |
@@ -414,7 +407,7 @@ The HLSL attributes for these statements are translated as detailed in the table
 +-------------------------+--------------------------------------------------+
 |        ``fastopt``      |              ``DontUnroll``                      |
 +-------------------------+--------------------------------------------------+
-| ``allow_uav_condition`` |  N/A. Emits error. There is no SPIR-V equivalent |
+| ``allow_uav_condition`` |           Currently Unimplemented                |
 +-------------------------+--------------------------------------------------+
 
 Functions
