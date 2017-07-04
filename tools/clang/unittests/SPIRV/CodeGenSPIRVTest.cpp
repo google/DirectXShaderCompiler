@@ -217,6 +217,15 @@ TEST_F(FileTest, ControlFlowConditionalOp) { runFileTest("cf.cond-op.hlsl"); }
 // For function calls
 TEST_F(FileTest, FunctionCall) { runFileTest("fn.call.hlsl"); }
 
+// For semantics
+TEST_F(FileTest, SemanticPositionVS) {
+  runFileTest("semantic.position.vs.hlsl");
+}
+TEST_F(FileTest, SemanticPositionPS) {
+  runFileTest("semantic.position.ps.hlsl");
+}
+TEST_F(FileTest, SemanticTargetPS) { runFileTest("semantic.target.ps.hlsl"); }
+
 // For intrinsic functions
 TEST_F(FileTest, IntrinsicsDot) { runFileTest("intrinsics.dot.hlsl"); }
 TEST_F(FileTest, IntrinsicsAll) { runFileTest("intrinsics.all.hlsl"); }
