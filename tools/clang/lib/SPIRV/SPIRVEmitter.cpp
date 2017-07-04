@@ -23,6 +23,8 @@ namespace spirv {
 
 namespace {
 
+const char *glslExtInstSetName() { return "GLSL.std.450"; }
+
 // TODO: Maybe we should move these type probing functions to TypeTranslator.
 
 /// Returns true if the two types are the same scalar or vector type.
@@ -1034,7 +1036,8 @@ uint32_t SPIRVEmitter::doCastExpr(const CastExpr *expr) {
   }
   case CastKind::CK_HLSLMatrixToVectorCast: {
     // The underlying should already be a matrix of 1xN.
-    assert(TypeTranslator::is1xNMatrix(subExpr->getType()));
+    assert(TypeTranslator::is1xNMatrixType(subExpr->getType()) ||
+           TypeTranslator::isMx1MatrixType(subExpr->getType()));
     return doExpr(subExpr);
   }
   case CastKind::CK_FunctionToPointerDecay:
@@ -2011,8 +2014,9 @@ uint32_t SPIRVEmitter::processMatrixBinaryOp(const Expr *lhs, const Expr *rhs,
   case BO_DivAssign:
   case BO_RemAssign: {
     const uint32_t vecType = typeTranslator.getComponentVectorType(lhsType);
-    const auto actOnEachVec = [this, spvOp, rhsVal](
-        uint32_t index, uint32_t vecType, uint32_t lhsVec) {
+    const auto actOnEachVec = [this, spvOp, rhsVal](uint32_t index,
+                                                    uint32_t vecType,
+                                                    uint32_t lhsVec) {
       // For each vector of lhs, we need to load the corresponding vector of
       // rhs and do the operation on them.
       const uint32_t rhsVec =
@@ -2137,6 +2141,104 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
   case hlsl::IntrinsicOp::IOP_asint:
   case hlsl::IntrinsicOp::IOP_asuint:
     return processIntrinsicAsType(callExpr);
+  case hlsl::IntrinsicOp::IOP_round:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Round, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_abs: {
+    if (isFloatOrVecMatOfFloatType(callExpr->getType()))
+      return processIntrinsicUsingGLSLInstSet(
+          callExpr, GLSLstd450::GLSLstd450FAbs, /*actPerRowForMatrices*/ true);
+    else
+      return processIntrinsicUsingGLSLInstSet(
+          callExpr, GLSLstd450::GLSLstd450SAbs, /*actPerRowForMatrices*/ true);
+  }
+  case hlsl::IntrinsicOp::IOP_acos:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Acos, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_asin:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Asin, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_atan:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Atan, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_ceil:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Ceil, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_cos:
+    return processIntrinsicUsingGLSLInstSet(callExpr, GLSLstd450::GLSLstd450Cos,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_cosh:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Cosh, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_degrees:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Degrees, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_radians:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Radians, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_determinant:
+    // HLSL reference: determinant function only accepts matrices as argument.
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450Determinant,
+                                            /*actPerRowForMatrices*/ false);
+  case hlsl::IntrinsicOp::IOP_exp:
+    return processIntrinsicUsingGLSLInstSet(callExpr, GLSLstd450::GLSLstd450Exp,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_exp2:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Exp2, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_floor:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Floor, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_length:
+    // HLSL reference: the length function only accepts vectors as argument.
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Length, /*actPerRowForMatrices*/ false);
+  case hlsl::IntrinsicOp::IOP_log:
+    return processIntrinsicUsingGLSLInstSet(callExpr, GLSLstd450::GLSLstd450Log,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_log2:
+    return processIntrinsicUsingGLSLInstSet(
+        callExpr, GLSLstd450::GLSLstd450Log2, /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_normalize:
+    // HLSL reference: the normalize function only accepts vectors as argument.
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450Normalize,
+                                            /*actPerRowForMatrices*/ false);
+  case hlsl::IntrinsicOp::IOP_rsqrt:
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450InverseSqrt,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_sign: {
+    if (isFloatOrVecMatOfFloatType(callExpr->getArg(0)->getType()))
+      return processIntrinsicFloatSign(callExpr);
+    else
+      return processIntrinsicUsingGLSLInstSet(callExpr,
+                                              GLSLstd450::GLSLstd450SSign,
+                                              /*actPerRowForMatrices*/ true);
+  }
+  case hlsl::IntrinsicOp::IOP_sin:
+    return processIntrinsicUsingGLSLInstSet(callExpr, GLSLstd450::GLSLstd450Sin,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_sinh:
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450Sinh,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_tan:
+    return processIntrinsicUsingGLSLInstSet(callExpr, GLSLstd450::GLSLstd450Tan,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_tanh:
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450Tanh,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_sqrt:
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450Sqrt,
+                                            /*actPerRowForMatrices*/ true);
+  case hlsl::IntrinsicOp::IOP_trunc:
+    return processIntrinsicUsingGLSLInstSet(callExpr,
+                                            GLSLstd450::GLSLstd450Trunc,
+                                            /*actPerRowForMatrices*/ true);
   default:
     break;
   }
@@ -2317,6 +2419,67 @@ uint32_t SPIRVEmitter::processIntrinsicAsType(const CallExpr *callExpr) {
 
   return theBuilder.createUnaryOp(spv::Op::OpBitcast, returnTypeId,
                                   doExpr(arg));
+}
+
+uint32_t SPIRVEmitter::processIntrinsicFloatSign(const CallExpr *callExpr) {
+  // Import the GLSL.std.450 extended instruction set.
+  const uint32_t glslInstSetId =
+      theBuilder.getOrAddExtInstSet(glslExtInstSetName());
+  const Expr *arg = callExpr->getArg(0);
+  const QualType returnType = callExpr->getType();
+  const QualType argType = arg->getType();
+  const uint32_t argTypeId = typeTranslator.translateType(argType);
+  const uint32_t argId = doExpr(arg);
+  uint32_t floatSignResultId = 0;
+
+  // For matrices, we can perform the instruction on each vector of the matrix.
+  if (TypeTranslator::isSpirvAcceptableMatrixType(argType)) {
+    const auto actOnEachVec = [this, glslInstSetId](uint32_t /*index*/,
+                                                    uint32_t vecType,
+                                                    uint32_t curRowId) {
+      return theBuilder.createExtInst(vecType, glslInstSetId,
+                                      GLSLstd450::GLSLstd450FSign, {curRowId});
+    };
+    floatSignResultId = processEachVectorInMatrix(arg, argId, actOnEachVec);
+  } else {
+    floatSignResultId = theBuilder.createExtInst(
+        argTypeId, glslInstSetId, GLSLstd450::GLSLstd450FSign, {argId});
+  }
+
+  return castToInt(floatSignResultId, arg->getType(), returnType);
+}
+
+uint32_t SPIRVEmitter::processIntrinsicUsingGLSLInstSet(
+    const CallExpr *callExpr, GLSLstd450 instr, bool actPerRowForMatrices) {
+  // Import the GLSL.std.450 extended instruction set.
+  const uint32_t glslInstSetId =
+      theBuilder.getOrAddExtInstSet(glslExtInstSetName());
+
+  if (callExpr->getNumArgs() == 1u) {
+    const uint32_t returnType =
+        typeTranslator.translateType(callExpr->getType());
+    const Expr *arg = callExpr->getArg(0);
+    const uint32_t argId = doExpr(arg);
+
+    // If the instruction does not operate on matrices, we can perform the
+    // instruction on each vector of the matrix.
+    if (actPerRowForMatrices &&
+        TypeTranslator::isSpirvAcceptableMatrixType(arg->getType())) {
+      const auto actOnEachVec = [this, glslInstSetId,
+                                 instr](uint32_t /*index*/, uint32_t vecType,
+                                        uint32_t curRowId) {
+        return theBuilder.createExtInst(vecType, glslInstSetId, instr,
+                                        {curRowId});
+      };
+      return processEachVectorInMatrix(arg, argId, actOnEachVec);
+    }
+
+    return theBuilder.createExtInst(returnType, glslInstSetId, instr, {argId});
+  }
+
+  emitError("Unsupported intrinsic function %0.")
+      << cast<DeclRefExpr>(callExpr->getCallee())->getNameInfo().getAsString();
+  return 0;
 }
 
 uint32_t SPIRVEmitter::getValueZero(QualType type) {

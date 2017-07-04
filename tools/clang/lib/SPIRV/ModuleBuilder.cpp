@@ -274,6 +274,16 @@ void ModuleBuilder::createReturnValue(uint32_t value) {
   insertPoint->appendInstruction(std::move(constructSite));
 }
 
+uint32_t ModuleBuilder::createExtInst(uint32_t resultType, uint32_t setId,
+                                      uint32_t instId,
+                                      llvm::ArrayRef<uint32_t> operands) {
+  assert(insertPoint && "null insert point");
+  uint32_t resultId = theContext.takeNextId();
+  instBuilder.opExtInst(resultType, resultId, setId, instId, operands).x();
+  insertPoint->appendInstruction(std::move(constructSite));
+  return resultId;
+}
+
 void ModuleBuilder::addExecutionMode(uint32_t entryPointId,
                                      spv::ExecutionMode em,
                                      const std::vector<uint32_t> &params) {
@@ -283,6 +293,17 @@ void ModuleBuilder::addExecutionMode(uint32_t entryPointId,
   }
   instBuilder.x();
   theModule.addExecutionMode(std::move(constructSite));
+}
+
+uint32_t ModuleBuilder::getOrAddExtInstSet(llvm::StringRef setName) {
+  uint32_t extSetId = theModule.getExtInstSetId(setName);
+
+  if (!extSetId) {
+    extSetId = theContext.takeNextId();
+    theModule.addExtInstSet(extSetId, setName);
+  }
+
+  return extSetId;
 }
 
 uint32_t ModuleBuilder::addStageIOVariable(uint32_t type,
