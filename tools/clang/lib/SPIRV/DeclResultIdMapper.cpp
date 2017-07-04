@@ -202,6 +202,33 @@ uint32_t DeclResultIdMapper::createSpirvStageVar(StageVar *stageVar) {
       break;
     }
   }
+  // According to DXIL spec, the VertexID SV can only be used by VSIn.
+  case hlsl::Semantic::Kind::VertexID:
+    stageVar->setIsSpirvBuiltin();
+    return theBuilder.addStageBuiltinVariable(type, spv::BuiltIn::VertexIndex);
+  // According to DXIL spec, the InstanceID SV can  be used by VSIn, VSOut,
+  // HSCPIn, HSCPOut, DSCPIn, DSOut, GSVIn, GSOut, PSIn.
+  // According to Vulkan spec, the InstanceIndex can only be used by VSIn.
+  case hlsl::Semantic::Kind::InstanceID: {
+    switch (sigPointKind) {
+    case hlsl::SigPoint::Kind::VSIn:
+      stageVar->setIsSpirvBuiltin();
+      return theBuilder.addStageBuiltinVariable(type,
+                                                spv::BuiltIn::InstanceIndex);
+    case hlsl::SigPoint::Kind::VSOut:
+      return theBuilder.addStageIOVariable(type, spv::StorageClass::Output);
+    case hlsl::SigPoint::Kind::PSIn:
+      return theBuilder.addStageIOVariable(type, spv::StorageClass::Input);
+    default:
+      emitError("semantic InstanceID for SigPoint %0 unimplemented yet")
+          << stageVar->getSigPoint()->GetName();
+      break;
+    }
+  }
+  // According to DXIL spec, the Depth SV can only be used by PSOut.
+  case hlsl::Semantic::Kind::Depth:
+    stageVar->setIsSpirvBuiltin();
+    return theBuilder.addStageBuiltinVariable(type, spv::BuiltIn::FragDepth);
   // According to DXIL spec, the Target SV can only be used by PSOut.
   // There is no corresponding builtin decoration in SPIR-V. So generate normal
   // Vulkan stage input/output variables.
