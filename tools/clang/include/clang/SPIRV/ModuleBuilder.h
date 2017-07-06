@@ -150,22 +150,38 @@ public:
                     uint32_t defaultLabel,
                     llvm::ArrayRef<std::pair<uint32_t, uint32_t>> target);
 
-  // \brief Creates an unconditional branch to the given target label.
+  /// \brief Creates an unconditional branch to the given target label.
   void createBranch(uint32_t targetLabel);
 
-  // \brief Creates a conditional branch. An OpSelectionMerge instruction
-  // will be created if mergeLabel is not 0 and continueLabel is 0.
-  // An OpLoopMerge instruction will also be created if both continueLabel
-  // and mergeLabel are not 0. For other cases, mergeLabel and continueLabel
-  // will be ignored. If selection control mask and/or loop control mask are
-  // provided, they will be applied to the corresponding SPIR-V instruction.
-  // Otherwise, MaskNone will be used.
+  /// \brief Creates an OpLoopMerge instruction followed by an uncondtiional
+  /// branch to the given target basic block.
+  void createBranch(
+      uint32_t targetLabel, uint32_t mergeBB, uint32_t continueBB,
+      spv::LoopControlMask loopControl = spv::LoopControlMask::MaskNone);
+
+  /// \brief Creates a conditional branch. An OpSelectionMerge instruction
+  /// will be created if mergeLabel is not 0 and continueLabel is 0.
+  /// An OpLoopMerge instruction will also be created if both continueLabel
+  /// and mergeLabel are not 0. For other cases, mergeLabel and continueLabel
+  /// will be ignored. If selection control mask and/or loop control mask are
+  /// provided, they will be applied to the corresponding SPIR-V instruction.
+  /// Otherwise, MaskNone will be used.
   void createConditionalBranch(
       uint32_t condition, uint32_t trueLabel, uint32_t falseLabel,
       uint32_t mergeLabel = 0, uint32_t continueLabel = 0,
       spv::SelectionControlMask selectionControl =
           spv::SelectionControlMask::MaskNone,
       spv::LoopControlMask loopControl = spv::LoopControlMask::MaskNone);
+
+  /// \brief Creates a conditional branch (OpBranchConditional) without creating
+  /// an OpSelectionMerge!
+  /// **Note**
+  /// In SPIR-V, if a branch occurs in a continue block of a loop,
+  /// OpSelectionMerge should not be specified. In all other cases (all usual
+  /// cases), the 'createConditionalBranch' API should be used.
+  void createConditionalBranchWithoutSelectionMerge(uint32_t condition,
+                                                    uint32_t trueLabel,
+                                                    uint32_t falseLabel);
 
   /// \brief Creates a return instruction.
   void createReturn();
