@@ -1311,9 +1311,8 @@ uint32_t SPIRVEmitter::doUnaryOperator(const UnaryOperator *expr) {
     uint32_t incValue = 0;
     if (TypeTranslator::isSpirvAcceptableMatrixType(subType)) {
       // For matrices, we can only increment/decrement each vector of it.
-      const auto actOnEachVec = [this, spvOp, one](uint32_t /*index*/,
-                                                   uint32_t vecType,
-                                                   uint32_t lhsVec) {
+      const auto actOnEachVec = [this, spvOp, one](
+          uint32_t /*index*/, uint32_t vecType, uint32_t lhsVec) {
         return theBuilder.createBinaryOp(spvOp, vecType, lhsVec, one);
       };
       incValue = processEachVectorInMatrix(subExpr, originValue, actOnEachVec);
@@ -2012,9 +2011,8 @@ uint32_t SPIRVEmitter::processMatrixBinaryOp(const Expr *lhs, const Expr *rhs,
   case BO_DivAssign:
   case BO_RemAssign: {
     const uint32_t vecType = typeTranslator.getComponentVectorType(lhsType);
-    const auto actOnEachVec = [this, spvOp, rhsVal](uint32_t index,
-                                                    uint32_t vecType,
-                                                    uint32_t lhsVec) {
+    const auto actOnEachVec = [this, spvOp, rhsVal](
+        uint32_t index, uint32_t vecType, uint32_t lhsVec) {
       // For each vector of lhs, we need to load the corresponding vector of
       // rhs and do the operation on them.
       const uint32_t rhsVec =
@@ -2253,16 +2251,16 @@ uint32_t SPIRVEmitter::processIntrinsicAllOrAny(const CallExpr *callExpr,
 
   // Handle MxN matrices as arguments.
   {
-    if (!TypeTranslator::isSpirvAcceptableMatrixType(argType)) {
-      emitError("'all' and 'any' currently do not take non-floating point "
-                "matrices as argument.");
-      return 0;
-    }
-
     QualType elemType = {};
     uint32_t matRowCount = 0, matColCount = 0;
     if (TypeTranslator::isMxNMatrix(argType, &elemType, &matRowCount,
                                     &matColCount)) {
+      if (!elemType->isFloatingType()) {
+        emitError("'all' and 'any' currently do not take non-floating point "
+                  "matrices as argument.");
+        return 0;
+      }
+
       uint32_t matrixId = doExpr(arg);
       const uint32_t vecType = typeTranslator.getComponentVectorType(argType);
       llvm::SmallVector<uint32_t, 4> rowResults;
@@ -2293,8 +2291,7 @@ uint32_t SPIRVEmitter::processIntrinsicAllOrAny(const CallExpr *callExpr,
   }
 
   // All types should be handled already.
-  emitError("Unknown argument type passed to OpAll/OpAny: %0")
-      << argType->getTypeClassName();
+  llvm_unreachable("Unknown argument type passed to all()/any().");
   return 0;
 }
 
@@ -2423,20 +2420,6 @@ uint32_t SPIRVEmitter::getMatElemValueOne(QualType type) {
   if (colCount == 1)
     return getVecValueOne(elemType, rowCount);
   return getVecValueOne(elemType, colCount);
-}
-
-uint32_t SPIRVEmitter::getMatElemValueZero(QualType type) {
-  assert(hlsl::IsHLSLMatType(type));
-  const auto elemType = hlsl::GetHLSLMatElementType(type);
-
-  uint32_t rowCount = 0, colCount = 0;
-  hlsl::GetHLSLMatRowColCount(type, rowCount, colCount);
-
-  if (rowCount == 1 && colCount == 1)
-    return getValueZero(elemType);
-  if (colCount == 1)
-    return getVecValueZero(elemType, rowCount);
-  return getVecValueZero(elemType, colCount);
 }
 
 uint32_t SPIRVEmitter::translateAPValue(const APValue &value,

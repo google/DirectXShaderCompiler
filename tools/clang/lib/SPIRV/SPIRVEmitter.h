@@ -242,15 +242,6 @@ private:
   /// one will be a vector of size N.
   uint32_t getMatElemValueOne(QualType type);
 
-  /// Returns the <result-id> for a constant zero (vector) having the same
-  /// element type as the given matrix type.
-  ///
-  /// If a 1x1 matrix is given, the returned value zero will be a scalar;
-  /// if a Mx1 or 1xN matrix is given, the returned value zero will be a
-  /// vector of size M or N; if a MxN matrix is given, the returned value
-  /// one will be a vector of size N.
-  uint32_t getMatElemValueZero(QualType type);
-
 private:
   /// Translates the given frontend APValue into its SPIR-V equivalent for the
   /// given targetType.

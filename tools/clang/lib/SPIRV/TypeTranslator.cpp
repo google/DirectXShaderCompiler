@@ -245,8 +245,6 @@ bool TypeTranslator::isMxNMatrix(QualType type, QualType *elemType,
   return true;
 }
 
-/// Returns true if the given type is a SPIR-V acceptable matrix type, i.e.,
-/// with floating point elements and greater than 1 row and column counts.
 bool TypeTranslator::isSpirvAcceptableMatrixType(QualType type) {
   QualType elemType = {};
   return isMxNMatrix(type, &elemType) && elemType->isFloatingType();
