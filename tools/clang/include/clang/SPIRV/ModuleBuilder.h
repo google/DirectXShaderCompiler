@@ -196,9 +196,9 @@ public:
                         const std::vector<uint32_t> &params);
 
   /// \brief If not added already, adds an OpExtInstImport (import of extended
-  /// instruction set) to the module. Returns the <result-id> for the imported
-  /// instruction set.
-  uint32_t getOrAddExtInstSet(llvm::StringRef setName);
+  /// instruction set) of the GLSL instruction set. Returns the <result-id> for
+  /// the imported GLSL instruction set.
+  uint32_t getGLSLExtInstSet();
 
   /// \brief Adds a stage input/ouput variable whose value is of the given type.
   ///
@@ -262,6 +262,7 @@ private:
   /// The constructed instruction will appear in constructSite.
   InstBuilder instBuilder;
   std::vector<uint32_t> constructSite; ///< InstBuilder construction site.
+  uint32_t glslExtSetId; ///< The <result-id> of GLSL extended instruction set.
 };
 
 SPIRVContext *ModuleBuilder::getSPIRVContext() { return &theContext; }

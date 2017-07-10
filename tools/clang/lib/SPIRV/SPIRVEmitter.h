@@ -232,8 +232,8 @@ private:
   /// extended instruction. If the given instruction cannot operate on matrices,
   /// it performs the instruction on each row of the matrix and uses composite
   /// construction to generate the resulting matrix.
-  uint32_t processIntrinsicUsingGLSLInstSet(const CallExpr *, GLSLstd450 instr,
-                                            bool canOperateOnMatrix);
+  uint32_t processIntrinsicUsingGLSLInst(const CallExpr *, GLSLstd450 instr,
+                                         bool canOperateOnMatrix);
 
 private:
   /// Returns the <result-id> for constant value 0 of the given type.

@@ -8,19 +8,7 @@
 void main() {
   float result;
 
-// CHECK:      [[a:%\d+]] = OpLoad %float %a
-// CHECK-NEXT: [[length_a:%\d+]] = OpExtInst %float [[glsl]] Length [[a]]
-// CHECK-NEXT: OpStore %result [[length_a]]
-  float a;
-  result = length(a);
-
-// CHECK-NEXT: [[b:%\d+]] = OpLoad %float %b
-// CHECK-NEXT: [[length_b:%\d+]] = OpExtInst %float [[glsl]] Length [[b]]
-// CHECK-NEXT: OpStore %result [[length_b]]
-  float1 b;
-  result = length(b);
-
-// CHECK-NEXT: [[c:%\d+]] = OpLoad %v3float %c
+// CHECK:      [[c:%\d+]] = OpLoad %v3float %c
 // CHECK-NEXT: [[length_c:%\d+]] = OpExtInst %float [[glsl]] Length [[c]]
 // CHECK-NEXT: OpStore %result [[length_c]]
   float3 c;

@@ -26,7 +26,25 @@ void main() {
 // CHECK-NEXT: OpStore %result3 [[sign_c]]
   int3 c;
   result3 = sign(c);
-  
+
+// CHECK:      [[d:%\d+]] = OpLoad %int %d
+// CHECK-NEXT: [[sign_d:%\d+]] = OpExtInst %int [[glsl]] SSign [[d]]
+// CHECK-NEXT: OpStore %result [[sign_d]]
+  int1x1 d;
+  result = sign(d);
+
+// CHECK-NEXT: [[e:%\d+]] = OpLoad %v2int %e
+// CHECK-NEXT: [[sign_e:%\d+]] = OpExtInst %v2int [[glsl]] SSign [[e]]
+// CHECK-NEXT: OpStore %result2 [[sign_e]]
+  int1x2 e;
+  int2 result2 = sign(e);
+
+// CHECK-NEXT: [[f:%\d+]] = OpLoad %v4int %f
+// CHECK-NEXT: [[sign_f:%\d+]] = OpExtInst %v4int [[glsl]] SSign [[f]]
+// CHECK-NEXT: OpStore %result4 [[sign_f]]
+  int4x1 f;
+  int4 result4 = sign(f);
+
 // TODO: Integer matrices are not supported yet. Therefore we cannot run the following test yet.
 // XXXXX-NEXT: [[h:%\d+]] = OpLoad %mat3v4int %h
 // XXXXX-NEXT: [[h_row0:%\d+]] = OpCompositeExtract %v4int [[h]] 0
