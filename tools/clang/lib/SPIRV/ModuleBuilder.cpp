@@ -234,19 +234,16 @@ void ModuleBuilder::createSwitch(
   insertPoint->appendInstruction(std::move(constructSite));
 }
 
-void ModuleBuilder::createBranch(uint32_t targetLabel) {
-  assert(insertPoint && "null insert point");
-
-  instBuilder.opBranch(targetLabel).x();
-  insertPoint->appendInstruction(std::move(constructSite));
-}
-
 void ModuleBuilder::createBranch(uint32_t targetLabel, uint32_t mergeBB,
                                  uint32_t continueBB,
                                  spv::LoopControlMask loopControl) {
   assert(insertPoint && "null insert point");
-  instBuilder.opLoopMerge(mergeBB, continueBB, loopControl).x();
-  insertPoint->appendInstruction(std::move(constructSite));
+
+  if (mergeBB && continueBB) {
+    instBuilder.opLoopMerge(mergeBB, continueBB, loopControl).x();
+    insertPoint->appendInstruction(std::move(constructSite));
+  }
+
   instBuilder.opBranch(targetLabel).x();
   insertPoint->appendInstruction(std::move(constructSite));
 }
@@ -268,12 +265,6 @@ void ModuleBuilder::createConditionalBranch(
     }
   }
 
-  instBuilder.opBranchConditional(condition, trueLabel, falseLabel, {}).x();
-  insertPoint->appendInstruction(std::move(constructSite));
-}
-
-void ModuleBuilder::createConditionalBranchWithoutSelectionMerge(
-    uint32_t condition, uint32_t trueLabel, uint32_t falseLabel) {
   instBuilder.opBranchConditional(condition, trueLabel, falseLabel, {}).x();
   insertPoint->appendInstruction(std::move(constructSite));
 }

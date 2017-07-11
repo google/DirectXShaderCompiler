@@ -151,12 +151,10 @@ public:
                     llvm::ArrayRef<std::pair<uint32_t, uint32_t>> target);
 
   /// \brief Creates an unconditional branch to the given target label.
-  void createBranch(uint32_t targetLabel);
-
-  /// \brief Creates an OpLoopMerge instruction followed by an uncondtiional
-  /// branch to the given target basic block.
+  /// If mergeBB and continueBB are non-zero, it creates an OpLoopMerge
+  /// instruction followed by an unconditional branch to the given target label.
   void createBranch(
-      uint32_t targetLabel, uint32_t mergeBB, uint32_t continueBB,
+      uint32_t targetLabel, uint32_t mergeBB = 0, uint32_t continueBB = 0,
       spv::LoopControlMask loopControl = spv::LoopControlMask::MaskNone);
 
   /// \brief Creates a conditional branch. An OpSelectionMerge instruction
@@ -172,16 +170,6 @@ public:
       spv::SelectionControlMask selectionControl =
           spv::SelectionControlMask::MaskNone,
       spv::LoopControlMask loopControl = spv::LoopControlMask::MaskNone);
-
-  /// \brief Creates a conditional branch (OpBranchConditional) without creating
-  /// an OpSelectionMerge!
-  /// **Note**
-  /// In SPIR-V, if a branch occurs in a continue block of a loop,
-  /// OpSelectionMerge should not be specified. In all other cases (all usual
-  /// cases), the 'createConditionalBranch' API should be used.
-  void createConditionalBranchWithoutSelectionMerge(uint32_t condition,
-                                                    uint32_t trueLabel,
-                                                    uint32_t falseLabel);
 
   /// \brief Creates a return instruction.
   void createReturn();

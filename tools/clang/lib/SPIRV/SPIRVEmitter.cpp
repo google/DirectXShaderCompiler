@@ -489,7 +489,6 @@ void SPIRVEmitter::doDoStmt(const DoStmt *theDoStmt,
   //
   //            +----------+
   //            |  header  | <-----------------------------------+
-  //            |  (true)  |                                     |
   //            +----------+                                     |
   //                 |                                           |  (true)
   //                 v                                           |
@@ -523,7 +522,6 @@ void SPIRVEmitter::doDoStmt(const DoStmt *theDoStmt,
   theBuilder.setInsertPoint(headerBB);
   theBuilder.createBranch(bodyBB, mergeBB, continueBB, loopControl);
   theBuilder.addSuccessor(bodyBB);
-  theBuilder.addSuccessor(mergeBB);
   // The current basic block has OpLoopMerge instruction. We need to set its
   // continue and merge target.
   theBuilder.setContinueTarget(continueBB);
@@ -549,8 +547,7 @@ void SPIRVEmitter::doDoStmt(const DoStmt *theDoStmt,
   } else {
     condition = theBuilder.getConstantBool(true);
   }
-  theBuilder.createConditionalBranchWithoutSelectionMerge(condition, headerBB,
-                                                          mergeBB);
+  theBuilder.createConditionalBranch(condition, headerBB, mergeBB);
   theBuilder.addSuccessor(headerBB);
   theBuilder.addSuccessor(mergeBB);
 
