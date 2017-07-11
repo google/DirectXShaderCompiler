@@ -81,6 +81,7 @@ private:
                     llvm::ArrayRef<const Attr *> attrs = {});
   void doWhileStmt(const WhileStmt *, llvm::ArrayRef<const Attr *> attrs = {});
   void doDoStmt(const DoStmt *, llvm::ArrayRef<const Attr *> attrs = {});
+  void doContinueStmt(const ContinueStmt *);
 
   uint32_t doBinaryOperator(const BinaryOperator *expr);
   uint32_t doCallExpr(const CallExpr *callExpr);
@@ -428,6 +429,12 @@ private:
   /// <---- ForLoopMergeBB
   /// This stack keeps track of the basic blocks to which branching could occur.
   std::stack<uint32_t> breakStack;
+
+  /// Loops (do, while, for) may encounter "continue" statements that alter
+  /// their control flow. At any point the continue statement is observed, the
+  /// control flow jumps to the inner-most scope's continue block.
+  /// This stack keeps track of the basic blocks to which such branching could occur.
+  std::stack<uint32_t> continueStack;
 
   /// Maps a given statement to the basic block that is associated with it.
   llvm::DenseMap<const Stmt *, uint32_t> stmtBasicBlock;

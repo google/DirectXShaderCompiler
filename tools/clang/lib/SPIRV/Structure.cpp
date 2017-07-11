@@ -82,6 +82,10 @@ bool BasicBlock::isTerminated() const {
   return !instructions.empty() && instructions.back().isTerminator();
 }
 
+bool BasicBlock::isReachable() const {
+  return reachable;
+}
+
 // === Function implementations ===
 
 Function::Function(Function &&that)
