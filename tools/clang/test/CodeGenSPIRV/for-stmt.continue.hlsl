@@ -19,14 +19,10 @@ void main() {
 // CHECK-NEXT: %if_merge = OpLabel
     val = i;
 // CHECK:      OpBranch %for_continue
-    continue;
-
-    /////////////////////////////////////////////////////////////////////////
-    // NOTE: There should be no SPIR-V emitted for the following statements.
-    val++;
-    continue;
-    while(true);
-    /////////////////////////////////////////////////////////////////////////
+    {continue;}
+    val++;       // No SPIR-V should be emitted for this statement.
+    continue;    // No SPIR-V should be emitted for this statement.
+    while(true); // No SPIR-V should be emitted for this statement.
 
 // CHECK-NEXT: %for_continue = OpLabel
 // CHECK:      OpBranch %for_check
@@ -34,6 +30,8 @@ void main() {
 // CHECK-NEXT: %for_merge = OpLabel
 
 // CHECK-NEXT: OpBranch %for_check_0
+
+
 
   //////////////////////////////////////////////////////////////////////////////////////
   // Nested for loops with continue statements                                        //
@@ -56,9 +54,7 @@ void main() {
       int k = val + j;
 // CHECK:      OpBranch %for_continue_1
       continue;
-
-      // Note: there should be no SPIR-V emitted for the following statement.
-      k++;
+      k++;      // No SPIR-V should be emitted for this statement.
 
 // CHECK-NEXT: %for_continue_1 = OpLabel
 // CHECK:      OpBranch %for_check_1
@@ -67,9 +63,8 @@ void main() {
     val--;
 // CHECK:      OpBranch %for_continue_0
     continue;
-
-    // Note: there should be no SPIR-V emitted for the following statement.
-    val = val*10;
+    continue;     // No SPIR-V should be emitted for this statement.
+    val = val*10; // No SPIR-V should be emitted for this statement.
 
 // CHECK-NEXT: %for_continue_0 = OpLabel
 // CHECK:      OpBranch %for_check_0

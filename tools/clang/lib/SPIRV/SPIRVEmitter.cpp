@@ -116,12 +116,46 @@ bool isSpirvMatrixOp(spv::Op opcode) {
   return false;
 }
 
-bool isLastStmtInCurScope(ASTContext &astContext, const Stmt *stmt) {
+/// \brief Returns the statement that is the immediate parent AST node of the
+/// given statement. Returns nullptr if there are no parents nodes.
+const Stmt *getImmediateParent(ASTContext &astContext, const Stmt *stmt) {
   const auto &parents = astContext.getParents(*stmt);
-  assert(!parents.empty());
-  const Stmt *parent = parents[0].get<Stmt>();
-  const CompoundStmt* parentCS = dyn_cast<CompoundStmt>(parent);
-  return parentCS && stmt == *(parentCS->body_rbegin());
+  return parents.empty() ? nullptr : parents[0].get<Stmt>();
+}
+
+/// \brief Returns true if the given statement is the last statement in the
+/// current scope. Treats nested compound statements as a flat group of
+/// statements.
+bool isLastStmtInCurScope(ASTContext &astContext, const Stmt *stmt) {
+  const Stmt *parent = getImmediateParent(astContext, stmt);
+  const CompoundStmt *parentCS =
+      parent ? dyn_cast<CompoundStmt>(parent) : nullptr;
+
+  // The current statement is the last child node of the parent.
+  if (parentCS && stmt == *(parentCS->body_rbegin())) {
+
+    // Handle nested compound statements. e.g.
+    // while (cond) {
+    //   StmtA;
+    //   {
+    //      StmtB;
+    //      {{continue;}}
+    //   }
+    //   {StmtC;}
+    //   StmtD;
+    // }
+    //
+    // The continue statement is the last statement in its CompoundStmt scope,
+    // but, if nested compound statements are flattened, the continue statement
+    // is not the last statement in the current loop scope.
+    const Stmt *grandparent = getImmediateParent(astContext, parent);
+    if (grandparent && isa<CompoundStmt>(grandparent))
+      return isLastStmtInCurScope(astContext, parent);
+
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace

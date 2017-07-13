@@ -18,28 +18,24 @@ void main() {
     if (i > 5) {
 // CHECK-NEXT: %if_true = OpLabel
 // CHECK-NEXT: OpBranch %do_while_continue
-      continue;
-      
-      /////////////////////////////////////////////////////////////////////////
-      // NOTE: There should be no SPIR-V emitted for the following statements.
-      val = i;
-      while(true);
-      /////////////////////////////////////////////////////////////////////////
+      {{continue;}}
+      val = i;     // No SPIR-V should be emitted for this statement.
+      while(true); // No SPIR-V should be emitted for this statement.
     }
 // CHECK-NEXT: %if_merge = OpLabel
     val = i;
 // CHECK:      OpBranch %do_while_continue
     continue;
-    
-    // NOTE: There should be no SPIR-V emitted for the following statement.
-    val = val * 2;
+    val = val * 2; // No SPIR-V should be emitted for this statement.
+    continue;      // No SPIR-V should be emitted for this statement.
 
 // CHECK-NEXT: %do_while_continue = OpLabel
 // CHECK:      OpBranchConditional {{%\d+}} %do_while_header %do_while_merge
   } while (i < 10);
 // CHECK-NEXT: %do_while_merge = OpLabel
-  
-  
+
+
+
   //////////////////////////////////////////////////////////////////////////////////////
   // Nested do-while loops with continue statements                                   //
   // Each continue statement should branch to the corresponding loop's continue block //
@@ -69,6 +65,8 @@ void main() {
     --i;
 // CHECK:      OpBranch %do_while_continue_0
     continue;
+    continue;  // No SPIR-V should be emitted for this statement.
+
 // CHECK-NEXT: %do_while_continue_0 = OpLabel
 // CHECK:      OpBranchConditional {{%\d+}} %do_while_header_0 %do_while_merge_0
   } while(val < 10);

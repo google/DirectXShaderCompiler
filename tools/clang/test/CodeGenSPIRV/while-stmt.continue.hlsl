@@ -31,14 +31,11 @@ void main() {
     if (val > 6) {
 // CHECK-NEXT: %if_true_0 = OpLabel
 // CHECK-NEXT: OpBranch %while_continue
-      continue;
-      ///////////////////////////////////////////////////////////////////
-      // NOTE: There is no SPIR-V emitted for the following statements.
-      val++;
-      continue;
-      while(true);
-      --i;
-      ///////////////////////////////////////////////////////////////////
+      {{continue;}}
+      val++;       // No SPIR-V should be emitted for this statement.
+      continue;    // No SPIR-V should be emitted for this statement.
+      while(true); // No SPIR-V should be emitted for this statement.
+      --i;         // No SPIR-V should be emitted for this statement.
     }
 // CHECK-NEXT: %if_merge_0 = OpLabel
 
@@ -81,6 +78,8 @@ void main() {
     --i;
 // CHECK:      OpBranch %while_continue_0
     continue;
+    continue;  // No SPIR-V should be emitted for this statement.
+
 // CHECK-NEXT: %while_continue_0 = OpLabel
 // CHECK-NEXT: OpBranch %while_check_0
   }
