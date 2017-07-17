@@ -397,6 +397,11 @@ uint32_t SPIRVEmitter::castToType(uint32_t value, QualType fromType,
 }
 
 void SPIRVEmitter::doFunctionDecl(const FunctionDecl *decl) {
+  // We are about to start translation for a new function. Clear the break stack
+  // and the continue stack.
+  breakStack = std::stack<uint32_t>();
+  continueStack = std::stack<uint32_t>();
+
   curFunction = decl;
 
   const llvm::StringRef funcName = decl->getName();
@@ -948,6 +953,17 @@ void SPIRVEmitter::doIfStmt(const IfStmt *ifStmt) {
 }
 
 void SPIRVEmitter::doReturnStmt(const ReturnStmt *stmt) {
+  processReturnStmt(stmt);
+
+  // Handle early returns
+  if (!isLastStmtBeforeControlFlowBranching(astContext, stmt)) {
+    const uint32_t unreachableBB =
+        theBuilder.createBasicBlock("unreachable", /*isReachable*/ false);
+    theBuilder.setInsertPoint(unreachableBB);
+  }
+}
+
+void SPIRVEmitter::processReturnStmt(const ReturnStmt *stmt) {
   // For normal functions, just return in the normal way.
   if (curFunction->getName() != entryFunctionName) {
     theBuilder.createReturnValue(doExpr(stmt->getRetValue()));
@@ -968,6 +984,12 @@ void SPIRVEmitter::doReturnStmt(const ReturnStmt *stmt) {
     // The return value is mapped to a single stage variable. We just need
     // to store the value into the stage variable instead.
     theBuilder.createStore(stageVarId, doExpr(stmt->getRetValue()));
+    theBuilder.createReturn();
+    return;
+  }
+
+  // RetValue is nullptr when "return;" is used for a void function.
+  if (!stmt->getRetValue()) {
     theBuilder.createReturn();
     return;
   }

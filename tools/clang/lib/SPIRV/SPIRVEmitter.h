@@ -96,6 +96,12 @@ private:
   uint32_t doUnaryOperator(const UnaryOperator *expr);
 
 private:
+  /// Translates the return statement into its SPIR-V equivalent. Also generates
+  /// necessary instructions for the entry function ensuring that the signature
+  /// matches the SPIR-V requirements.
+  void processReturnStmt(const ReturnStmt *stmt);
+
+private:
   /// Translates the given frontend binary operator into its SPIR-V equivalent
   /// taking consideration of the operand type.
   spv::Op translateOp(BinaryOperator::Opcode op, QualType type);
