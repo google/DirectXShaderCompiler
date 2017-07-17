@@ -123,36 +123,40 @@ const Stmt *getImmediateParent(ASTContext &astContext, const Stmt *stmt) {
   return parents.empty() ? nullptr : parents[0].get<Stmt>();
 }
 
-/// \brief Returns true if the given statement is the last statement in the
-/// current scope. Treats nested compound statements as a flat group of
-/// statements.
-bool isLastStmtInCurScope(ASTContext &astContext, const Stmt *stmt) {
+/// \brief Returns true if the given statement is the last statement before
+/// branching to a loop header block or a loop merge block. A "continue"
+/// statement and "break" statement cause a branch to a loop header and a loop
+/// merge block, respectively. In such situations, any statement that follows
+/// the break/continue will not be executed. When this method returns false, it
+/// indicates that there exists statements that are not going to be executed.
+bool isLastStmtBeforeBranchingToLoopHeader(ASTContext &astContext,
+                                           const Stmt *stmt) {
   const Stmt *parent = getImmediateParent(astContext, stmt);
-  const CompoundStmt *parentCS =
-      parent ? dyn_cast<CompoundStmt>(parent) : nullptr;
 
-  // The current statement is the last child node of the parent.
-  if (parentCS && stmt == *(parentCS->body_rbegin())) {
+  if (const auto *parentCS = dyn_cast_or_null<CompoundStmt>(parent)) {
+    if (stmt == *(parentCS->body_rbegin())) {
+      // The current statement is the last child node of the parent.
 
-    // Handle nested compound statements. e.g.
-    // while (cond) {
-    //   StmtA;
-    //   {
-    //      StmtB;
-    //      {{continue;}}
-    //   }
-    //   {StmtC;}
-    //   StmtD;
-    // }
-    //
-    // The continue statement is the last statement in its CompoundStmt scope,
-    // but, if nested compound statements are flattened, the continue statement
-    // is not the last statement in the current loop scope.
-    const Stmt *grandparent = getImmediateParent(astContext, parent);
-    if (grandparent && isa<CompoundStmt>(grandparent))
-      return isLastStmtInCurScope(astContext, parent);
+      // Handle nested compound statements. e.g.
+      // while (cond) {
+      //   StmtA;
+      //   {
+      //      StmtB;
+      //      {{continue;}}
+      //   }
+      //   {StmtC;}
+      //   StmtD;
+      // }
+      //
+      // The continue statement is the last statement in its CompoundStmt scope,
+      // but, if nested compound statements are flattened, the continue
+      // statement is not the last statement in the current loop scope.
+      const Stmt *grandparent = getImmediateParent(astContext, parent);
+      if (grandparent && isa<CompoundStmt>(grandparent))
+        return isLastStmtBeforeBranchingToLoopHeader(astContext, parent);
 
-    return true;
+      return true;
+    }
   }
 
   return false;
@@ -629,7 +633,7 @@ void SPIRVEmitter::doContinueStmt(const ContinueStmt *continueStmt) {
   // block in which StmtB and StmtC will be translated.
   // Note that since this basic block is unreachable, BlockReadableOrderVisitor
   // will not emit it in the final module binary.
-  if (!isLastStmtInCurScope(astContext, continueStmt)) {
+  if (!isLastStmtBeforeBranchingToLoopHeader(astContext, continueStmt)) {
     const uint32_t unreachableBB =
         theBuilder.createBasicBlock("unreachable", /*isReachable*/ false);
     theBuilder.setInsertPoint(unreachableBB);

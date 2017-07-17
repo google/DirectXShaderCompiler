@@ -138,7 +138,7 @@ public:
   bool isTerminated() const;
 
   /// \brief Returns true if this basic block is reachable in the control flow.
-  bool isReachable() const;
+  inline bool isReachable() const;
 
 private:
   uint32_t labelId; ///< The label id for this basic block. Zero means invalid.
@@ -390,6 +390,8 @@ void BasicBlock::setContinueTarget(BasicBlock *target) {
 }
 
 BasicBlock *BasicBlock::getContinueTarget() const { return continueTarget; }
+
+bool BasicBlock::isReachable() const { return reachable; }
 
 // === Function inline implementations ===
 
