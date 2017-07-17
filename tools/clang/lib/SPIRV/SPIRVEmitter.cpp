@@ -429,7 +429,7 @@ void SPIRVEmitter::doVarDecl(const VarDecl *decl) {
   // variables) belongs to the Function storage class.
   if (!decl->isExternallyVisible()) {
     // We already know the variable is not externally visible here. If it does
-    // not has local storage, it should be file scope variable.
+    // not have local storage, it should be file scope variable.
     const bool isFileScopeVar = !decl->hasLocalStorage();
     const uint32_t varType = typeTranslator.translateType(decl->getType());
 
@@ -458,7 +458,7 @@ void SPIRVEmitter::doVarDecl(const VarDecl *decl) {
     declIdMapper.registerDeclResultId(decl, varId);
 
     // If we cannot evaluate the initializer as a constant expression, we'll
-    // need use OpStore to write the initializer to the variable.
+    // need to use OpStore to write the initializer to the variable.
     // Also we should only evaluate the initializer once for a static variable.
     if (decl->hasInit() && !constInit.hasValue()) {
       if (isFileScopeVar) {
