@@ -309,5 +309,8 @@ TEST_F(FileTest, IntrinsicsAtan) { runFileTest("intrinsics.atan.hlsl"); }
 
 // SPIR-V specific
 TEST_F(FileTest, SpirvStorageClass) { runFileTest("spirv.storage-class.hlsl"); }
+TEST_F(FileTest, SpirvEntryFunctionWrapper) {
+  runFileTest("spirv.entry-function.wrapper.hlsl");
+}
 
 } // namespace
