@@ -2369,10 +2369,10 @@ uint32_t SPIRVEmitter::processIntrinsicAllOrAny(const CallExpr *callExpr,
   // Optimization: can directly cast them to boolean. No need for OpAny/OpAll.
   {
     QualType scalarType = {};
-    if (TypeTranslator::isScalarType(argType, &scalarType))
-      if (scalarType->isBooleanType() || scalarType->isFloatingType() ||
-          scalarType->isIntegerType())
-        return castToBool(doExpr(arg), argType, returnType);
+    if (TypeTranslator::isScalarType(argType, &scalarType) &&
+        (scalarType->isBooleanType() || scalarType->isFloatingType() ||
+         scalarType->isIntegerType()))
+      return castToBool(doExpr(arg), argType, returnType);
   }
 
   // Handle vectors larger than 1, Mx1 matrices, and 1xN matrices as arguments.

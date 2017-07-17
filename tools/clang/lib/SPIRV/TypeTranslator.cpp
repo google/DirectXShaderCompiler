@@ -90,9 +90,6 @@ uint32_t TypeTranslator::translateType(QualType type) {
     uint32_t rowCount = 0, colCount = 0;
     hlsl::GetHLSLMatRowColCount(type, rowCount, colCount);
 
-    // In SPIR-V, matrices must have two or more columns.
-    // Handle degenerated cases first.
-
     // HLSL matrices are row major, while SPIR-V matrices are column major.
     // We are mapping what HLSL semantically mean a row into a column here.
     const uint32_t vecType = theBuilder.getVecType(elemType, colCount);
@@ -164,7 +161,7 @@ bool TypeTranslator::isVectorType(QualType type, QualType *elemType,
 
     ty = hlsl::GetHLSLMatElementType(type);
     count = rowCount == 1 ? colCount : rowCount;
-    isVec = (rowCount == 1) + (colCount == 1) == 1;
+    isVec = (rowCount == 1) != (colCount == 1);
   }
 
   if (isVec) {
