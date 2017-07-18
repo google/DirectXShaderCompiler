@@ -385,7 +385,7 @@ private:
   /// \brief Returns true if the given BreakStmt is the last statement inside
   /// its case statement of the given switch statement. Panics if the given
   /// break statement is not inside the tree of the given switch statement.
-  bool isBreakStmtLastStmtInCaseStmt(const BreakStmt *, const SwitchStmt *);
+  bool breakStmtIsLastStmtInCaseStmt(const BreakStmt *, const SwitchStmt *);
 
 private:
   /// \brief Wrapper method to create an error message and report it
@@ -453,7 +453,8 @@ private:
   /// Loops (do, while, for) may encounter "continue" statements that alter
   /// their control flow. At any point the continue statement is observed, the
   /// control flow jumps to the inner-most scope's continue block.
-  /// This stack keeps track of the basic blocks to which such branching could occur.
+  /// This stack keeps track of the basic blocks to which such branching could
+  /// occur.
   std::stack<uint32_t> continueStack;
 
   /// Maps a given statement to the basic block that is associated with it.

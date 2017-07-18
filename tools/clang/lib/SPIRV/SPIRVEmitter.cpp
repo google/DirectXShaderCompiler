@@ -1005,7 +1005,7 @@ void SPIRVEmitter::doReturnStmt(const ReturnStmt *stmt) {
   }
 }
 
-bool SPIRVEmitter::isBreakStmtLastStmtInCaseStmt(const BreakStmt *breakStmt,
+bool SPIRVEmitter::breakStmtIsLastStmtInCaseStmt(const BreakStmt *breakStmt,
                                                  const SwitchStmt *switchStmt) {
   std::vector<const Stmt *> flatSwitch;
   flattenSwitchStmtAST(switchStmt->getBody(), &flatSwitch);
@@ -1023,12 +1023,12 @@ bool SPIRVEmitter::isBreakStmtLastStmtInCaseStmt(const BreakStmt *breakStmt,
          isa<DefaultStmt>(*iter);
 }
 
-const Stmt* SPIRVEmitter::breakStmtScope(const BreakStmt *breakStmt) {
-  const Stmt *curNode = nullptr;
-  for (curNode = getImmediateParent(astContext, breakStmt);
-       curNode && !isLoopStmt(curNode) && !isa<SwitchStmt>(curNode);
-       curNode = getImmediateParent(astContext, curNode))
-    ;
+const Stmt *SPIRVEmitter::breakStmtScope(const BreakStmt *breakStmt) {
+  const Stmt *curNode = breakStmt;
+  do {
+    curNode = getImmediateParent(astContext, curNode);
+  } while (curNode && !isLoopStmt(curNode) && !isa<SwitchStmt>(curNode));
+
   return curNode;
 }
 
@@ -1053,8 +1053,14 @@ void SPIRVEmitter::doBreakStmt(const BreakStmt *breakStmt) {
   // Note that since this basic block is unreachable, BlockReadableOrderVisitor
   // will not emit it in the final module binary.
   const Stmt *scope = breakStmtScope(breakStmt);
-  if ((isa<SwitchStmt>(scope) && !isBreakStmtLastStmtInCaseStmt(
-                                     breakStmt, dyn_cast<SwitchStmt>(scope))) ||
+  if (
+      // Have unreachable instructions after a break statement in a case of a
+      // switch statement
+      (isa<SwitchStmt>(scope) &&
+       !breakStmtIsLastStmtInCaseStmt(breakStmt,
+                                      dyn_cast<SwitchStmt>(scope))) ||
+      // Have unreachable instructions after a break statement in a loop
+      // statement
       (isLoopStmt(scope) &&
        !isLastStmtBeforeControlFlowBranching(astContext, breakStmt))) {
     const uint32_t unreachableBB =
@@ -1584,9 +1590,8 @@ uint32_t SPIRVEmitter::doUnaryOperator(const UnaryOperator *expr) {
     uint32_t incValue = 0;
     if (TypeTranslator::isSpirvAcceptableMatrixType(subType)) {
       // For matrices, we can only increment/decrement each vector of it.
-      const auto actOnEachVec = [this, spvOp, one](uint32_t /*index*/,
-                                                   uint32_t vecType,
-                                                   uint32_t lhsVec) {
+      const auto actOnEachVec = [this, spvOp, one](
+          uint32_t /*index*/, uint32_t vecType, uint32_t lhsVec) {
         return theBuilder.createBinaryOp(spvOp, vecType, lhsVec, one);
       };
       incValue = processEachVectorInMatrix(subExpr, originValue, actOnEachVec);
