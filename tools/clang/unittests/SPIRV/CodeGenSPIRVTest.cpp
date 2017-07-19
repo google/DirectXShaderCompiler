@@ -233,6 +233,7 @@ TEST_F(FileTest, FunctionCall) { runFileTest("fn.call.hlsl"); }
 
 // For early returns
 TEST_F(FileTest, EarlyReturn) { runFileTest("early-return.hlsl"); }
+TEST_F(FileTest, EarlyReturnFloat4) { runFileTest("early-return-float4.hlsl"); }
 
 // For semantics
 TEST_F(FileTest, SemanticPositionVS) {
