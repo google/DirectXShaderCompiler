@@ -52,13 +52,13 @@ void main() {
   float float_c;
   float4 float4_d;
 
-// CHECK:      [[float_c:%\d+]] = OpLoad %float %float_c
-// CHECK-NEXT: [[float4_d:%\d+]] = OpLoad %v4float %float4_d
+// CHECK:      [[float4_d:%\d+]] = OpLoad %v4float %float4_d
+// CHECK-NEXT: [[float_c:%\d+]] = OpLoad %float %float_c
 // CHECK-NEXT: {{%\d+}} = OpVectorTimesScalar %v4float [[float4_d]] [[float_c]]
   float4 float_scalarMulVector = mul(float_c,float4_d);
 
-// CHECK:      [[float_c1:%\d+]] = OpLoad %float %float_c
-// CHECK-NEXT: [[float4_d1:%\d+]] = OpLoad %v4float %float4_d
+// CHECK:      [[float4_d1:%\d+]] = OpLoad %v4float %float4_d
+// CHECK-NEXT: [[float_c1:%\d+]] = OpLoad %float %float_c
 // CHECK-NEXT: {{%\d+}} = OpVectorTimesScalar %v4float [[float4_d1]] [[float_c1]]
   float4 float_vectorMulScalar = mul(float4_d,float_c);
 
@@ -74,7 +74,7 @@ void main() {
 // CHECK:      [[int4_d1:%\d+]] = OpLoad %v4int %int4_d
 // CHECK-NEXT: [[int_c1:%\d+]] = OpLoad %int %int_c
 // CHECK-NEXT: [[c_splat1:%\d+]] = OpCompositeConstruct %v4int [[int_c1]] [[int_c1]] [[int_c1]] [[int_c1]]
-// CHECK-NEXT: {{%\d+}} = OpIMul %v4int [[c_splat1]] [[int4_d1]]
+// CHECK-NEXT: {{%\d+}} = OpIMul %v4int [[int4_d1]] [[c_splat1]]
   int4 int_vectorMulScalar = mul(int4_d,int_c);
   
   float e;
@@ -82,12 +82,12 @@ void main() {
 
 // CHECK:      [[e:%\d+]] = OpLoad %float %e
 // CHECK-NEXT: [[f:%\d+]] = OpLoad %mat3v4float %f
-// CHECK-NEXT: %48 = OpMatrixTimesScalar %mat3v4float [[f]] [[e]]
+// CHECK-NEXT: {{%\d+}} = OpMatrixTimesScalar %mat3v4float [[f]] [[e]]
   float3x4 scalarMulMatrix = mul(e,f);
   
-// CHECK:      [[e1:%\d+]] = OpLoad %float %e
-// CHECK-NEXT: [[f1:%\d+]] = OpLoad %mat3v4float %f
-// CHECK-NEXT: %52 = OpMatrixTimesScalar %mat3v4float [[f1]] [[e1]]  
+// CHECK:      [[f1:%\d+]] = OpLoad %mat3v4float %f
+// CHECK-NEXT: [[e1:%\d+]] = OpLoad %float %e
+// CHECK-NEXT: {{%\d+}} = OpMatrixTimesScalar %mat3v4float [[f1]] [[e1]]
   float3x4 matrixMulScalar = mul(f,e);
 
 
@@ -122,16 +122,18 @@ void main() {
 
   float2x3 k;
   float3 l;
-// CHECK:      [[l:%\d+]] = OpLoad %v3float %l
-// CHECK-NEXT: [[k:%\d+]] = OpLoad %mat2v3float %k
-// CHECK-NEXT: {{%\d+}} = OpMatrixTimesVector %v2float [[k]] [[l]]
+// CHECK:      [[k:%\d+]] = OpLoad %mat2v3float %k
+// CHECK-NEXT: [[l:%\d+]] = OpLoad %v3float %l
+// CHECK-NEXT: {{%\d+}} = OpVectorTimesMatrix %v2float [[l]] [[k]]
   float2 matrixMulVector = mul(k,l);
 
 
   float3x4 m;
   float4x2 n;
-// CHECK:      [[n:%\d+]] = OpLoad %mat4v2float %n
-// CHECK-NEXT: [[m:%\d+]] = OpLoad %mat3v4float %m
-// CHECK-NEXT: {{%\d+}} = OpMatrixTimesMatrix %mat3v2float [[m]] [[n]]
+// CHECK:      [[m:%\d+]] = OpLoad %mat3v4float %m
+// CHECK-NEXT: [[n:%\d+]] = OpLoad %mat4v2float %n
+// CHECK-NEXT: {{%\d+}} = OpMatrixTimesMatrix %mat3v2float [[n]] [[m]]
   float3x2 matrixMulMatrix = mul(m,n);
 }
+
+// CHECK-WHOLE-SPIR-V:

@@ -2523,23 +2523,16 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
   const uint32_t returnTypeId =
       typeTranslator.translateType(callExpr->getType());
 
-  // Get the function parameters. Expect 2 vectors as parameters.
+  // Get the function parameters. Expect 2 parameters.
   assert(callExpr->getNumArgs() == 2u);
   const Expr *arg0 = callExpr->getArg(0);
   const Expr *arg1 = callExpr->getArg(1);
-  QualType arg0Type = arg0->getType();
-  QualType arg1Type = arg1->getType();
+  const QualType arg0Type = arg0->getType();
+  const QualType arg1Type = arg1->getType();
 
   // The HLSL mul() function takes 2 arguments. Each argument may be a scalar,
   // vector, or matrix. The frontend ensures that the two arguments have the
   // same component type. The only allowed component types are int and float.
-
-  // mul(scalar, scalar)
-  if (TypeTranslator::isScalarType(arg0Type) &&
-      TypeTranslator::isScalarType(arg1Type)) {
-    return theBuilder.createBinaryOp(translateOp(BO_Mul, arg0Type),
-                                     returnTypeId, doExpr(arg0), doExpr(arg1));
-  }
 
   // mul(scalar, vector)
   {
@@ -2547,16 +2540,17 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
     if (TypeTranslator::isScalarType(arg0Type) &&
         TypeTranslator::isVectorType(arg1Type, nullptr, &elemCount)) {
 
+      const uint32_t arg1Id = doExpr(arg1);
+
       // We can use OpVectorTimesScalar if arguments are floats.
       if (arg0Type->isFloatingType())
         return theBuilder.createBinaryOp(spv::Op::OpVectorTimesScalar,
-                                         returnTypeId, doExpr(arg1),
-                                         doExpr(arg0));
+                                         returnTypeId, arg1Id, doExpr(arg0));
 
       // Use OpIMul for integers
       return theBuilder.createBinaryOp(spv::Op::OpIMul, returnTypeId,
                                        createVectorSplat(arg0, elemCount),
-                                       doExpr(arg1));
+                                       arg1Id);
     }
   }
 
@@ -2566,18 +2560,33 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
     if (TypeTranslator::isVectorType(arg0Type, nullptr, &elemCount) &&
         TypeTranslator::isScalarType(arg1Type)) {
 
+      const uint32_t arg0Id = doExpr(arg0);
+
       // We can use OpVectorTimesScalar if arguments are floats.
       if (arg1Type->isFloatingType())
         return theBuilder.createBinaryOp(spv::Op::OpVectorTimesScalar,
-                                         returnTypeId, doExpr(arg0),
-                                         doExpr(arg1));
+                                         returnTypeId, arg0Id, doExpr(arg1));
 
       // Use OpIMul for integers
-      return theBuilder.createBinaryOp(spv::Op::OpIMul, returnTypeId,
-                                       createVectorSplat(arg1, elemCount),
-                                       doExpr(arg0));
+      return theBuilder.createBinaryOp(spv::Op::OpIMul, returnTypeId, arg0Id,
+                                       createVectorSplat(arg1, elemCount));
     }
   }
+
+  // mul(vector, vector)
+  if (TypeTranslator::isVectorType(arg0Type) &&
+      TypeTranslator::isVectorType(arg1Type))
+    return processIntrinsicDot(callExpr);
+
+  // All the following cases require handling arg0 and arg1 expressions first.
+  const uint32_t arg0Id = doExpr(arg0);
+  const uint32_t arg1Id = doExpr(arg1);
+
+  // mul(scalar, scalar)
+  if (TypeTranslator::isScalarType(arg0Type) &&
+      TypeTranslator::isScalarType(arg1Type))
+    return theBuilder.createBinaryOp(translateOp(BO_Mul, arg0Type),
+                                     returnTypeId, arg0Id, arg1Id);
 
   // mul(scalar, matrix)
   if (TypeTranslator::isScalarType(arg0Type) &&
@@ -2586,8 +2595,7 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
     // OpMatrixTimesScalar
     if (arg0Type->isFloatingType())
       return theBuilder.createBinaryOp(spv::Op::OpMatrixTimesScalar,
-                                       returnTypeId, doExpr(arg1),
-                                       doExpr(arg0));
+                                       returnTypeId, arg1Id, arg0Id);
   }
 
   // mul(matrix, scalar)
@@ -2597,14 +2605,8 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
     // OpMatrixTimesScalar
     if (arg1Type->isFloatingType())
       return theBuilder.createBinaryOp(spv::Op::OpMatrixTimesScalar,
-                                       returnTypeId, doExpr(arg0),
-                                       doExpr(arg1));
+                                       returnTypeId, arg0Id, arg1Id);
   }
-
-  // mul(vector, vector)
-  if (TypeTranslator::isVectorType(arg0Type) &&
-      TypeTranslator::isVectorType(arg1Type))
-    return processIntrinsicDot(callExpr);
 
   // mul(vector, matrix)
   {
@@ -2615,8 +2617,7 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
         elemType->isFloatingType()) {
       assert(elemCount == numRows);
       return theBuilder.createBinaryOp(spv::Op::OpMatrixTimesVector,
-                                       returnTypeId, doExpr(arg1),
-                                       doExpr(arg0));
+                                       returnTypeId, arg1Id, arg0Id);
     }
   }
 
@@ -2628,9 +2629,8 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
         TypeTranslator::isVectorType(arg1Type, &elemType, &elemCount) &&
         elemType->isFloatingType()) {
       assert(elemCount == numCols);
-      return theBuilder.createBinaryOp(spv::Op::OpMatrixTimesVector,
-                                       returnTypeId, doExpr(arg0),
-                                       doExpr(arg1));
+      return theBuilder.createBinaryOp(spv::Op::OpVectorTimesMatrix,
+                                       returnTypeId, arg1Id, arg0Id);
     }
   }
 
@@ -2643,12 +2643,11 @@ uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
         elemType->isFloatingType()) {
       assert(arg0Cols == arg1Rows);
       return theBuilder.createBinaryOp(spv::Op::OpMatrixTimesMatrix,
-                                       returnTypeId, doExpr(arg0),
-                                       doExpr(arg1));
+                                       returnTypeId, arg1Id, arg0Id);
     }
   }
 
-  emitError("Invalid arguments passed to mul() function.");
+  emitError("Unsupported arguments passed to mul() function.");
   return 0;
 }
 
