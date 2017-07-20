@@ -10,9 +10,7 @@
 // CHECK: [[v4f8:%\d+]] = OpConstantComposite %v4float %float_8 %float_8 %float_8 %float_8
 // CHECK: [[v4f9:%\d+]] = OpConstantComposite %v4float %float_9 %float_9 %float_9 %float_9
 
-// CHECK: [[out:%\d+]] = OpVariable %_ptr_Output_v4float Output
-
-float4 main(float4 input: COLOR): SV_TARGET {
+float4 myfunc() {
   int a, b;
   bool cond = true;
 
@@ -21,14 +19,12 @@ float4 main(float4 input: COLOR): SV_TARGET {
 // CHECK: %switch_1 = OpLabel
       case 1:
         a = 1;
-// CHECK:      OpStore [[out]] [[v4f1]]
-// CHECK-NEXT: OpReturn
+// CHECK: OpReturnValue [[v4f1]]
         return float4(1.0, 1.0, 1.0, 1.0);
 // CHECK-NEXT: %switch_2 = OpLabel
       case 2: {
         a = 3;
-// CHECK:      OpStore [[out]] [[v4f2]]
-// CHECK-NEXT: OpReturn
+// CHECK: OpReturnValue [[v4f2]]
         {return float4(2.0, 2.0, 2.0, 2.0);}   // Return from function.
         a = 4;                                 // No SPIR-V should be emitted for this statement.
         break;                                 // No SPIR-V should be emitted for this statement.
@@ -36,8 +32,7 @@ float4 main(float4 input: COLOR): SV_TARGET {
 // CHECK-NEXT: %switch_5 = OpLabel
       case 5 : {
         a = 5;
-// CHECK:      OpStore [[out]] [[v4f3]]
-// CHECK-NEXT: OpReturn
+// CHECK: OpReturnValue [[v4f3]]
         {{return float4(3.0, 3.0, 3.0, 3.0);}} // Return from function.
         a = 6;                                 // No SPIR-V should be emitted for this statement.
       }
@@ -46,8 +41,7 @@ float4 main(float4 input: COLOR): SV_TARGET {
         for (int i=0; i<10; ++i) {
           if (cond) {
 // CHECK: %if_true = OpLabel
-// CHECK-NEXT: OpStore [[out]] [[v4f4]]
-// CHECK-NEXT: OpReturn
+// CHECK-NEXT: OpReturnValue [[v4f4]]
             return float4(4.0, 4.0, 4.0, 4.0);    // Return from function.
             return float4(5.0, 5.0, 5.0, 5.0);    // No SPIR-V should be emitted for this statement.
             continue;                             // No SPIR-V should be emitted for this statement.
@@ -55,8 +49,7 @@ float4 main(float4 input: COLOR): SV_TARGET {
             ++a;                                  // No SPIR-V should be emitted for this statement.
           } else {
 // CHECK-NEXT: %if_false = OpLabel
-// CHECK-NEXT: OpStore [[out]] [[v4f6]]
-// CHECK-NEXT: OpReturn
+// CHECK-NEXT: OpReturnValue [[v4f6]]
             return float4(6.0, 6.0, 6.0, 6.0);;   // Return from function
             continue;                             // No SPIR-V should be emitted for this statement.
             break;                                // No SPIR-V should be emitted for this statement.
@@ -65,8 +58,7 @@ float4 main(float4 input: COLOR): SV_TARGET {
         }
 // CHECK: %for_merge = OpLabel
 
-// CHECK-NEXT: OpStore [[out]] [[v4f7]]
-// CHECK-NEXT: OpReturn
+// CHECK-NEXT: OpReturnValue [[v4f7]]
         // Return from function.
         // Even though this statement will never be executed [because both "if" and "else" above have return statements],
         // SPIR-V code should be emitted for it as we do not analyze the logic.
@@ -74,8 +66,7 @@ float4 main(float4 input: COLOR): SV_TARGET {
     }
 // CHECK: %switch_merge = OpLabel
 
-// CHECK-NEXT: OpStore [[out]] [[v4f8]]
-// CHECK-NEXT: OpReturn
+// CHECK-NEXT: OpReturnValue [[v4f8]]
     // Return from function.
     // Even though this statement will never be executed [because all "case" statements above contain a return statement],
     // SPIR-V code should be emitted for it as we do not analyze the logic.
@@ -83,12 +74,15 @@ float4 main(float4 input: COLOR): SV_TARGET {
   }
 // CHECK: %while_merge = OpLabel
 
-// CHECK-NEXT: OpStore [[out]] [[v4f9]]
-// CHECK-NEXT: OpReturn
+// CHECK-NEXT: OpReturnValue [[v4f9]]
   // Return from function.
   // Even though this statement will never be executed [because any iteration of the loop above executes a return statement],
   // SPIR-V code should be emitted for it as we do not analyze the logic.
   return float4(9.0, 9.0, 9.0, 9.0);
 
 // CHECK-NEXT: OpFunctionEnd
+}
+
+void main() {
+  float4 result = myfunc();
 }
