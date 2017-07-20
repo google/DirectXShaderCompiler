@@ -112,6 +112,11 @@ void main() {
 // CHECK-NEXT: OpStore %vectorMulVector [[add_3]]
   int vectorMulVector = mul(g,h);
 
+  float3 float_g, float_h;
+// CHECK:      [[float_g:%\d+]] = OpLoad %v3float %float_g
+// CHECK-NEXT: [[float_h:%\d+]] = OpLoad %v3float %float_h
+// CHECK-NEXT: {{%\d+}} = OpDot %float [[float_g]] [[float_h]]
+  float float_vectorMulVector = mul(float_g, float_h);
 
   float4 i;
   float4x3 j;
@@ -135,5 +140,3 @@ void main() {
 // CHECK-NEXT: {{%\d+}} = OpMatrixTimesMatrix %mat3v2float [[n]] [[m]]
   float3x2 matrixMulMatrix = mul(m,n);
 }
-
-// CHECK-WHOLE-SPIR-V:
