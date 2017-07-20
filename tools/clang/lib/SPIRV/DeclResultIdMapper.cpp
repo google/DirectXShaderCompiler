@@ -9,11 +9,15 @@
 
 #include "DeclResultIdMapper.h"
 
+#include <algorithm>
+#include <cstring>
+
 #include "dxc/HLSL/DxilConstants.h"
 #include "dxc/HLSL/DxilTypeSystem.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/HlslTypes.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "llvm/ADT/SmallBitVector.h"
 
 namespace clang {
 namespace spirv {
@@ -140,21 +144,65 @@ std::vector<uint32_t> DeclResultIdMapper::collectStageVars() const {
   return vars;
 }
 
-void DeclResultIdMapper::finalizeStageIOLocations() {
-  uint32_t nextInputLocation = 0;
-  uint32_t nextOutputLocation = 0;
+namespace {
+/// A class for managing stage input/output locations to avoid duplicate uses of
+/// the same location.
+class LocationSet {
+public:
+  LocationSet() : usedLocs(64, false), nextLoc(0) {}
 
-  // TODO: sort the variables according to some criteria first, e.g.,
-  // alphabetical order of semantic names.
-  for (auto &var : stageVars) {
+  /// Uses the given location.
+  void useLoc(uint32_t loc) { usedLocs.set(loc); }
+
+  /// Uses the next available location.
+  uint32_t useNextLoc() {
+    while (usedLocs[nextLoc])
+      nextLoc++;
+    usedLocs.set(nextLoc);
+    return nextLoc++;
+  }
+
+private:
+  llvm::SmallBitVector usedLocs; ///< All previously used locations
+  uint32_t nextLoc;              ///< Next available location
+};
+} // namespace
+
+void DeclResultIdMapper::finalizeStageIOLocations() {
+  std::vector<const StageVar *> inputVars;
+  std::vector<const StageVar *> outputVars;
+
+  LocationSet inputLocs;
+  LocationSet outputLocs;
+
+  for (const auto &var : stageVars)
     if (!var.isSpirvBuitin()) {
-      if (var.getSigPoint()->IsInput()) {
-        theBuilder.decorateLocation(var.getSpirvId(), nextInputLocation++);
+      // Only SV_Target, SV_Depth, SV_DepthLessEqual, SV_DepthGreaterEqual,
+      // SV_StencilRef, SV_Coverage are allowed in the pixel shader.
+      // Arbitrary semantics are disallowed in pixel shader.
+      if (var.getSemantic()->GetKind() == hlsl::Semantic::Kind::Target) {
+        theBuilder.decorateLocation(var.getSpirvId(), var.getSemanticIndex());
+        outputLocs.useLoc(var.getSemanticIndex());
+      } else if (var.getSigPoint()->IsInput()) {
+        inputVars.push_back(&var);
       } else if (var.getSigPoint()->IsOutput()) {
-        theBuilder.decorateLocation(var.getSpirvId(), nextOutputLocation++);
+        outputVars.push_back(&var);
       }
     }
-  }
+
+  // Sort stage input/output variables alphabetically
+  const auto comp = [](const StageVar *a, const StageVar *b) {
+    // TODO: error out for the same semantic name and index.
+    return a->getSemanticStr() < b->getSemanticStr();
+  };
+
+  std::sort(inputVars.begin(), inputVars.end(), comp);
+  std::sort(outputVars.begin(), outputVars.end(), comp);
+
+  for (const auto *var : inputVars)
+    theBuilder.decorateLocation(var->getSpirvId(), inputLocs.useNextLoc());
+  for (const auto *var : outputVars)
+    theBuilder.decorateLocation(var->getSpirvId(), outputLocs.useNextLoc());
 }
 
 QualType
@@ -189,7 +237,12 @@ bool DeclResultIdMapper::createStageVars(const DeclaratorDecl *decl,
         hlsl::SigPoint::GetSigPoint(hlsl::SigPointFromInputQual(
             qual, shaderModel.GetKind(), /*isPC*/ false));
 
-    const auto *semantic = hlsl::Semantic::GetByName(semanticStr);
+    llvm::StringRef semanticName;
+    uint32_t semanticIndex = 0;
+    hlsl::Semantic::DecomposeNameAndIndex(semanticStr, &semanticName,
+                                          &semanticIndex);
+
+    const auto *semantic = hlsl::Semantic::GetByName(semanticName);
 
     // Error out when the given semantic is invalid in this shader model
     if (hlsl::SigPoint::GetInterpretation(
@@ -201,11 +254,8 @@ bool DeclResultIdMapper::createStageVars(const DeclaratorDecl *decl,
       return false;
     }
 
-    StageVar stageVar(sigPoint, semantic, typeId);
-    llvm::Twine name = hlsl::Semantic::HasSVPrefix(semanticStr)
-                           // Canonicalize SV semantics
-                           ? namePrefix + "." + semantic->GetName()
-                           : namePrefix + "." + semanticStr;
+    StageVar stageVar(sigPoint, semanticStr, semantic, semanticIndex, typeId);
+    llvm::Twine name = namePrefix + "." + semanticStr;
     const uint32_t varId = createSpirvStageVar(&stageVar, name);
     stageVar.setSpirvId(varId);
 

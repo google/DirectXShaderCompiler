@@ -270,6 +270,9 @@ TEST_F(FileTest, SemanticInstanceIDPS) {
 TEST_F(FileTest, SemanticTargetPS) { runFileTest("semantic.target.ps.hlsl"); }
 TEST_F(FileTest, SemanticDepthPS) { runFileTest("semantic.depth.ps.hlsl"); }
 TEST_F(FileTest, SemanticArbitrary) { runFileTest("semantic.arbitrary.hlsl"); }
+TEST_F(FileTest, SemanticArbitraryLocation) {
+  runFileTest("semantic.arbitrary.location.hlsl");
+}
 
 // For intrinsic functions
 TEST_F(FileTest, IntrinsicsDot) { runFileTest("intrinsics.dot.hlsl"); }
