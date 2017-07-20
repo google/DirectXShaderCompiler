@@ -2356,7 +2356,7 @@ const Expr *
 SPIRVEmitter::collectStructIndices(const MemberExpr *expr,
                                    llvm::SmallVectorImpl<uint32_t> *indices) {
   const Expr *base = expr->getBase();
-  if (const auto *memExpr = dyn_cast<MemberExpr>(expr->getBase())) {
+  if (const auto *memExpr = dyn_cast<MemberExpr>(base)) {
     base = collectStructIndices(memExpr, indices);
   } else {
     indices->clear();
