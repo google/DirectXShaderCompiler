@@ -95,7 +95,7 @@ void InitListHandler::decompose(const Expr *expr) {
         }
     }
   } else if (type->isStructureType()) {
-    assert("should already handled");
+    llvm_unreachable("struct initializer should already been handled");
   } else {
     emitError("decomposing type %0 in initializer list unimplemented") << type;
   }
@@ -144,8 +144,7 @@ void InitListHandler::tryToSplitStruct() {
   }
 
   // Push in the reverse order
-  for (int32_t i = fields.size() - 1; i >= 0; --i)
-    initializers.push_back(fields[i]);
+  initializers.insert(initializers.end(), fields.rbegin(), fields.rend());
 }
 
 uint32_t InitListHandler::createInitForType(QualType type) {
