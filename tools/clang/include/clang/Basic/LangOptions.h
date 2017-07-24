@@ -156,6 +156,8 @@ public:
   unsigned RootSigMajor;
   unsigned RootSigMinor;
   // MS Change Ends
+
+  bool SPIRV = false;  // SPIRV Change
   
   bool isSignedOverflowDefined() const {
     return getSignedOverflowBehavior() == SOB_Defined;
