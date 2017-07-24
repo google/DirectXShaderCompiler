@@ -12,7 +12,7 @@ void main() {
     if(a==b) {
 // CHECK: %if_true = OpLabel
 // CHECK-NEXT: OpKill
-      discard;
+      {{discard;}}
       discard;  // No SPIR-V should be emitted for this statement.
       break;    // No SPIR-V should be emitted for this statement.
     } else {
