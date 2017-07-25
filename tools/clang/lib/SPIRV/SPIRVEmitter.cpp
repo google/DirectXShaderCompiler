@@ -262,6 +262,8 @@ void SPIRVEmitter::doStmt(const Stmt *stmt,
     doBreakStmt(breakStmt);
   } else if (const auto *theDoStmt = dyn_cast<DoStmt>(stmt)) {
     doDoStmt(theDoStmt, attrs);
+  } else if (const auto *discardStmt = dyn_cast<DiscardStmt>(stmt)) {
+    doDiscardStmt(discardStmt);
   } else if (const auto *continueStmt = dyn_cast<ContinueStmt>(stmt)) {
     doContinueStmt(continueStmt);
   } else if (const auto *whileStmt = dyn_cast<WhileStmt>(stmt)) {
@@ -541,6 +543,16 @@ spv::LoopControlMask SPIRVEmitter::translateLoopAttribute(const Attr &attr) {
     emitError("Found unknown loop attribute.");
   }
   return spv::LoopControlMask::MaskNone;
+}
+
+void SPIRVEmitter::doDiscardStmt(const DiscardStmt *discardStmt) {
+  assert(!theBuilder.isCurrentBasicBlockTerminated());
+  theBuilder.createKill();
+  if (!isLastStmtBeforeControlFlowBranching(astContext, discardStmt)) {
+    const uint32_t unreachableBB =
+        theBuilder.createBasicBlock("unreachable", /*isReachable*/ false);
+    theBuilder.setInsertPoint(unreachableBB);
+  }
 }
 
 void SPIRVEmitter::doDoStmt(const DoStmt *theDoStmt,

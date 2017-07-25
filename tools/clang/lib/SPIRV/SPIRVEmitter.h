@@ -74,6 +74,7 @@ private:
   void doVarDecl(const VarDecl *decl);
 
   void doBreakStmt(const BreakStmt *stmt);
+  void doDiscardStmt(const DiscardStmt *stmt);
   inline void doDeclStmt(const DeclStmt *stmt);
   void doForStmt(const ForStmt *, llvm::ArrayRef<const Attr *> attrs = {});
   void doIfStmt(const IfStmt *ifStmt);
