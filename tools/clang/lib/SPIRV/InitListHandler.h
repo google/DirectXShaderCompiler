@@ -72,7 +72,7 @@ namespace spirv {
 /// the front of the initializers queue, we use the value as a whole.
 ///
 /// If the composite type is vector or matrix, we decompose() it into scalars as
-/// explained above. It it is a struct or array type, the element type is not
+/// explained above. If it is a struct or array type, the element type is not
 /// guaranteed to be scalars. But still, we need to split them into their
 /// elements. For such cases, we create faux MemberExpr or ArraySubscriptExpr
 /// AST nodes for all the elements and push them into the initializers queue.

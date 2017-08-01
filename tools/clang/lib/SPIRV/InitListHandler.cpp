@@ -383,7 +383,7 @@ uint32_t InitListHandler::createInitForConstantArrayType(QualType type) {
     // Otherwise, if the next initializer is an array, it is not of the same
     // type as we expected. Split it. Just need to do one iteration since the
     // next array initializer may have the same element type as the one we
-    // are above to construct but with different size.
+    // are about to construct but with different size.
     tryToSplitConstantArray();
   }
 
