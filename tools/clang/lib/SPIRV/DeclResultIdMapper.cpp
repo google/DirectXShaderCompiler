@@ -18,6 +18,7 @@
 #include "clang/AST/HlslTypes.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "llvm/ADT/SmallBitVector.h"
+#include "llvm/ADT/StringSet.h"
 
 namespace clang {
 namespace spirv {
@@ -149,6 +150,9 @@ namespace {
 /// the same location.
 class LocationSet {
 public:
+  // Typically we won't have that many stage input or output variables.
+  // Using 64 should be fine here.
+  // TODO: Emit errors if we need more than 64.
   LocationSet() : usedLocs(64, false), nextLoc(0) {}
 
   /// Uses the given location.
@@ -169,6 +173,32 @@ private:
 } // namespace
 
 void DeclResultIdMapper::finalizeStageIOLocations() {
+  { // Check semantic duplication
+    llvm::StringSet<> seenInputSemantics;
+    llvm::StringSet<> seenOutputSemantics;
+    bool success = true;
+
+    for (const auto &var : stageVars) {
+      auto s = var.getSemanticStr();
+      if (var.getSigPoint()->IsInput()) {
+        if (seenInputSemantics.count(s)) {
+          emitError("input semantic '%0' used more than once") << s;
+          success = false;
+        }
+        seenInputSemantics.insert(s);
+      } else {
+        if (seenOutputSemantics.count(s)) {
+          emitError("output semantic '%0' used more than once") << s;
+          success = false;
+        }
+        seenOutputSemantics.insert(s);
+      }
+    }
+
+    if (!success)
+      return;
+  }
+
   std::vector<const StageVar *> inputVars;
   std::vector<const StageVar *> outputVars;
 
@@ -192,7 +222,6 @@ void DeclResultIdMapper::finalizeStageIOLocations() {
 
   // Sort stage input/output variables alphabetically
   const auto comp = [](const StageVar *a, const StageVar *b) {
-    // TODO: error out for the same semantic name and index.
     return a->getSemanticStr() < b->getSemanticStr();
   };
 

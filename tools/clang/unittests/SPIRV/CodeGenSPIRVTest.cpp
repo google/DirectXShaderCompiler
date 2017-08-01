@@ -273,6 +273,9 @@ TEST_F(FileTest, SemanticArbitrary) { runFileTest("semantic.arbitrary.hlsl"); }
 TEST_F(FileTest, SemanticArbitraryLocation) {
   runFileTest("semantic.arbitrary.location.hlsl");
 }
+TEST_F(FileTest, SemanticDuplication) {
+  runFileTest("semantic.duplication.hlsl", /*expectSuccess*/ false);
+}
 
 // For intrinsic functions
 TEST_F(FileTest, IntrinsicsDot) { runFileTest("intrinsics.dot.hlsl"); }
