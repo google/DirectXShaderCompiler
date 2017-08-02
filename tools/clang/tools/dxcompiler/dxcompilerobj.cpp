@@ -2843,6 +2843,12 @@ public:
     compiler.getLangOpts().HLSL2016 = Opts.HLSL2016;
     compiler.getLangOpts().HLSL2017 = Opts.HLSL2017;
 
+// SPIRV change starts
+#ifdef ENABLE_SPIRV_CODEGEN
+    compiler.getLangOpts().SPIRV = Opts.GenSPIRV;
+#endif
+// SPIRV change ends
+
     if (Opts.WarningAsError)
       compiler.getDiagnostics().setWarningsAsErrors(true);
 
