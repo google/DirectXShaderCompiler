@@ -2549,49 +2549,27 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
 uint32_t SPIRVEmitter::processIntrinsicClamp(const CallExpr *callExpr) {
   // According the HLSL reference: clamp(X, Min, Max) takes 3 arguments. Each
   // one may be int, uint, or float.
-  // If *any* of the 3 arguments is a float, clamp will have the following
-  // signature: 'float (float, float, float)'. ImplicitCastExpr is automatically
-  // added to handle conversions.
-  // If there are no float arguments, if *any* argument is an unsigned integer,
-  // the following signature is used:
-  // 'unsigned int (unsigned int, unsigned int, unsigned int)'
-  // ImplicitCastExpr is automatically added to handle conversions.
-  // If all 3 arguments are signed integers, then 'int (int, int, int)'
-  // signature is used.
-
   const uint32_t glslInstSetId = theBuilder.getGLSLExtInstSet();
-  GLSLstd450 glslOpcode = GLSLstd450Bad;
   const QualType returnType = callExpr->getType();
-  const uint32_t returnTypeId =
-      typeTranslator.translateType(callExpr->getType());
+  const uint32_t returnTypeId = typeTranslator.translateType(returnType);
+  GLSLstd450 glslOpcode = GLSLstd450::GLSLstd450UClamp;
+  if (isFloatOrVecMatOfFloatType(returnType))
+    glslOpcode = GLSLstd450::GLSLstd450FClamp;
+  else if (isSintOrVecMatOfSintType(returnType))
+    glslOpcode = GLSLstd450::GLSLstd450SClamp;
 
   // Get the function parameters. Expect 3 parameters.
   assert(callExpr->getNumArgs() == 3u);
   const Expr *argX = callExpr->getArg(0);
   const Expr *argMin = callExpr->getArg(1);
   const Expr *argMax = callExpr->getArg(2);
-  const QualType argXType = argX->getType();
-  const QualType argMinType = argMin->getType();
-  const QualType argMaxType = argMax->getType();
-  if (isFloatOrVecMatOfFloatType(argXType) ||
-      isFloatOrVecMatOfFloatType(argMinType) ||
-      isFloatOrVecMatOfFloatType(argMaxType)) {
-    glslOpcode = GLSLstd450::GLSLstd450FClamp;
-  } else if (isSintOrVecMatOfSintType(argXType) ||
-             isSintOrVecMatOfSintType(argMinType) ||
-             isSintOrVecMatOfSintType(argMaxType)) {
-    glslOpcode = GLSLstd450::GLSLstd450SClamp;
-  } else {
-    glslOpcode = GLSLstd450::GLSLstd450UClamp;
-  }
-
   const uint32_t argXId = doExpr(argX);
   const uint32_t argMinId = doExpr(argMin);
   const uint32_t argMaxId = doExpr(argMax);
 
   // FClamp, UClamp, and SClamp do not operate on matrices, so we should perform
   // the operation on each vector of the matrix.
-  if (TypeTranslator::isSpirvAcceptableMatrixType(argXType)) {
+  if (TypeTranslator::isSpirvAcceptableMatrixType(argX->getType())) {
     const auto actOnEachVec = [this, glslInstSetId, glslOpcode, argMinId,
                                argMaxId](uint32_t index, uint32_t vecType,
                                          uint32_t curRowId) {
