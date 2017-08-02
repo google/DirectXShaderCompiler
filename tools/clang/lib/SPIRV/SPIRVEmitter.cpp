@@ -2465,12 +2465,11 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
   const bool isFloatArg =
       isFloatOrVecMatOfFloatType(callExpr->getArg(0)->getType());
   GLSLstd450 glslOpcode = GLSLstd450Bad;
-  bool actOnEachVecInMat = false;
 
 #define INTRINSIC_OP_CASE(intrinsicOp, glslOp, doEachVec)                      \
   case hlsl::IntrinsicOp::IOP_##intrinsicOp: {                                 \
     glslOpcode = GLSLstd450::GLSLstd450##glslOp;                               \
-    actOnEachVecInMat = doEachVec;                                             \
+    return processIntrinsicUsingGLSLInst(callExpr, glslOpcode, doEachVec);     \
   } break
 
 #define INTRINSIC_OP_CASE_INT_FLOAT(intrinsicOp, glslIntOp, glslFloatOp,       \
@@ -2478,7 +2477,7 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
   case hlsl::IntrinsicOp::IOP_##intrinsicOp: {                                 \
     glslOpcode = isFloatArg ? GLSLstd450::GLSLstd450##glslFloatOp              \
                             : GLSLstd450::GLSLstd450##glslIntOp;               \
-    actOnEachVecInMat = doEachVec;                                             \
+    return processIntrinsicUsingGLSLInst(callExpr, glslOpcode, doEachVec);     \
   } break
 
   // Figure out which intrinsic function to translate.
@@ -2514,6 +2513,7 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
     INTRINSIC_OP_CASE(ceil, Ceil, true);
     INTRINSIC_OP_CASE(cos, Cos, true);
     INTRINSIC_OP_CASE(cosh, Cosh, true);
+    INTRINSIC_OP_CASE(cross, Cross, false);
     INTRINSIC_OP_CASE(degrees, Degrees, true);
     INTRINSIC_OP_CASE(radians, Radians, true);
     INTRINSIC_OP_CASE(determinant, Determinant, false);
@@ -2540,7 +2540,7 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
 #undef INTRINSIC_OP_CASE
 #undef INTRINSIC_OP_CASE_INT_FLOAT
 
-  return processIntrinsicUsingGLSLInst(callExpr, glslOpcode, actOnEachVecInMat);
+  return 0;
 }
 
 uint32_t SPIRVEmitter::processIntrinsicMul(const CallExpr *callExpr) {
@@ -2880,10 +2880,8 @@ uint32_t SPIRVEmitter::processIntrinsicUsingGLSLInst(
     const CallExpr *callExpr, GLSLstd450 opcode, bool actPerRowForMatrices) {
   // Import the GLSL.std.450 extended instruction set.
   const uint32_t glslInstSetId = theBuilder.getGLSLExtInstSet();
-
+  const uint32_t returnType = typeTranslator.translateType(callExpr->getType());
   if (callExpr->getNumArgs() == 1u) {
-    const uint32_t returnType =
-        typeTranslator.translateType(callExpr->getType());
     const Expr *arg = callExpr->getArg(0);
     const uint32_t argId = doExpr(arg);
 
@@ -2898,8 +2896,27 @@ uint32_t SPIRVEmitter::processIntrinsicUsingGLSLInst(
       };
       return processEachVectorInMatrix(arg, argId, actOnEachVec);
     }
-
     return theBuilder.createExtInst(returnType, glslInstSetId, opcode, {argId});
+  } else if (callExpr->getNumArgs() == 2u) {
+    const Expr *arg0 = callExpr->getArg(0);
+    const Expr *arg1 = callExpr->getArg(1);
+    const uint32_t arg0Id = doExpr(arg0);
+    const uint32_t arg1Id = doExpr(arg1);
+    // If the instruction does not operate on matrices, we can perform the
+    // instruction on each vector of the matrix.
+    if (actPerRowForMatrices &&
+        TypeTranslator::isSpirvAcceptableMatrixType(arg0->getType())) {
+      const auto actOnEachVec = [this, glslInstSetId, opcode, arg1Id](
+          uint32_t index, uint32_t vecType, uint32_t arg0RowId) {
+        const uint32_t arg1RowId =
+            theBuilder.createCompositeExtract(vecType, arg1Id, {index});
+        return theBuilder.createExtInst(vecType, glslInstSetId, opcode,
+                                        {arg0RowId, arg1RowId});
+      };
+      return processEachVectorInMatrix(arg0, arg0Id, actOnEachVec);
+    }
+    return theBuilder.createExtInst(returnType, glslInstSetId, opcode,
+                                    {arg0Id, arg1Id});
   }
 
   emitError("Unsupported intrinsic function %0.")
