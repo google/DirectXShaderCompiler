@@ -2462,8 +2462,8 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
   assert(hlsl::IsIntrinsicOp(callee) &&
          "doIntrinsicCallExpr was called for a non-intrinsic function.");
 
-  const bool isFloatArg =
-      isFloatOrVecMatOfFloatType(callExpr->getArg(0)->getType());
+  const bool isFloatType = isFloatOrVecMatOfFloatType(callExpr->getType());
+  const bool isSintType = isSintOrVecMatOfSintType(callExpr->getType());
   GLSLstd450 glslOpcode = GLSLstd450Bad;
 
 #define INTRINSIC_OP_CASE(intrinsicOp, glslOp, doEachVec)                      \
@@ -2475,8 +2475,18 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
 #define INTRINSIC_OP_CASE_INT_FLOAT(intrinsicOp, glslIntOp, glslFloatOp,       \
                                     doEachVec)                                 \
   case hlsl::IntrinsicOp::IOP_##intrinsicOp: {                                 \
-    glslOpcode = isFloatArg ? GLSLstd450::GLSLstd450##glslFloatOp              \
-                            : GLSLstd450::GLSLstd450##glslIntOp;               \
+    glslOpcode = isFloatType ? GLSLstd450::GLSLstd450##glslFloatOp             \
+                             : GLSLstd450::GLSLstd450##glslIntOp;              \
+    return processIntrinsicUsingGLSLInst(callExpr, glslOpcode, doEachVec);     \
+  } break
+
+#define INTRINSIC_OP_CASE_SINT_UINT_FLOAT(intrinsicOp, glslSintOp, glslUintOp, \
+                                          glslFloatOp, doEachVec)              \
+  case hlsl::IntrinsicOp::IOP_##intrinsicOp: {                                 \
+    glslOpcode = isFloatType                                                   \
+                     ? GLSLstd450::GLSLstd450##glslFloatOp                     \
+                     : isSintType ? GLSLstd450::GLSLstd450##glslSintOp         \
+                                  : GLSLstd450::GLSLstd450##glslUintOp;        \
     return processIntrinsicUsingGLSLInst(callExpr, glslOpcode, doEachVec);     \
   } break
 
@@ -2498,7 +2508,7 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
   case hlsl::IntrinsicOp::IOP_asuint:
     return processIntrinsicAsType(callExpr);
   case hlsl::IntrinsicOp::IOP_sign: {
-    if (isFloatArg)
+    if (isFloatOrVecMatOfFloatType(callExpr->getArg(0)->getType()))
       return processIntrinsicFloatSign(callExpr);
     else
       return processIntrinsicUsingGLSLInst(callExpr,
@@ -2523,6 +2533,8 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
     INTRINSIC_OP_CASE(length, Length, false);
     INTRINSIC_OP_CASE(log, Log, true);
     INTRINSIC_OP_CASE(log2, Log2, true);
+    INTRINSIC_OP_CASE_SINT_UINT_FLOAT(min, SMin, UMin, FMin, true);
+    INTRINSIC_OP_CASE(umin, UMin, true);
     INTRINSIC_OP_CASE(normalize, Normalize, false);
     INTRINSIC_OP_CASE(rsqrt, InverseSqrt, true);
     INTRINSIC_OP_CASE(sin, Sin, true);
