@@ -2539,6 +2539,7 @@ uint32_t SPIRVEmitter::processIntrinsicCallExpr(const CallExpr *callExpr) {
     INTRINSIC_OP_CASE(umin, UMin, true);
     INTRINSIC_OP_CASE(normalize, Normalize, false);
     INTRINSIC_OP_CASE(pow, Pow, true);
+    INTRINSIC_OP_CASE(reflect, Reflect, false);
     INTRINSIC_OP_CASE(rsqrt, InverseSqrt, true);
     INTRINSIC_OP_CASE(sin, Sin, true);
     INTRINSIC_OP_CASE(sinh, Sinh, true);
