@@ -158,9 +158,9 @@ public:
   /// \brief Decorates all stage input and output variables with proper
   /// location and returns true on success.
   ///
-  /// This method will writes the location assignment into the module under
+  /// This method will write the location assignment into the module under
   /// construction.
-  inline bool finalizeStageIOLocations();
+  inline bool decorateStageIOLocations();
 
 private:
   /// \brief Wrapper method to create an error message and report it
@@ -181,7 +181,7 @@ private:
   /// forInput is false) variables with proper location and returns true on
   /// success.
   ///
-  /// This method will writes the location assignment into the module under
+  /// This method will write the location assignment into the module under
   /// construction.
   bool finalizeStageIOLocations(bool forInput);
 
@@ -225,7 +225,7 @@ DeclResultIdMapper::DeclResultIdMapper(const hlsl::ShaderModel &model,
     : shaderModel(model), theBuilder(builder), typeTranslator(builder, diag),
       diags(diag), entryFunctionId(0) {}
 
-bool DeclResultIdMapper::finalizeStageIOLocations() {
+bool DeclResultIdMapper::decorateStageIOLocations() {
   // Try both input and output even if input location assignment failed
   return finalizeStageIOLocations(true) & finalizeStageIOLocations(false);
 }

@@ -206,8 +206,8 @@ bool DeclResultIdMapper::finalizeStageIOLocations(bool forInput) {
   if (!checkSemanticDuplication(forInput))
     return false;
 
-  // Returns true if all non-builtin stage input (if forInput is true) or output
-  // (if forInput is false) variables have explicit location assignment.
+  // Returns false if the given StageVar is an input/output variable without
+  // explicit location assignment. Otherwise, returns true.
   const auto locAssigned = [forInput](const StageVar &v) {
     if (forInput ? v.getSigPoint()->IsInput() : v.getSigPoint()->IsOutput())
       // No need to assign location for builtins. Treat as assigned.
