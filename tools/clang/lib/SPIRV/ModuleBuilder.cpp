@@ -383,8 +383,6 @@ void ModuleBuilder::decorate(uint32_t targetId, spv::Decoration decoration) {
   case spv::Decoration::Sample:
     d = Decoration::getSample(theContext);
     break;
-  default:
-    break;
   }
 
   assert(d && "unimplemented decoration");
