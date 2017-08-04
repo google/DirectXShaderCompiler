@@ -17,10 +17,6 @@ target_link_libraries(hlsl2spirv
   SPIRV-Tools
   )
 
-set_target_properties(hlsl2spirv PROPERTIES VERSION ${CLANG_EXECUTABLE_VERSION})
-
-add_dependencies(hlsl2spirv dxcompiler)
-
 if(UNIX)
   set(CLANGXX_LINK_OR_COPY create_symlink)
 # Create a relative symlink

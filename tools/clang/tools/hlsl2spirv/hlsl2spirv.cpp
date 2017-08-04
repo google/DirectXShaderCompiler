@@ -7,6 +7,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <string>
+#include <vector>
+
 #include "dxc/Support/Global.h"
 #include "dxc/Support/Unicode.h"
 #include "dxc/Support/WinIncludes.h"
@@ -37,7 +40,6 @@ void ConvertIDxcBlobToUint32(const CComPtr<IDxcBlob> &blob,
   binaryWords->resize(num32BitWords, 0);
   memcpy(binaryWords->data(), binaryStr.data(), binaryStr.size());
 }
-} // anonymous namespace
 
 class Hlsl2SpirvContext {
 private:
@@ -52,19 +54,34 @@ public:
       : dllSupport(dxcSupport), options(opts) {}
 
   void Compile();
-  void DisassembleResults();
-  void ReportResults();
+  void Disassemble();
+  void Report();
+
+private:
+  void convertSpirvAssemblyToBlob();
 };
 
-void Hlsl2SpirvContext::ReportResults() {
+} // anonymous namespace
+
+void Hlsl2SpirvContext::convertSpirvAssemblyToBlob() {
+  CComPtr<IDxcLibrary> library;
+  IFT(dllSupport.CreateInstance(CLSID_DxcLibrary, &library));
+  IFT(library->CreateBlobWithEncodingOnHeapCopy(
+      spirvAssembly.data(), spirvAssembly.size(), CP_UTF8,
+      (IDxcBlobEncoding **)&spirvAssemblyBlobPtr));
+}
+
+void Hlsl2SpirvContext::Report() {
   bool needDisassembly =
       !options.AssemblyCode.empty() || options.OutputObject.empty();
 
   if (needDisassembly)
-    DisassembleResults();
+    Disassemble();
 
-  if (!options.AssemblyCode.empty())
+  if (!options.AssemblyCode.empty()) {
+    convertSpirvAssemblyToBlob();
     WriteBlobToFile(spirvAssemblyBlobPtr, StringRefUtf16(options.AssemblyCode));
+  }
 
   if (!options.OutputObject.empty())
     WriteBlobToFile(binaryBlobPtr, StringRefUtf16(options.OutputObject));
@@ -73,24 +90,18 @@ void Hlsl2SpirvContext::ReportResults() {
                        STD_OUTPUT_HANDLE);
 }
 
-void Hlsl2SpirvContext::DisassembleResults() {
+void Hlsl2SpirvContext::Disassemble() {
   // First, convert the compiled blob into a vector of uint32_t
   std::vector<uint32_t> words;
   ConvertIDxcBlobToUint32(binaryBlobPtr, &words);
 
-  spvtools::SpirvTools spirvTools(SPV_ENV_UNIVERSAL_1_0);
+  spvtools::SpirvTools spirvTools(SPV_ENV_VULKAN_1_0);
   spirvTools.SetMessageConsumer(
       [](spv_message_level_t, const char *, const spv_position_t &,
          const char *message) { fprintf(stdout, "%s\n", message); });
   uint32_t options = SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES;
-  spirvTools.Disassemble(words, &spirvAssembly, options);
-
-  // SPIR-V Tools returns the disassembly as a string. Convert to blob.
-  CComPtr<IDxcLibrary> library;
-  IFT(dllSupport.CreateInstance(CLSID_DxcLibrary, &library));
-  IFT(library->CreateBlobWithEncodingOnHeapCopy(
-      spirvAssembly.data(), spirvAssembly.size(), CP_UTF8,
-      (IDxcBlobEncoding **)&spirvAssemblyBlobPtr));
+  if(!spirvTools.Disassemble(words, &spirvAssembly, options))
+    throw("Failed to disassemble the SPIR-V binary.");
 }
 
 void Hlsl2SpirvContext::Compile() {
@@ -122,7 +133,8 @@ void Hlsl2SpirvContext::Compile() {
   IFT(pResult->GetErrorBuffer(&pErrorBuffer));
   const std::string diagnostics((char *)pErrorBuffer->GetBufferPointer(),
                                 pErrorBuffer->GetBufferSize());
-  fprintf(stderr, "%s\n", diagnostics.c_str());
+  if(!diagnostics.empty())
+    fprintf(stderr, "%s\n", diagnostics.c_str());
 
   if (SUCCEEDED(resultStatus)) {
     IFT(pResult->GetResult(&binaryBlobPtr));
@@ -158,7 +170,7 @@ int __cdecl wmain(int argc, const wchar_t **argv_) {
       int optResult =
           ReadDxcOpts(optionTable, DxcFlags, argStrings, dxcOpts, errorStream);
       errorStream.flush();
-      if (errorString.size()) {
+      if (!errorString.empty()) {
         fprintf(stderr, "hlsl2spirv failed : %s", errorString.data());
       }
       if (optResult != 0) {
@@ -185,7 +197,7 @@ int __cdecl wmain(int argc, const wchar_t **argv_) {
     Hlsl2SpirvContext context(dxcSupport, dxcOpts);
     pStage = "Compilation";
     context.Compile();
-    context.ReportResults();
+    context.Report();
   } catch (const ::hlsl::Exception &hlslException) {
     try {
       const char *msg = hlslException.what();
@@ -204,7 +216,7 @@ int __cdecl wmain(int argc, const wchar_t **argv_) {
   } catch (std::bad_alloc &) {
     printf("%s failed - out of memory.\n", pStage);
     return 1;
-  } catch (const char* errMsg) {
+  } catch (const char *errMsg) {
     printf("%s\n", errMsg);
     return 1;
   } catch (...) {
