@@ -32,3 +32,9 @@ add_subdirectory(dxr)
 add_subdirectory(dxv)
 add_subdirectory(dotnetc)
 # HLSL Change Ends
+
+# SPIR-V Change Starts
+if(ENABLE_SPIRV_CODEGEN)
+  add_subdirectory(hlsl2spirv)
+endif()
+# SPIR-V Change Ends
