@@ -61,8 +61,6 @@ private:
   void convertSpirvAssemblyToBlob();
 };
 
-} // anonymous namespace
-
 void Hlsl2SpirvContext::convertSpirvAssemblyToBlob() {
   CComPtr<IDxcLibrary> library;
   IFT(dllSupport.CreateInstance(CLSID_DxcLibrary, &library));
@@ -100,7 +98,7 @@ void Hlsl2SpirvContext::Disassemble() {
       [](spv_message_level_t, const char *, const spv_position_t &,
          const char *message) { fprintf(stdout, "%s\n", message); });
   uint32_t options = SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES;
-  if(!spirvTools.Disassemble(words, &spirvAssembly, options))
+  if (!spirvTools.Disassemble(words, &spirvAssembly, options))
     throw("Failed to disassemble the SPIR-V binary.");
 }
 
@@ -133,15 +131,17 @@ void Hlsl2SpirvContext::Compile() {
   IFT(pResult->GetErrorBuffer(&pErrorBuffer));
   const std::string diagnostics((char *)pErrorBuffer->GetBufferPointer(),
                                 pErrorBuffer->GetBufferSize());
-  if(!diagnostics.empty())
+  if (!diagnostics.empty())
     fprintf(stderr, "%s\n", diagnostics.c_str());
 
   if (SUCCEEDED(resultStatus)) {
     IFT(pResult->GetResult(&binaryBlobPtr));
   } else {
-    throw("Compilation of the input HLSL via dxc failed.");
+    throw("Compilation of the input HLSL via hlsl2spirv failed.");
   }
 }
+
+} // anonymous namespace
 
 int __cdecl wmain(int argc, const wchar_t **argv_) {
   const char *pStage = "Operation";
