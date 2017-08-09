@@ -420,4 +420,7 @@ TEST_F(FileTest, VulkanExplicitBindingReassigned) {
   runFileTest("vk.binding.explicit.error.hlsl", /*expectSuccess*/ false);
 }
 
+// Basic compute shader
+TEST_F(FileTest, BasicComputeShader) { runFileTest("empty-compute.hlsl"); }
+
 } // namespace

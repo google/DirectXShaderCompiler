@@ -458,6 +458,9 @@ private:
   /// <result-id> for the entry function. Initially it is zero and will be reset
   /// when starting to translate the entry function.
   uint32_t entryFunctionId;
+  /// The entry function's Decl. Initially it is set to nullptr and will be set
+  /// when the entry function is discovered.
+  FunctionDecl *entryFunctionDecl;
   /// The current function under traversal.
   const FunctionDecl *curFunction;
 
