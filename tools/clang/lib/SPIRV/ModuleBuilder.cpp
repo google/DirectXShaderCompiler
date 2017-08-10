@@ -466,7 +466,7 @@ uint32_t ModuleBuilder::addStageBuiltinVar(uint32_t type, spv::StorageClass sc,
 
   // Decorate with the specified Builtin
   const Decoration *d = Decoration::getBuiltIn(theContext, builtin);
-  theModule.addDecoration(*d, varId);
+  theModule.addDecoration(d, varId);
 
   return varId;
 }
@@ -488,16 +488,16 @@ uint32_t ModuleBuilder::addModuleVar(uint32_t type, spv::StorageClass sc,
 void ModuleBuilder::decorateDSetBinding(uint32_t targetId, uint32_t setNumber,
                                         uint32_t bindingNumber) {
   const auto *d = Decoration::getDescriptorSet(theContext, setNumber);
-  theModule.addDecoration(*d, targetId);
+  theModule.addDecoration(d, targetId);
 
   d = Decoration::getBinding(theContext, bindingNumber);
-  theModule.addDecoration(*d, targetId);
+  theModule.addDecoration(d, targetId);
 }
 
 void ModuleBuilder::decorateLocation(uint32_t targetId, uint32_t location) {
   const Decoration *d =
       Decoration::getLocation(theContext, location, llvm::None);
-  theModule.addDecoration(*d, targetId);
+  theModule.addDecoration(d, targetId);
 }
 
 void ModuleBuilder::decorate(uint32_t targetId, spv::Decoration decoration) {
@@ -518,7 +518,7 @@ void ModuleBuilder::decorate(uint32_t targetId, spv::Decoration decoration) {
   }
 
   assert(d && "unimplemented decoration");
-  theModule.addDecoration(*d, targetId);
+  theModule.addDecoration(d, targetId);
 }
 
 #define IMPL_GET_PRIMITIVE_TYPE(ty)                                            \
@@ -665,11 +665,65 @@ uint32_t ModuleBuilder::getSamplerType() {
   return typeId;
 }
 
+
 uint32_t ModuleBuilder::getSampledImageType(uint32_t imageType) {
   const Type *type = Type::getSampledImage(theContext, imageType);
   const uint32_t typeId = theContext.getResultIdForType(type);
   theModule.addType(type, typeId);
   theModule.addDebugName(typeId, "type.sampled.image");
+  return typeId;
+}
+
+uint32_t ModuleBuilder::getByteAddressBufferType() {
+  // Create a uint RuntimeArray with Array Stride of 4.
+  const uint32_t uintType = getUint32Type();
+  const auto *arrStride4 = Decoration::getArrayStride(theContext, 4u);
+  const Type *raType =
+      Type::getRuntimeArray(theContext, uintType, {arrStride4});
+  const uint32_t raTypeId = theContext.getResultIdForType(raType);
+  theModule.addType(raType, raTypeId);
+  theModule.addDecoration(arrStride4, raTypeId);
+
+  // Create a struct containing the runtime array as its only member.
+  // The struct must also be decorated as BufferBlock. The offset decoration
+  // should also be applied to the first (only) member. NonWritable decoration
+  // should also be applied to the first member.
+  const auto *bufferBlock = Decoration::getBufferBlock(theContext);
+  const auto *mem0NonWritable = Decoration::getNonWritable(theContext, 0);
+  const auto *mem0Offset = Decoration::getOffset(theContext, 0, 0);
+  const auto *byteAddressBufferType = Type::getStruct(
+      theContext, {raTypeId}, {bufferBlock, mem0NonWritable, mem0Offset});
+  const uint32_t typeId = theContext.getResultIdForType(byteAddressBufferType);
+  theModule.addType(byteAddressBufferType, typeId);
+  theModule.addDecoration(bufferBlock, typeId);
+  theModule.addDecoration(mem0NonWritable, typeId);
+  theModule.addDecoration(mem0Offset, typeId);
+  theModule.addDebugName(typeId, "type.ByteAddressBuffer");
+  return typeId;
+}
+
+uint32_t ModuleBuilder::getRWByteAddressBufferType() {
+  // Create a uint RuntimeArray with Array Stride of 4.
+  const uint32_t uintType = getUint32Type();
+  const auto *arrStride4 = Decoration::getArrayStride(theContext, 4u);
+  const Type *raType =
+      Type::getRuntimeArray(theContext, uintType, {arrStride4});
+  const uint32_t raTypeId = theContext.getResultIdForType(raType);
+  theModule.addType(raType, raTypeId);
+  theModule.addDecoration(arrStride4, raTypeId);
+
+  // Create a struct containing the runtime array as its only member.
+  // The struct must also be decorated as BufferBlock. The offset decoration
+  // should also be applied for the only member.
+  const auto *bufferBlock = Decoration::getBufferBlock(theContext);
+  const auto *mem0Offset = Decoration::getOffset(theContext, 0, 0);
+  const auto *byteAddressBufferType =
+      Type::getStruct(theContext, {raTypeId}, {bufferBlock, mem0Offset});
+  const uint32_t typeId = theContext.getResultIdForType(byteAddressBufferType);
+  theModule.addType(byteAddressBufferType, typeId);
+  theModule.addDecoration(bufferBlock, typeId);
+  theModule.addDecoration(mem0Offset, typeId);
+  theModule.addDebugName(typeId, "type.RWByteAddressBuffer");
   return typeId;
 }
 
