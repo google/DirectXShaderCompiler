@@ -109,7 +109,6 @@ public:
 
   bool AllResourcesBound; // OPT_all_resources_bound
   bool AstDump; // OPT_ast_dump
-  bool GenSPIRV; // OPT_spirv // SPIRV change
   bool ColorCodeAssembly; // OPT_Cc
   bool CodeGenHighLevel; // OPT_fcgl
   bool DebugInfo; // OPT__SLASH_Zi
@@ -151,6 +150,13 @@ public:
   bool DisassembleByteOffset; //OPT_No
   bool DisaseembleHex; //OPT_Lx
   bool IsRootSignatureProfile();
+
+  // SPIRV Change Starts
+#ifdef ENABLE_SPIRV_CODEGEN
+  bool GenSPIRV; // OPT_spirv
+  llvm::StringRef VkStageIoOrder;
+#endif
+  // SPIRV Change Ends
 };
 
 /// Use this class to capture, convert and handle the lifetime for the
