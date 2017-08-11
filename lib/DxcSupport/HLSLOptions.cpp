@@ -278,7 +278,6 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
   opts.UseHexLiterals = Args.hasFlag(OPT_Lx, OPT_INVALID);
   opts.Preprocess = Args.getLastArgValue(OPT_P);
   opts.AstDump = Args.hasFlag(OPT_ast_dump, OPT_INVALID, false);
-  opts.GenSPIRV = Args.hasFlag(OPT_spirv, OPT_INVALID, false); // SPIRV change
   opts.CodeGenHighLevel = Args.hasFlag(OPT_fcgl, OPT_INVALID, false);
   opts.DebugInfo = Args.hasFlag(OPT__SLASH_Zi, OPT_INVALID, false);
   opts.DebugNameForBinary = Args.hasFlag(OPT_Zsb, OPT_INVALID, false);
@@ -431,6 +430,23 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
     errors << "Cannot specify both /Zss and /Zsb";
     return 1;
   }
+
+  // SPIRV Change Starts
+#ifdef ENABLE_SPIRV_CODEGEN
+  opts.GenSPIRV = Args.hasFlag(OPT_spirv, OPT_INVALID, false);
+  opts.VkStageIoOrder = Args.getLastArgValue(OPT_fvk_stage_io_order_EQ, "decl");
+  if (opts.VkStageIoOrder != "alpha" && opts.VkStageIoOrder != "decl") {
+    errors << "Unknown Vulkan stage I/O location assignment order : "
+           << opts.VkStageIoOrder;
+    return 1;
+  }
+#else
+  if (Args.hasFlag(OPT_spirv) || Args.hasFlag(OPT_fvk_stage_io_order_EQ)) {
+    errors << "SPIR-V CodeGen not configured via ENABLE_SPIRV_CODEGEN";
+    return 1;
+  }
+#endif
+  // SPIRV Change Ends
 
   opts.Args = std::move(Args);
   return 0;
