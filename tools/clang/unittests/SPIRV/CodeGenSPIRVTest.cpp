@@ -425,7 +425,7 @@ TEST_F(FileTest, ComputeNumThreadsAttr) {
   runFileTest("attribute.numthreads.hlsl");
 }
 TEST_F(FileTest, ComputeMissingNumThreadsAttr) {
-  runFileTest("attribute.missing.numthreads.hlsl");
+  runFileTest("attribute.numthreads.missing.hlsl");
 }
 
 } // namespace
