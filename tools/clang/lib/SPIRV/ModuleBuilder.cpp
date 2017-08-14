@@ -682,7 +682,6 @@ uint32_t ModuleBuilder::getByteAddressBufferType() {
       Type::getRuntimeArray(theContext, uintType, {arrStride4});
   const uint32_t raTypeId = theContext.getResultIdForType(raType);
   theModule.addType(raType, raTypeId);
-  theModule.addDecoration(arrStride4, raTypeId);
 
   // Create a struct containing the runtime array as its only member.
   // The struct must also be decorated as BufferBlock. The offset decoration
@@ -695,9 +694,6 @@ uint32_t ModuleBuilder::getByteAddressBufferType() {
       theContext, {raTypeId}, {bufferBlock, mem0NonWritable, mem0Offset});
   const uint32_t typeId = theContext.getResultIdForType(byteAddressBufferType);
   theModule.addType(byteAddressBufferType, typeId);
-  theModule.addDecoration(bufferBlock, typeId);
-  theModule.addDecoration(mem0NonWritable, typeId);
-  theModule.addDecoration(mem0Offset, typeId);
   theModule.addDebugName(typeId, "type.ByteAddressBuffer");
   return typeId;
 }
@@ -710,7 +706,6 @@ uint32_t ModuleBuilder::getRWByteAddressBufferType() {
       Type::getRuntimeArray(theContext, uintType, {arrStride4});
   const uint32_t raTypeId = theContext.getResultIdForType(raType);
   theModule.addType(raType, raTypeId);
-  theModule.addDecoration(arrStride4, raTypeId);
 
   // Create a struct containing the runtime array as its only member.
   // The struct must also be decorated as BufferBlock. The offset decoration
@@ -721,8 +716,6 @@ uint32_t ModuleBuilder::getRWByteAddressBufferType() {
       Type::getStruct(theContext, {raTypeId}, {bufferBlock, mem0Offset});
   const uint32_t typeId = theContext.getResultIdForType(byteAddressBufferType);
   theModule.addType(byteAddressBufferType, typeId);
-  theModule.addDecoration(bufferBlock, typeId);
-  theModule.addDecoration(mem0Offset, typeId);
   theModule.addDebugName(typeId, "type.RWByteAddressBuffer");
   return typeId;
 }

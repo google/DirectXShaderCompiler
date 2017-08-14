@@ -306,8 +306,10 @@ public:
   /// \brief Adds a decoration to the given target.
   inline void addDecoration(const Decoration *decoration, uint32_t targetId);
   /// \brief Adds a type to the module. Also adds the type's decorations to the
-  /// set of decorations that apply to the type.
+  /// set of decorations of the module.
   inline void addType(const Type *type, uint32_t resultId);
+  /// \brief Adds a constant to the module. Also adds the constant's decorations
+  /// to the set of decorations of the module.
   inline void addConstant(const Constant *constant, uint32_t resultId);
   inline void addVariable(Instruction &&);
   inline void addFunction(std::unique_ptr<Function>);
@@ -498,15 +500,16 @@ void SPIRVModule::addDecoration(const Decoration *decoration,
 
 void SPIRVModule::addType(const Type *type, uint32_t resultId) {
   types.insert(std::make_pair(type, resultId));
-  /*
   for (const Decoration *d : type->getDecorations()) {
     addDecoration(d, resultId);
   }
-  */
 }
 
 void SPIRVModule::addConstant(const Constant *constant, uint32_t resultId) {
   constants.insert(std::make_pair(constant, resultId));
+  for (const Decoration *d : constant->getDecorations()) {
+    addDecoration(d, resultId);
+  }
 };
 
 void SPIRVModule::addVariable(Instruction &&var) {
