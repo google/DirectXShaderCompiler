@@ -145,7 +145,7 @@ SPIRVEmitter::SPIRVEmitter(CompilerInstance &ci,
       theContext(), theBuilder(&theContext),
       declIdMapper(shaderModel, astContext, theBuilder, diags, spirvOptions),
       typeTranslator(astContext, theBuilder, diags), entryFunctionId(0),
-      entryFunctionDecl(nullptr), curFunction(nullptr) {
+      curFunction(nullptr) {
   if (shaderModel.GetKind() == hlsl::ShaderModel::Kind::Invalid)
     emitError("unknown shader module: %0") << shaderModel.GetName();
 }
@@ -3321,17 +3321,6 @@ void SPIRVEmitter::AddExecutionModeForEntryPoint(uint32_t entryPointId) {
   if (shaderModel.IsPS()) {
     theBuilder.addExecutionMode(entryPointId,
                                 spv::ExecutionMode::OriginUpperLeft, {});
-  } else if (shaderModel.IsCS()) {
-    // Number of threads attributes are stored as integers. We cast them to
-    // uint32_t to pass to OpExecutionMode SPIR-V instruction.
-    if (auto *numThreadsAttr =
-            entryFunctionDecl->getAttr<HLSLNumThreadsAttr>()) {
-      theBuilder.addExecutionMode(
-          entryPointId, spv::ExecutionMode::LocalSize,
-          {static_cast<uint32_t>(numThreadsAttr->getX()),
-           static_cast<uint32_t>(numThreadsAttr->getY()),
-           static_cast<uint32_t>(numThreadsAttr->getZ())});
-    }
   }
 }
 
@@ -3340,7 +3329,6 @@ bool SPIRVEmitter::emitEntryFunctionWrapper(const FunctionDecl *decl,
   // Construct the wrapper function signature.
   const uint32_t voidType = theBuilder.getVoidType();
   const uint32_t funcType = theBuilder.getFunctionType(voidType, {});
-  entryFunctionDecl = const_cast<FunctionDecl*>(decl);
 
   // The wrapper entry function surely does not have pre-assigned <result-id>
   // for it like other functions that got added to the work queue following
@@ -3348,6 +3336,22 @@ bool SPIRVEmitter::emitEntryFunctionWrapper(const FunctionDecl *decl,
   entryFunctionId =
       theBuilder.beginFunction(funcType, voidType, decl->getName());
   declIdMapper.setEntryFunctionId(entryFunctionId);
+
+  // Handle translation of numthreads attribute for compute shaders.
+  if (shaderModel.IsCS()) {
+    // Number of threads attributes are stored as integers. We cast them to
+    // uint32_t to pass to OpExecutionMode SPIR-V instruction.
+    if (auto *numThreadsAttr = decl->getAttr<HLSLNumThreadsAttr>()) {
+      theBuilder.addExecutionMode(
+          entryFunctionId, spv::ExecutionMode::LocalSize,
+          {static_cast<uint32_t>(numThreadsAttr->getX()),
+           static_cast<uint32_t>(numThreadsAttr->getY()),
+           static_cast<uint32_t>(numThreadsAttr->getZ())});
+    } else {
+      theBuilder.addExecutionMode(entryFunctionId,
+                                  spv::ExecutionMode::LocalSize, {1, 1, 1});
+    }
+  }
 
   // The entry basic block.
   const uint32_t entryLabel = theBuilder.createBasicBlock();

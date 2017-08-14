@@ -421,6 +421,8 @@ TEST_F(FileTest, VulkanExplicitBindingReassigned) {
 }
 
 // Basic compute shader
-TEST_F(FileTest, BasicComputeShader) { runFileTest("empty-compute.hlsl"); }
+TEST_F(FileTest, ComputeNumThreadsAttr) {
+  runFileTest("attribute.numthreads.hlsl");
+}
 
 } // namespace
