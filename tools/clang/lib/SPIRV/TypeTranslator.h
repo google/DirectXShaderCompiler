@@ -10,6 +10,8 @@
 #ifndef LLVM_CLANG_LIB_SPIRV_TYPETRANSLATOR_H
 #define LLVM_CLANG_LIB_SPIRV_TYPETRANSLATOR_H
 
+#include <utility>
+
 #include "clang/AST/Type.h"
 #include "clang/Basic/Diagnostic.h"
 #include "clang/SPIRV/ModuleBuilder.h"
@@ -32,11 +34,13 @@ public:
 
   /// \brief Generates the corresponding SPIR-V type for the given Clang
   /// frontend type and returns the type's <result-id>. On failure, reports
-  /// the error and returns 0.
+  /// the error and returns 0. If decorateLayout is true, layout decorations
+  /// (Offset, MatrixStride, ArrayStride, etc.) will be attached to the struct
+  /// or array types.
   ///
   /// The translation is recursive; all the types that the target type depends
   /// on will be generated.
-  uint32_t translateType(QualType type);
+  uint32_t translateType(QualType type, bool decorateLayout = false);
 
   /// \brief Returns true if the given type will be translated into a SPIR-V
   /// scalar type. This includes normal scalar types, vectors of size 1, and
@@ -93,6 +97,11 @@ public:
   /// matrix type.
   uint32_t getComponentVectorType(QualType matrixType);
 
+  /// \brief Generates layout decorations (Offset, ArraryStride, MatrixStride,
+  /// RowMajor, ColMajor) for the given type.
+  llvm::SmallVector<const Decoration *, 4>
+  getLayoutDecorations(const DeclContext *decl);
+
 private:
   /// \brief Wrapper method to create an error message and report it
   /// in the diagnostic engine associated with this consumer.
@@ -105,6 +114,22 @@ private:
   /// \brief Translates the given HLSL resource type into its SPIR-V
   /// instructions and returns the <result-id>. Returns 0 on failure.
   uint32_t translateResourceType(QualType type);
+
+  /// \brief Returns the alignment and size in bytes for the given type
+  /// according to std140.
+
+  /// If the type is an array/matrix type and stride is not nullptr,
+  /// writes the array/matrix stride to stride. If the type is a matrix,
+  /// columMajor will be used to indicate whether it is labelled as
+  /// column_major in the source code.
+  ///
+  /// Note that the size returned is not exactly how many bytes the type
+  /// will occupy in memory; rather it is used in conjunction with alignment
+  /// to get the next available location (alignment + size), which means
+  /// size contains post-paddings required by the given type.
+  std::pair<uint32_t, uint32_t> getAlignmentAndSize(QualType type,
+                                                    uint32_t *stride = nullptr,
+                                                    bool columnMajor = false);
 
 private:
   ASTContext &astContext;
