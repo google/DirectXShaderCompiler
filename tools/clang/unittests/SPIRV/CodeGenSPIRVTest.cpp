@@ -420,4 +420,12 @@ TEST_F(FileTest, VulkanExplicitBindingReassigned) {
   runFileTest("vk.binding.explicit.error.hlsl", /*expectSuccess*/ false);
 }
 
+// For compute shaders
+TEST_F(FileTest, ComputeNumThreadsAttr) {
+  runFileTest("attribute.numthreads.hlsl");
+}
+TEST_F(FileTest, ComputeMissingNumThreadsAttr) {
+  runFileTest("attribute.numthreads.missing.hlsl");
+}
+
 } // namespace
