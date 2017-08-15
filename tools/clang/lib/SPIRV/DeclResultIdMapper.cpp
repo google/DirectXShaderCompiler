@@ -135,7 +135,7 @@ uint32_t DeclResultIdMapper::createExternVar(uint32_t varType,
 
   const uint32_t id = theBuilder.addModuleVar(varType, storageClass,
                                               var->getName(), llvm::None);
-  astDecls[var] = {id, spv::StorageClass::UniformConstant};
+  astDecls[var] = {id, storageClass};
   resourceVars.emplace_back(id, getResourceBinding(var),
                             var->getAttr<VKBindingAttr>());
 

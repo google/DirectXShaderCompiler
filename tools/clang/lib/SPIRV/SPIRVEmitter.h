@@ -416,6 +416,13 @@ private:
   void processSwitchStmtUsingIfStmts(const SwitchStmt *switchStmt);
 
 private:
+  /// \brief Loads numWords 32-bit unsigned integers from the given
+  /// ByteAddressBuffer. Panics if the given CXXMemberCallExpr is not a
+  /// Load call on an (RW)ByteAddressBuffer object.
+  uint32_t processByteAddressBufferLoad(const CXXMemberCallExpr *,
+                                        uint32_t numWords);
+
+private:
   /// \brief Wrapper method to create an error message and report it
   /// in the diagnostic engine associated with this consumer.
   template <unsigned N> DiagnosticBuilder emitError(const char (&message)[N]) {

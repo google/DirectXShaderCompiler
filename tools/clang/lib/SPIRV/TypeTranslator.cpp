@@ -197,6 +197,26 @@ bool TypeTranslator::isScalarType(QualType type, QualType *scalarType) {
   return isScalar;
 }
 
+bool TypeTranslator::isRWByteAddressBuffer(QualType type) {
+  if (const auto *rt = type->getAs<RecordType>()) {
+    const auto &rtName = rt->getDecl()->getName();
+    if (rtName == "RWByteAddressBuffer") {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool TypeTranslator::isByteAddressBuffer(QualType type) {
+  if (const auto *rt = type->getAs<RecordType>()) {
+    const auto &rtName = rt->getDecl()->getName();
+    if (rtName == "ByteAddressBuffer") {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool TypeTranslator::isVectorType(QualType type, QualType *elemType,
                                   uint32_t *elemCount) {
   bool isVec = false;
