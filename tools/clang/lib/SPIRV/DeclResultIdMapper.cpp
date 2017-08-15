@@ -104,7 +104,7 @@ uint32_t DeclResultIdMapper::createExternVar(uint32_t varType,
 
   // TODO: Figure out other cases where the storage class should be Uniform.
   if (auto *t = var->getType()->getAs<RecordType>()) {
-    llvm::StringRef typeName = t->getDecl()->getName();
+    const llvm::StringRef typeName = t->getDecl()->getName();
     if (typeName == "ByteAddressBuffer" || typeName == "RWByteAddressBuffer")
       storageClass = spv::StorageClass::Uniform;
   }

@@ -104,18 +104,6 @@ uint32_t TypeTranslator::translateType(QualType type) {
     return theBuilder.getMatType(vecType, rowCount);
   }
 
-  // ByteAddressBuffer and RWByteAddressBuffer types. These are RecordType and
-  // (?) the only way to identify is by checking their names! This code must be
-  // before checking for struct type.
-  if (const auto *rt = type->getAs<RecordType>()) {
-    const auto &rtName = rt->getDecl()->getName();
-    if (rtName == "ByteAddressBuffer") {
-      return theBuilder.getByteAddressBufferType();
-    } else if (rtName == "RWByteAddressBuffer") {
-      return theBuilder.getRWByteAddressBufferType();
-    }
-  }
-
   // Struct type
   if (const auto *structType = type->getAs<RecordType>()) {
     const auto *decl = structType->getDecl();
@@ -344,6 +332,15 @@ uint32_t TypeTranslator::translateResourceType(QualType type) {
   // Sampler types
   if (name == "SamplerState" || name == "SamplerComparisonState") {
     return theBuilder.getSamplerType();
+  }
+
+  // ByteAddressBuffer types.
+  if (name == "ByteAddressBuffer") {
+    return theBuilder.getByteAddressBufferType(/*isRW*/ false);
+  }
+  // RWByteAddressBuffer types.
+  if (name == "RWByteAddressBuffer") {
+    return theBuilder.getByteAddressBufferType(/*isRW*/ true);
   }
 
   return 0;

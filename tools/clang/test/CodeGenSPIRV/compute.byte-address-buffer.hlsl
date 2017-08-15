@@ -4,8 +4,8 @@
 // CHECK: OpName %type_RWByteAddressBuffer "type.RWByteAddressBuffer"
 // CHECK: OpDecorate %_runtimearr_uint ArrayStride 4
 // CHECK: OpDecorate %type_ByteAddressBuffer BufferBlock
-// CHECK: OpMemberDecorate %type_ByteAddressBuffer 0 NonWritable
 // CHECK: OpMemberDecorate %type_ByteAddressBuffer 0 Offset 0
+// CHECK: OpMemberDecorate %type_ByteAddressBuffer 0 NonWritable
 // CHECK: OpDecorate %type_RWByteAddressBuffer BufferBlock
 // CHECK: OpMemberDecorate %type_RWByteAddressBuffer 0 Offset 0
 // CHECK: %_runtimearr_uint = OpTypeRuntimeArray %uint

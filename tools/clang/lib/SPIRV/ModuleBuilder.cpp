@@ -674,7 +674,7 @@ uint32_t ModuleBuilder::getSampledImageType(uint32_t imageType) {
   return typeId;
 }
 
-uint32_t ModuleBuilder::getByteAddressBufferType() {
+uint32_t ModuleBuilder::getByteAddressBufferType(bool isRW) {
   // Create a uint RuntimeArray with Array Stride of 4.
   const uint32_t uintType = getUint32Type();
   const auto *arrStride4 = Decoration::getArrayStride(theContext, 4u);
@@ -686,37 +686,18 @@ uint32_t ModuleBuilder::getByteAddressBufferType() {
   // Create a struct containing the runtime array as its only member.
   // The struct must also be decorated as BufferBlock. The offset decoration
   // should also be applied to the first (only) member. NonWritable decoration
-  // should also be applied to the first member.
-  const auto *bufferBlock = Decoration::getBufferBlock(theContext);
-  const auto *mem0NonWritable = Decoration::getNonWritable(theContext, 0);
-  const auto *mem0Offset = Decoration::getOffset(theContext, 0, 0);
-  const auto *byteAddressBufferType = Type::getStruct(
-      theContext, {raTypeId}, {bufferBlock, mem0NonWritable, mem0Offset});
-  const uint32_t typeId = theContext.getResultIdForType(byteAddressBufferType);
-  theModule.addType(byteAddressBufferType, typeId);
-  theModule.addDebugName(typeId, "type.ByteAddressBuffer");
-  return typeId;
-}
+  // should also be applied to the first member if isRW is true.
+  llvm::SmallVector<const Decoration*, 3> typeDecs;
+  typeDecs.push_back(Decoration::getBufferBlock(theContext));
+  typeDecs.push_back(Decoration::getOffset(theContext, 0, 0));
+  if (!isRW)
+    typeDecs.push_back(Decoration::getNonWritable(theContext, 0));
 
-uint32_t ModuleBuilder::getRWByteAddressBufferType() {
-  // Create a uint RuntimeArray with Array Stride of 4.
-  const uint32_t uintType = getUint32Type();
-  const auto *arrStride4 = Decoration::getArrayStride(theContext, 4u);
-  const Type *raType =
-      Type::getRuntimeArray(theContext, uintType, {arrStride4});
-  const uint32_t raTypeId = theContext.getResultIdForType(raType);
-  theModule.addType(raType, raTypeId);
-
-  // Create a struct containing the runtime array as its only member.
-  // The struct must also be decorated as BufferBlock. The offset decoration
-  // should also be applied for the only member.
-  const auto *bufferBlock = Decoration::getBufferBlock(theContext);
-  const auto *mem0Offset = Decoration::getOffset(theContext, 0, 0);
-  const auto *byteAddressBufferType =
-      Type::getStruct(theContext, {raTypeId}, {bufferBlock, mem0Offset});
-  const uint32_t typeId = theContext.getResultIdForType(byteAddressBufferType);
-  theModule.addType(byteAddressBufferType, typeId);
-  theModule.addDebugName(typeId, "type.RWByteAddressBuffer");
+  const Type *type = Type::getStruct(theContext, {raTypeId}, typeDecs);
+  const uint32_t typeId = theContext.getResultIdForType(type);
+  theModule.addType(type, typeId);
+  theModule.addDebugName(typeId, isRW ? "type.RWByteAddressBuffer"
+                                      : "type.ByteAddressBuffer");
   return typeId;
 }
 
