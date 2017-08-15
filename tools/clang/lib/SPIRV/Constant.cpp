@@ -15,8 +15,10 @@ namespace clang {
 namespace spirv {
 
 Constant::Constant(spv::Op op, uint32_t type, llvm::ArrayRef<uint32_t> arg,
-                   std::set<const Decoration *> decs)
-    : opcode(op), typeId(type), args(arg), decorations(decs) {}
+                   DecorationSet decs)
+    : opcode(op), typeId(type), args(arg) {
+  decorations = llvm::SetVector<const Decoration *>(decs.begin(), decs.end());
+}
 
 const Constant *Constant::getUniqueConstant(SPIRVContext &context,
                                             const Constant &c) {
@@ -92,20 +94,20 @@ const Constant *Constant::getSpecFalse(SPIRVContext &ctx, uint32_t type_id,
 }
 
 const Constant *Constant::getSpecFloat32(SPIRVContext &ctx, uint32_t type_id,
-                                     float value, DecorationSet dec) {
+                                         float value, DecorationSet dec) {
   Constant c = Constant(spv::Op::OpSpecConstant, type_id,
                         {utils::BitwiseCast<uint32_t, float>(value)}, dec);
   return getUniqueConstant(ctx, c);
 }
 
 const Constant *Constant::getSpecUint32(SPIRVContext &ctx, uint32_t type_id,
-                                    uint32_t value, DecorationSet dec) {
+                                        uint32_t value, DecorationSet dec) {
   Constant c = Constant(spv::Op::OpSpecConstant, type_id, {value}, dec);
   return getUniqueConstant(ctx, c);
 }
 
 const Constant *Constant::getSpecInt32(SPIRVContext &ctx, uint32_t type_id,
-                                   int32_t value, DecorationSet dec) {
+                                       int32_t value, DecorationSet dec) {
   Constant c = Constant(spv::Op::OpSpecConstant, type_id,
                         {utils::BitwiseCast<uint32_t, int32_t>(value)}, dec);
   return getUniqueConstant(ctx, c);
@@ -121,7 +123,7 @@ Constant::getSpecComposite(SPIRVContext &ctx, uint32_t type_id,
 }
 
 bool Constant::hasDecoration(const Decoration *d) const {
-  return decorations.find(d) != decorations.end();
+  return decorations.count(d);
 }
 
 bool Constant::isBoolean() const {

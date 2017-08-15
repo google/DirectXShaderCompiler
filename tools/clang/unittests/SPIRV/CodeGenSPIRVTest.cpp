@@ -430,5 +430,8 @@ TEST_F(FileTest, ComputeNumThreadsAttr) {
 TEST_F(FileTest, ComputeMissingNumThreadsAttr) {
   runFileTest("attribute.numthreads.missing.hlsl");
 }
+TEST_F(FileTest, ComputeByteAddressBuffer) {
+  runFileTest("compute.byte-address-buffer.hlsl");
+}
 
 } // namespace
