@@ -334,6 +334,15 @@ uint32_t TypeTranslator::translateResourceType(QualType type) {
     return theBuilder.getSamplerType();
   }
 
+  // ByteAddressBuffer types.
+  if (name == "ByteAddressBuffer") {
+    return theBuilder.getByteAddressBufferType(/*isRW*/ false);
+  }
+  // RWByteAddressBuffer types.
+  if (name == "RWByteAddressBuffer") {
+    return theBuilder.getByteAddressBufferType(/*isRW*/ true);
+  }
+
   return 0;
 }
 
