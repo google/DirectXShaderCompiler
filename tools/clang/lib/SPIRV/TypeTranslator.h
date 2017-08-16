@@ -35,12 +35,16 @@ public:
   /// \brief Generates the corresponding SPIR-V type for the given Clang
   /// frontend type and returns the type's <result-id>. On failure, reports
   /// the error and returns 0. If decorateLayout is true, layout decorations
-  /// (Offset, MatrixStride, ArrayStride, etc.) will be attached to the struct
-  /// or array types.
+  /// (Offset, MatrixStride, ArrayStride, RowMajor, ColMajor) will be attached
+  /// to the struct or array types. If decorateLayout is true and type is a
+  /// matrix or array of matrix type, isRowMajor will indicate whether it is
+  /// decorated with row_major in the source code.
   ///
   /// The translation is recursive; all the types that the target type depends
-  /// on will be generated.
-  uint32_t translateType(QualType type, bool decorateLayout = false);
+  /// on will be generated and all with layout decorations (if decorateLayout
+  /// is true).
+  uint32_t translateType(QualType type, bool decorateLayout = false,
+                         bool isRowMajor = false);
 
   /// \brief Returns true if the given type will be translated into a SPIR-V
   /// scalar type. This includes normal scalar types, vectors of size 1, and
@@ -97,8 +101,13 @@ public:
   /// matrix type.
   uint32_t getComponentVectorType(QualType matrixType);
 
-  /// \brief Generates layout decorations (Offset, ArraryStride, MatrixStride,
-  /// RowMajor, ColMajor) for the given type.
+  /// \brief Generates layout decorations (Offset, MatrixStride, RowMajor,
+  /// ColMajor) for the given type.
+  ///
+  /// This method is not recursive; it only handles the top-level member/field
+  /// of the given DeclContext. Besides, it does not handle ArrayStride, which
+  /// according to the spec, must be attached to the array type itself instead
+  /// of a struct member.
   llvm::SmallVector<const Decoration *, 4>
   getLayoutDecorations(const DeclContext *decl);
 
@@ -118,18 +127,16 @@ private:
   /// \brief Returns the alignment and size in bytes for the given type
   /// according to std140.
 
-  /// If the type is an array/matrix type and stride is not nullptr,
-  /// writes the array/matrix stride to stride. If the type is a matrix,
-  /// columMajor will be used to indicate whether it is labelled as
-  /// column_major in the source code.
+  /// If the type is an array/matrix type, writes the array/matrix stride to
+  /// stride. If the type is a matrix, isRowMajor will be used to indicate
+  /// whether it is labelled as row_major in the source code.
   ///
   /// Note that the size returned is not exactly how many bytes the type
   /// will occupy in memory; rather it is used in conjunction with alignment
   /// to get the next available location (alignment + size), which means
   /// size contains post-paddings required by the given type.
-  std::pair<uint32_t, uint32_t> getAlignmentAndSize(QualType type,
-                                                    uint32_t *stride = nullptr,
-                                                    bool columnMajor = false);
+  std::pair<uint32_t, uint32_t>
+  getAlignmentAndSize(QualType type, uint32_t *stride, bool isRowMajor);
 
 private:
   ASTContext &astContext;

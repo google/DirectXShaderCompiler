@@ -427,6 +427,9 @@ TEST_F(FileTest, VulkanExplicitBindingReassigned) {
 TEST_F(FileTest, VulkanLayoutCBufferStd140) {
   runFileTest("vk.layout.cbuffer.std140.hlsl");
 }
+TEST_F(FileTest, VulkanLayoutCBufferNestedStd140) {
+  runFileTest("vk.layout.cbuffer.nested.std140.hlsl");
+}
 
 // For compute shaders
 TEST_F(FileTest, ComputeNumThreadsAttr) {

@@ -160,7 +160,8 @@ uint32_t DeclResultIdMapper::createExternVar(const HLSLBufferDecl *decl) {
     auto varType = varDecl->getType();
     varType.removeLocalConst();
 
-    fieldTypes.push_back(typeTranslator.translateType(varType, true));
+    fieldTypes.push_back(typeTranslator.translateType(
+        varType, true, varDecl->hasAttr<HLSLRowMajorAttr>()));
     fieldNames.push_back(varDecl->getName());
   }
 

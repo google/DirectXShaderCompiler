@@ -28,17 +28,22 @@ constexpr uint32_t kStd140Vec4Alignment = 16u;
 inline bool isPow2(int val) { return (val & (val - 1)) == 0; }
 
 /// Rounds the given value up to the given power of 2.
-inline void roundToPow2(uint32_t &val, uint32_t pow2) {
+inline void roundToPow2(uint32_t *val, uint32_t pow2) {
   assert(pow2 != 0);
-  val = (val + pow2 - 1) & ~(pow2 - 1);
+  *val = (*val + pow2 - 1) & ~(pow2 - 1);
 }
 } // anonymous namespace
 
-uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout) {
+uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout,
+                                       bool isRowMajor) {
+  // We can only apply row_major to matrices or arrays of matrices.
+  if (isRowMajor)
+    assert(isMxNMatrix(type) || type->isArrayType());
+
   // Try to translate the canonical type first
   const auto canonicalType = type.getCanonicalType();
   if (canonicalType != type)
-    return translateType(canonicalType, decorateLayout);
+    return translateType(canonicalType, decorateLayout, isRowMajor);
 
   // Primitive types
   {
@@ -65,7 +70,7 @@ uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout) {
 
   // Typedefs
   if (const auto *typedefType = type->getAs<TypedefType>())
-    return translateType(typedefType->desugar(), decorateLayout);
+    return translateType(typedefType->desugar(), decorateLayout, isRowMajor);
 
   // Reference types
   if (const auto *refType = type->getAs<ReferenceType>()) {
@@ -75,7 +80,7 @@ uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout) {
     // We already pass function arguments via pointers to tempoary local
     // variables. So it should be fine to drop the pointer type and treat it
     // as the underlying pointee type here.
-    return translateType(refType->getPointeeType(), decorateLayout);
+    return translateType(refType->getPointeeType(), decorateLayout, isRowMajor);
   }
 
   // In AST, vector/matrix types are TypedefType of TemplateSpecializationType.
@@ -128,7 +133,8 @@ uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout) {
     llvm::SmallVector<uint32_t, 4> fieldTypes;
     llvm::SmallVector<llvm::StringRef, 4> fieldNames;
     for (const auto *field : decl->fields()) {
-      fieldTypes.push_back(translateType(field->getType(), decorateLayout));
+      fieldTypes.push_back(translateType(field->getType(), decorateLayout,
+                                         field->hasAttr<HLSLRowMajorAttr>()));
       fieldNames.push_back(field->getName());
     }
 
@@ -143,7 +149,7 @@ uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout) {
 
   if (const auto *arrayType = astContext.getAsConstantArrayType(type)) {
     const uint32_t elemType =
-        translateType(arrayType->getElementType(), decorateLayout);
+        translateType(arrayType->getElementType(), decorateLayout, isRowMajor);
     // TODO: handle extra large array size?
     const auto size =
         static_cast<uint32_t>(arrayType->getSize().getZExtValue());
@@ -151,7 +157,7 @@ uint32_t TypeTranslator::translateType(QualType type, bool decorateLayout) {
     llvm::SmallVector<const Decoration *, 4> decorations;
     if (decorateLayout) {
       uint32_t stride = 0;
-      (void)getAlignmentAndSize(type, &stride);
+      (void)getAlignmentAndSize(type, &stride, isRowMajor);
       decorations.push_back(
           Decoration::getArrayStride(*theBuilder.getSPIRVContext(), stride));
     }
@@ -343,14 +349,14 @@ TypeTranslator::getLayoutDecorations(const DeclContext *decl) {
     // The field can only be FieldDecl (for normal structs) or VarDecl (for
     // HLSLBufferDecls).
     auto fieldType = cast<DeclaratorDecl>(field)->getType();
-    bool isColMajor = field->getAttr<HLSLColumnMajorAttr>() != nullptr;
+    const bool isRowMajor = field->hasAttr<HLSLRowMajorAttr>();
 
     uint32_t memberAlignment = 0, memberSize = 0, stride = 0;
     std::tie(memberAlignment, memberSize) =
-        getAlignmentAndSize(fieldType, &stride, isColMajor);
+        getAlignmentAndSize(fieldType, &stride, isRowMajor);
 
     // Each structure-type member must have an Offset Decoration.
-    roundToPow2(offset, memberAlignment);
+    roundToPow2(&offset, memberAlignment);
     decorations.push_back(Decoration::getOffset(*spirvContext, offset, index));
     offset += memberSize;
 
@@ -366,7 +372,7 @@ TypeTranslator::getLayoutDecorations(const DeclContext *decl) {
     if (isMxNMatrix(fieldType)) {
       memberAlignment = memberSize = stride = 0;
       std::tie(memberAlignment, memberSize) =
-          getAlignmentAndSize(fieldType, &stride, isColMajor);
+          getAlignmentAndSize(fieldType, &stride, isRowMajor);
 
       decorations.push_back(
           Decoration::getMatrixStride(*spirvContext, stride, index));
@@ -374,10 +380,13 @@ TypeTranslator::getLayoutDecorations(const DeclContext *decl) {
       // We need to swap the RowMajor and ColMajor decorations since HLSL
       // matrices are conceptually row-major while SPIR-V are conceptually
       // column-major.
-      if (isColMajor)
-        decorations.push_back(Decoration::getRowMajor(*spirvContext, index));
-      else
+      if (isRowMajor) {
         decorations.push_back(Decoration::getColMajor(*spirvContext, index));
+      } else {
+        // If the source code has neither row_major nor column_major annotated,
+        // it should be treated as column_major since that's the default.
+        decorations.push_back(Decoration::getRowMajor(*spirvContext, index));
+      }
     }
 
     ++index;
@@ -432,7 +441,7 @@ uint32_t TypeTranslator::translateResourceType(QualType type) {
 
 std::pair<uint32_t, uint32_t>
 TypeTranslator::getAlignmentAndSize(QualType type, uint32_t *stride,
-                                    bool columnMajor) {
+                                    const bool isRowMajor) {
   // std140 layout rules:
 
   // 1. If the member is a scalar consuming N basic machine units, the base
@@ -483,10 +492,10 @@ TypeTranslator::getAlignmentAndSize(QualType type, uint32_t *stride,
   //     are laid out in order, according to rule (9).
   const auto canonicalType = type.getCanonicalType();
   if (canonicalType != type)
-    return getAlignmentAndSize(canonicalType, stride, columnMajor);
+    return getAlignmentAndSize(canonicalType, stride, isRowMajor);
 
   if (const auto *typedefType = type->getAs<TypedefType>())
-    return getAlignmentAndSize(typedefType->desugar(), stride, columnMajor);
+    return getAlignmentAndSize(typedefType->desugar(), stride, isRowMajor);
 
   { // Rule 1
     QualType ty = {};
@@ -512,7 +521,8 @@ TypeTranslator::getAlignmentAndSize(QualType type, uint32_t *stride,
     uint32_t elemCount = {};
     if (isVectorType(type, &elemType, &elemCount)) {
       uint32_t size = 0;
-      std::tie(std::ignore, size) = getAlignmentAndSize(elemType);
+      std::tie(std::ignore, size) =
+          getAlignmentAndSize(elemType, stride, isRowMajor);
 
       return {(elemCount == 3 ? 4 : elemCount) * size, elemCount * size};
     }
@@ -523,15 +533,18 @@ TypeTranslator::getAlignmentAndSize(QualType type, uint32_t *stride,
     uint32_t rowCount = 0, colCount = 0;
     if (isMxNMatrix(type, &elemType, &rowCount, &colCount)) {
       uint32_t alignment = 0, size = 0;
-      std::tie(alignment, std::ignore) = getAlignmentAndSize(elemType);
+      std::tie(alignment, std::ignore) =
+          getAlignmentAndSize(elemType, stride, isRowMajor);
 
+      // Matrices are treated as arrays of vectors:
       // The base alignment and array stride are set to match the base alignment
       // of a single array element, according to rules 1, 2, and 3, and rounded
       // up to the base alignment of a vec4.
-      roundToPow2(alignment, kStd140Vec4Alignment);
-      if (stride)
-        *stride = alignment;
-      size = (columnMajor ? colCount : rowCount) * alignment;
+      const uint32_t vecStorageSize = isRowMajor ? colCount : rowCount;
+      alignment *= (vecStorageSize == 3 ? 4 : vecStorageSize);
+      roundToPow2(&alignment, kStd140Vec4Alignment);
+      *stride = alignment;
+      size = (isRowMajor ? rowCount : colCount) * alignment;
 
       return {alignment, size};
     }
@@ -545,20 +558,20 @@ TypeTranslator::getAlignmentAndSize(QualType type, uint32_t *stride,
     for (const auto *field : structType->getDecl()->fields()) {
       uint32_t memberAlignment = 0, memberSize = 0;
       std::tie(memberAlignment, memberSize) = getAlignmentAndSize(
-          field->getType(), stride, field->getAttr<HLSLColumnMajorAttr>());
+          field->getType(), stride, field->hasAttr<HLSLRowMajorAttr>());
 
       // The base alignment of the structure is N, where N is the largest
       // base alignment value of any of its members...
       maxAlignment = std::max(maxAlignment, memberAlignment);
-      roundToPow2(structSize, memberAlignment);
+      roundToPow2(&structSize, memberAlignment);
       structSize += memberSize;
     }
 
     // ... and rounded up to the base alignment of a vec4.
-    roundToPow2(maxAlignment, kStd140Vec4Alignment);
+    roundToPow2(&maxAlignment, kStd140Vec4Alignment);
     // The base offset of the member following the sub-structure is rounded up
     // to the next multiple of the base alignment of the structure.
-    roundToPow2(structSize, maxAlignment);
+    roundToPow2(&structSize, maxAlignment);
     return {maxAlignment, structSize};
   }
 
@@ -566,19 +579,20 @@ TypeTranslator::getAlignmentAndSize(QualType type, uint32_t *stride,
   if (const auto *arrayType = astContext.getAsConstantArrayType(type)) {
     uint32_t alignment = 0, size = 0;
     std::tie(alignment, size) =
-        getAlignmentAndSize(arrayType->getElementType(), stride, columnMajor);
+        getAlignmentAndSize(arrayType->getElementType(), stride, isRowMajor);
 
     // The base alignment and array stride are set to match the base alignment
     // of a single array element, according to rules 1, 2, and 3, and rounded
     // up to the base alignment of a vec4.
-    roundToPow2(alignment, kStd140Vec4Alignment);
-    if (stride)
-      *stride = size; // Rule 10
+    roundToPow2(&alignment, kStd140Vec4Alignment);
+    // Need to round size up considering stride for scalar types
+    roundToPow2(&size, alignment);
+    *stride = size; // Use size instead of alignment here for Rule 10
     // TODO: handle extra large array size?
     size *= static_cast<uint32_t>(arrayType->getSize().getZExtValue());
     // The base offset of the member following the array is rounded up to the
     // next multiple of the base alignment.
-    roundToPow2(size, alignment);
+    roundToPow2(&size, alignment);
 
     return {alignment, size};
   }
