@@ -422,6 +422,12 @@ private:
   uint32_t processByteAddressBufferLoad(const CXXMemberCallExpr *,
                                         uint32_t numWords);
 
+  /// \brief Stores numWords 32-bit unsigned integers to the given
+  /// RWByteAddressBuffer. Panics if the given CXXMemberCallExpr is not a
+  /// Store call on a RWByteAddressBuffer object.
+  uint32_t processByteAddressBufferStore(const CXXMemberCallExpr *,
+                                         uint32_t numWords);
+
 private:
   /// \brief Wrapper method to create an error message and report it
   /// in the diagnostic engine associated with this consumer.
