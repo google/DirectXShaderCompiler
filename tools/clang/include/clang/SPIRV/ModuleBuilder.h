@@ -129,6 +129,10 @@ public:
   uint32_t createFunctionCall(uint32_t returnType, uint32_t functionId,
                               llvm::ArrayRef<uint32_t> params);
 
+  /// \brief Creates an OpShiftRightLogical for the given id.
+  uint32_t createShiftRightLogical(uint32_t resultType, uint32_t baseId,
+                                   uint32_t shift);
+
   /// \brief Creates an access chain instruction to retrieve the element from
   /// the given base by walking through the given indexes. Returns the
   /// <result-id> for the pointer to the element.
