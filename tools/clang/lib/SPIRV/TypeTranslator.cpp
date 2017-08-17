@@ -199,20 +199,14 @@ bool TypeTranslator::isScalarType(QualType type, QualType *scalarType) {
 
 bool TypeTranslator::isRWByteAddressBuffer(QualType type) {
   if (const auto *rt = type->getAs<RecordType>()) {
-    const auto &rtName = rt->getDecl()->getName();
-    if (rtName == "RWByteAddressBuffer") {
-      return true;
-    }
+    return rt->getDecl()->getName().compare("RWByteAddressBuffer") == 0;
   }
   return false;
 }
 
 bool TypeTranslator::isByteAddressBuffer(QualType type) {
   if (const auto *rt = type->getAs<RecordType>()) {
-    const auto &rtName = rt->getDecl()->getName();
-    if (rtName == "ByteAddressBuffer") {
-      return true;
-    }
+    return rt->getDecl()->getName().compare("ByteAddressBuffer") == 0;
   }
   return false;
 }

@@ -183,16 +183,6 @@ uint32_t ModuleBuilder::createFunctionCall(uint32_t returnType,
   return id;
 }
 
-uint32_t ModuleBuilder::createShiftRightLogical(uint32_t resultTypeId,
-                                                uint32_t base,
-                                                uint32_t shift) {
-  assert(insertPoint && "null insert point");
-  const uint32_t id = theContext.takeNextId();
-  instBuilder.opShiftRightLogical(resultTypeId, id, base, shift).x();
-  insertPoint->appendInstruction(std::move(constructSite));
-  return id;
-}
-
 uint32_t ModuleBuilder::createAccessChain(uint32_t resultType, uint32_t base,
                                           llvm::ArrayRef<uint32_t> indexes) {
   assert(insertPoint && "null insert point");

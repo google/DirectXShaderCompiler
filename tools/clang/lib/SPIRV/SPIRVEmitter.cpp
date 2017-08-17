@@ -1295,7 +1295,7 @@ SPIRVEmitter::processByteAddressBufferLoad(const CXXMemberCallExpr *expr,
   const auto type = object->getType();
   assert(typeTranslator.isRWByteAddressBuffer(type) ||
          typeTranslator.isByteAddressBuffer(type));
-  assert(numWords == 1 || numWords == 2 || numWords == 3 || numWords == 4);
+  assert(numWords >= 1 || numWords <= 4);
 
   if (expr->getNumArgs() == 1) {
     const Expr *addressExpr = expr->getArg(0);
@@ -1307,8 +1307,8 @@ SPIRVEmitter::processByteAddressBufferLoad(const CXXMemberCallExpr *expr,
     // access). The AST always casts the address to unsinged integer, so shift
     // by unsinged integer 2.
     const uint32_t constUint2 = theBuilder.getConstantUint32(2);
-    const uint32_t address = theBuilder.createShiftRightLogical(
-        addressTypeId, byteAddress, constUint2);
+    const uint32_t address = theBuilder.createBinaryOp(
+        spv::Op::OpShiftRightLogical, addressTypeId, byteAddress, constUint2);
 
     // Perform access chain into the (RW)ByteAddressBuffer.
     // First index must be zero (member 0 of the struct is a
@@ -1318,8 +1318,8 @@ SPIRVEmitter::processByteAddressBufferLoad(const CXXMemberCallExpr *expr,
     const uint32_t ptrType = theBuilder.getPointerType(
         uintTypeId, declIdMapper.resolveStorageClass(object));
     const uint32_t constUint0 = theBuilder.getConstantUint32(0);
-    const uint32_t loadPtr = theBuilder.createAccessChain(
-        ptrType, doExpr(object), {constUint0, address});
+    uint32_t loadPtr = theBuilder.createAccessChain(ptrType, doExpr(object),
+                                                    {constUint0, address});
     const uint32_t firstWord = theBuilder.createLoad(uintTypeId, loadPtr);
     if (numWords == 1) {
       return firstWord;
@@ -1332,8 +1332,8 @@ SPIRVEmitter::processByteAddressBufferLoad(const CXXMemberCallExpr *expr,
         const uint32_t offset = theBuilder.getConstantUint32(wordCounter - 1);
         const uint32_t newAddress = theBuilder.createBinaryOp(
             spv::Op::OpIAdd, addressTypeId, address, offset);
-        const uint32_t loadPtr = theBuilder.createAccessChain(
-            ptrType, doExpr(object), {constUint0, newAddress});
+        loadPtr = theBuilder.createAccessChain(ptrType, doExpr(object),
+                                               {constUint0, newAddress});
         values.push_back(theBuilder.createLoad(uintTypeId, loadPtr));
       }
       const uint32_t resultType =
