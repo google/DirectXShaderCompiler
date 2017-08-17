@@ -1,7 +1,5 @@
 // Run: %dxc -T cs_6_0 -E main
 
-// CHECK: %_ptr_Uniform_type_RWByteAddressBuffer = OpTypePointer Uniform %type_RWByteAddressBuffer
-// CHECK: %outBuffer = OpVariable %_ptr_Uniform_type_RWByteAddressBuffer Uniform
 RWByteAddressBuffer outBuffer;
 
 [numthreads(1, 1, 1)]
@@ -12,17 +10,17 @@ void main() {
   uint3 words3 = uint3(1, 2, 3);
   uint4 words4 = uint4(1, 2, 3, 4);
 
-// CHECK: [[words1:%\d+]] = OpLoad %uint %words1
-// CHECK-NEXT: [[byteAddr1:%\d+]] = OpLoad %uint %addr
+// CHECK:      [[byteAddr1:%\d+]] = OpLoad %uint %addr
 // CHECK-NEXT: [[baseAddr1:%\d+]] = OpShiftRightLogical %uint [[byteAddr1]] %uint_2
+// CHECK-NEXT: [[words1:%\d+]] = OpLoad %uint %words1
 // CHECK-NEXT: [[out1_outBufPtr0:%\d+]] = OpAccessChain %_ptr_Uniform_uint %outBuffer %uint_0 [[baseAddr1]]
 // CHECK-NEXT: OpStore [[out1_outBufPtr0]] [[words1]]
   outBuffer.Store(addr, words1);
 
 
-// CHECK: [[words2:%\d+]] = OpLoad %v2uint %words2
-// CHECK-NEXT: [[byteAddr2:%\d+]] = OpLoad %uint %addr
+// CHECK:      [[byteAddr2:%\d+]] = OpLoad %uint %addr
 // CHECK-NEXT: [[baseAddr2:%\d+]] = OpShiftRightLogical %uint [[byteAddr2]] %uint_2
+// CHECK-NEXT: [[words2:%\d+]] = OpLoad %v2uint %words2
 // CHECK-NEXT: [[words2_0:%\d+]] = OpCompositeExtract %uint [[words2]] 0
 // CHECK-NEXT: [[out2_outBufPtr0:%\d+]] = OpAccessChain %_ptr_Uniform_uint %outBuffer %uint_0 [[baseAddr2]]
 // CHECK-NEXT: OpStore [[out2_outBufPtr0]] [[words2_0]]
@@ -33,9 +31,9 @@ void main() {
   outBuffer.Store2(addr, words2);
 
 
-// CHECK: [[words3:%\d+]] = OpLoad %v3uint %words3
-// CHECK-NEXT: [[byteAddr3:%\d+]] = OpLoad %uint %addr
+// CHECK:      [[byteAddr3:%\d+]] = OpLoad %uint %addr
 // CHECK-NEXT: [[baseAddr3:%\d+]] = OpShiftRightLogical %uint [[byteAddr3]] %uint_2
+// CHECK-NEXT: [[words3:%\d+]] = OpLoad %v3uint %words3
 // CHECK-NEXT: [[word3_0:%\d+]] = OpCompositeExtract %uint [[words3]] 0
 // CHECK-NEXT: [[out3_outBufPtr0:%\d+]] = OpAccessChain %_ptr_Uniform_uint %outBuffer %uint_0 [[baseAddr3]]
 // CHECK-NEXT: OpStore [[out3_outBufPtr0]] [[word3_0]]
@@ -50,9 +48,9 @@ void main() {
   outBuffer.Store3(addr, words3);
 
 
-// CHECK: [[words4:%\d+]] = OpLoad %v4uint %words4
-// CHECK-NEXT: [[byteAddr:%\d+]] = OpLoad %uint %addr
+// CHECK:      [[byteAddr:%\d+]] = OpLoad %uint %addr
 // CHECK-NEXT: [[baseAddr:%\d+]] = OpShiftRightLogical %uint [[byteAddr]] %uint_2
+// CHECK-NEXT: [[words4:%\d+]] = OpLoad %v4uint %words4
 // CHECK-NEXT: [[word0:%\d+]] = OpCompositeExtract %uint [[words4]] 0
 // CHECK-NEXT: [[outBufPtr0:%\d+]] = OpAccessChain %_ptr_Uniform_uint %outBuffer %uint_0 [[baseAddr]]
 // CHECK-NEXT: OpStore [[outBufPtr0]] [[word0]]

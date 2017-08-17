@@ -416,17 +416,13 @@ private:
   void processSwitchStmtUsingIfStmts(const SwitchStmt *switchStmt);
 
 private:
-  /// \brief Loads numWords 32-bit unsigned integers from the given
-  /// ByteAddressBuffer. Panics if the given CXXMemberCallExpr is not a
-  /// Load call on an (RW)ByteAddressBuffer object.
-  uint32_t processByteAddressBufferLoad(const CXXMemberCallExpr *,
-                                        uint32_t numWords);
-
-  /// \brief Stores numWords 32-bit unsigned integers to the given
-  /// RWByteAddressBuffer. Panics if the given CXXMemberCallExpr is not a
-  /// Store call on a RWByteAddressBuffer object.
-  uint32_t processByteAddressBufferStore(const CXXMemberCallExpr *,
-                                         uint32_t numWords);
+  /// \brief Loads numWords 32-bit unsigned integers or stores numWords 32-bit
+  /// unsigned integers (based on the doStore parameter) to the given
+  /// ByteAddressBuffer. Loading is allowed from a ByteAddressBuffer or
+  /// RWByteAddressBuffer. Storing is allowed only to RWByteAddressBuffer.
+  /// Panics if it is not the case.
+  uint32_t processByteAddressBufferLoadStore(const CXXMemberCallExpr *,
+                                             uint32_t numWords, bool doStore);
 
 private:
   /// \brief Wrapper method to create an error message and report it
