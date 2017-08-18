@@ -622,12 +622,36 @@ uint32_t ModuleBuilder::getFunctionType(uint32_t returnType,
 }
 
 uint32_t ModuleBuilder::getImageType(uint32_t sampledType, spv::Dim dim,
-                                     bool isArray) {
-  const Type *type = Type::getImage(theContext, sampledType, dim,
-                                    /*depth*/ 0, isArray, /*ms*/ 0,
-                                    /*sampled*/ 1, spv::ImageFormat::Unknown);
+                                     uint32_t depth, bool isArray, uint32_t ms,
+                                     uint32_t sampled,
+                                     spv::ImageFormat format) {
+  const Type *type = Type::getImage(theContext, sampledType, dim, depth,
+                                    isArray, ms, sampled, format);
   const uint32_t typeId = theContext.getResultIdForType(type);
   theModule.addType(type, typeId);
+
+  if (format == spv::ImageFormat::Rg32f || format == spv::ImageFormat::Rg16f ||
+      format == spv::ImageFormat::R11fG11fB10f ||
+      format == spv::ImageFormat::R16f || format == spv::ImageFormat::Rgba16 ||
+      format == spv::ImageFormat::Rgb10A2 || format == spv::ImageFormat::Rg16 ||
+      format == spv::ImageFormat::Rg8 || format == spv::ImageFormat::R16 ||
+      format == spv::ImageFormat::R8 ||
+      format == spv::ImageFormat::Rgba16Snorm ||
+      format == spv::ImageFormat::Rg16Snorm ||
+      format == spv::ImageFormat::Rg8Snorm ||
+      format == spv::ImageFormat::R16Snorm ||
+      format == spv::ImageFormat::R8Snorm ||
+      format == spv::ImageFormat::Rg32i || format == spv::ImageFormat::Rg16i ||
+      format == spv::ImageFormat::Rg8i || format == spv::ImageFormat::R16i ||
+      format == spv::ImageFormat::R8i ||
+      format == spv::ImageFormat::Rgb10a2ui ||
+      format == spv::ImageFormat::Rg32ui ||
+      format == spv::ImageFormat::Rg16ui || format == spv::ImageFormat::Rg8ui ||
+      format == spv::ImageFormat::R16ui || format == spv::ImageFormat::R8ui)
+    requireCapability(spv::Capability::StorageImageExtendedFormats);
+
+  if (dim == spv::Dim::Buffer)
+    requireCapability(spv::Capability::SampledBuffer);
 
   const char *dimStr = "";
   switch (dim) {

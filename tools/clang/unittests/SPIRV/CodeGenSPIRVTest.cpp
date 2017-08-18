@@ -450,5 +450,6 @@ TEST_F(FileTest, ComputeByteAddressBufferLoad) {
 TEST_F(FileTest, ComputeByteAddressBufferStore) {
   runFileTest("compute.byte-address-buffer.store.hlsl");
 }
+TEST_F(FileTest, ComputeBuffer) { runFileTest("compute.buffer.hlsl"); }
 
 } // namespace
