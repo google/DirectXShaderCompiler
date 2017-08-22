@@ -630,25 +630,35 @@ uint32_t ModuleBuilder::getImageType(uint32_t sampledType, spv::Dim dim,
   const uint32_t typeId = theContext.getResultIdForType(type);
   theModule.addType(type, typeId);
 
-  if (format == spv::ImageFormat::Rg32f || format == spv::ImageFormat::Rg16f ||
-      format == spv::ImageFormat::R11fG11fB10f ||
-      format == spv::ImageFormat::R16f || format == spv::ImageFormat::Rgba16 ||
-      format == spv::ImageFormat::Rgb10A2 || format == spv::ImageFormat::Rg16 ||
-      format == spv::ImageFormat::Rg8 || format == spv::ImageFormat::R16 ||
-      format == spv::ImageFormat::R8 ||
-      format == spv::ImageFormat::Rgba16Snorm ||
-      format == spv::ImageFormat::Rg16Snorm ||
-      format == spv::ImageFormat::Rg8Snorm ||
-      format == spv::ImageFormat::R16Snorm ||
-      format == spv::ImageFormat::R8Snorm ||
-      format == spv::ImageFormat::Rg32i || format == spv::ImageFormat::Rg16i ||
-      format == spv::ImageFormat::Rg8i || format == spv::ImageFormat::R16i ||
-      format == spv::ImageFormat::R8i ||
-      format == spv::ImageFormat::Rgb10a2ui ||
-      format == spv::ImageFormat::Rg32ui ||
-      format == spv::ImageFormat::Rg16ui || format == spv::ImageFormat::Rg8ui ||
-      format == spv::ImageFormat::R16ui || format == spv::ImageFormat::R8ui)
+  switch (format) {
+  case spv::ImageFormat::Rg32f:
+  case spv::ImageFormat::Rg16f:
+  case spv::ImageFormat::R11fG11fB10f:
+  case spv::ImageFormat::R16f:
+  case spv::ImageFormat::Rgba16:
+  case spv::ImageFormat::Rgb10A2:
+  case spv::ImageFormat::Rg16:
+  case spv::ImageFormat::Rg8:
+  case spv::ImageFormat::R16:
+  case spv::ImageFormat::R8:
+  case spv::ImageFormat::Rgba16Snorm:
+  case spv::ImageFormat::Rg16Snorm:
+  case spv::ImageFormat::Rg8Snorm:
+  case spv::ImageFormat::R16Snorm:
+  case spv::ImageFormat::R8Snorm:
+  case spv::ImageFormat::Rg32i:
+  case spv::ImageFormat::Rg16i:
+  case spv::ImageFormat::Rg8i:
+  case spv::ImageFormat::R16i:
+  case spv::ImageFormat::R8i:
+  case spv::ImageFormat::Rgb10a2ui:
+  case spv::ImageFormat::Rg32ui:
+  case spv::ImageFormat::Rg16ui:
+  case spv::ImageFormat::Rg8ui:
+  case spv::ImageFormat::R16ui:
+  case spv::ImageFormat::R8ui:
     requireCapability(spv::Capability::StorageImageExtendedFormats);
+  }
 
   if (dim == spv::Dim::Buffer)
     requireCapability(spv::Capability::SampledBuffer);

@@ -458,8 +458,7 @@ uint32_t TypeTranslator::translateResourceType(QualType type) {
     return theBuilder.getImageType(
         translateType(getElementType(sampledType)), spv::Dim::Buffer,
         /*depth*/ 0, /*isArray*/ 0, /*ms*/ 0,
-        /*sampled*/ name == "Buffer" ? 1 : 2,
-        translateSampledTypeToImageFormat(sampledType));
+        /*sampled*/ name == "Buffer" ? 1 : 2, format);
   }
   return 0;
 }
