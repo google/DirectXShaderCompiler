@@ -44,6 +44,7 @@ TEST_F(FileTest, TypedefTypes) { runFileTest("type.typedef.hlsl"); }
 TEST_F(FileTest, SamplerTypes) { runFileTest("type.sampler.hlsl"); }
 TEST_F(FileTest, TextureTypes) { runFileTest("type.texture.hlsl"); }
 TEST_F(FileTest, CBufferType) { runFileTest("type.cbuffer.hlsl"); }
+TEST_F(FileTest, BufferType) { runFileTest("type.buffer.hlsl"); }
 
 // For constants
 TEST_F(FileTest, ScalarConstants) { runFileTest("constant.scalar.hlsl"); }
