@@ -94,5 +94,4 @@ RWBuffer<float4> float4rwbuf;
 // CHECK: %float3rwbuf = OpVariable %_ptr_UniformConstant_type_buffer_image_16 UniformConstant
 // CHECK: %float4rwbuf = OpVariable %_ptr_UniformConstant_type_buffer_image_16 UniformConstant
 
-[numthreads(1, 1, 1)]
 void main() {}
