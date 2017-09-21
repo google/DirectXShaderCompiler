@@ -27,6 +27,10 @@ test_script:
 - cmd: >-
     %HLSL_BLD_DIR%\%CONFIGURATION%\bin\clang-spirv-tests.exe --spirv-test-root %HLSL_SRC_DIR%\tools\clang\test\CodeGenSPIRV
 
+artifacts:
+- path: $(configuration)\bin\*.dll
+- path: $(configuration)\bin\*.exe
+
 notifications:
 - provider: GitHubPullRequest
   on_build_success: true
