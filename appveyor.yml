@@ -5,31 +5,29 @@ configuration: Debug
 clone_folder: c:\projects\DirectXShaderCompiler
 environment:
   HLSL_SRC_DIR: c:\projects\DirectXShaderCompiler
-  HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler.bin
+  HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
 install:
 - ps: c:\projects\DirectXShaderCompiler\utils\appveyor\appveyor_setup.ps1
 - git submodule update --init --recursive
 build_script:
 - cmd: >-
     cd %HLSL_SRC_DIR%
-
     call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
-
     call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -vs2017 -spirvtest
 test_script:
 - cmd: >-
     cd %HLSL_SRC_DIR%
-
     call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
-
     powershell utils\appveyor\appveyor_test.ps1
 # Running SPIR-V tests
 - cmd: >-
-    %HLSL_BLD_DIR%\%CONFIGURATION%\bin\clang-spirv-tests.exe --spirv-test-root %HLSL_SRC_DIR%\tools\clang\test\CodeGenSPIRV
-
+    cd %HLSL_SRC_DIR%
+    call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
+    call utils\hct\hcttest spirv_only
+    
 artifacts:
-- path: ..\DirectXShaderCompiler.bin\$(configuration)\bin\*.dll
-- path: ..\DirectXShaderCompiler.bin\$(configuration)\bin\*.exe
+- path: build\$(configuration)\bin\*.dll
+- path: build\$(configuration)\bin\*.exe
 
 notifications:
 - provider: GitHubPullRequest
