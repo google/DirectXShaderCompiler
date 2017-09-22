@@ -28,8 +28,8 @@ test_script:
     %HLSL_BLD_DIR%\%CONFIGURATION%\bin\clang-spirv-tests.exe --spirv-test-root %HLSL_SRC_DIR%\tools\clang\test\CodeGenSPIRV
 
 artifacts:
-- path: $(HLSL_BLD_DIR)\$(configuration)\bin\*.dll
-- path: $(HLSL_BLD_DIR)\$(configuration)\bin\*.exe
+- path: ..\DirectXShaderCompiler.bin\$(configuration)\bin\*.dll
+- path: ..\DirectXShaderCompiler.bin\$(configuration)\bin\*.exe
 
 notifications:
 - provider: GitHubPullRequest
