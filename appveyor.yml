@@ -1,25 +1,32 @@
 version: 1.0.{build}
 
-image: Visual Studio 2017
+image:
+# Turn off the Windows buildbot until build failures are fixed.
+#- Visual Studio 2017
+- Ubuntu
+
 platform: x64
 configuration: Release
 
-clone_folder: c:\projects\DirectXShaderCompiler
 clone_depth: 1
 
 environment:
-  HLSL_SRC_DIR: c:\projects\DirectXShaderCompiler
-  HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
   ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
+  APPVEYOR_YML_DISABLE_PS_LINUX: true
 
 install:
-- cmd: git submodule update --init
+- sh: sudo apt-get install ninja-build
+- sh: sudo apt-get install clang -y
+- git submodule update --init
 
 before_build:
-- cmd: call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
+- cmd: call utils\hct\hctstart %CD% %CD%\build
+- sh: mkdir build
+- sh: utils/linuxBuild.py --profile Release -GNinja --cc clang --cxx clang++ . ./build
 
 build_script:
 - cmd: call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -vs2017 -spirvtest
+- sh: cd build && ninja dxc
 
 test_script:
 - ps:  utils\appveyor\appveyor_test.ps1
@@ -30,8 +37,15 @@ after_test:
 - cmd: echo %APPVEYOR_REPO_COMMIT% > GIT-COMMIT.txt
 - cmd: 7z a %ARTIFACTS_ZIP_NAME% d*.exe d*.dll HLSLHost.exe GIT-COMMIT.txt
 
-artifacts:
-- path: build\$(configuration)\bin\$(ARTIFACTS_ZIP_NAME)
+# For the time being, generate artifacts only for Windows.
+for:
+-
+  matrix:
+    only:
+      - image: Visual Studio 2017
+
+  artifacts:
+  - path: build\$(configuration)\bin\$(ARTIFACTS_ZIP_NAME)
 
 notifications:
 - provider: GitHubPullRequest

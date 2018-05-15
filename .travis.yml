@@ -1,0 +1,42 @@
+# Linux Build Configuration for Travis
+
+language: cpp
+
+os:
+  - linux
+    #  - osx
+
+# Use Ubuntu 14.04 LTS (Trusty) as the Linux testing environment.
+sudo: required
+dist: trusty
+
+env:
+  - DXC_BUILD_TYPE=Release
+  - DXC_BUILD_TYPE=Debug
+
+compiler:
+  - clang
+  - gcc
+
+cache:
+  apt: true
+
+git:
+  depth: 1
+
+branches:
+  only:
+    - linux
+
+addons:
+  apt:
+    packages:
+      - ninja-build
+
+before_script:
+  - git submodule update --init
+
+script:
+  - mkdir build && cd build
+  - python ../utils/linuxBuild.py --profile ${DXC_BUILD_TYPE} -GNinja --cc ${CC} --cxx ${CXX} .. .
+  - ninja dxc
