@@ -28,7 +28,7 @@ protected:
     ::dlclose(handle);
   }
   HMODULE LoadLibraryW(LPCWSTR name) {
-    return ::dlopen(CW2A(name).c_str(), RTLD_LAZY);
+    return ::dlopen(CW2A(name).m_psz, RTLD_LAZY);
   }
   HMODULE GetProcAddress(HMODULE dll, LPCSTR fnName) {
     return ::dlsym(dll, fnName);

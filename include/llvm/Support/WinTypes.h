@@ -433,28 +433,69 @@ public:
 #define IsEqualIID(a, b) a==b
 #define IsEqualCLSID(a, b) !memcmp(&a, &b, sizeof(GUID))
 
-class CW2A {
-public:
-  CW2A(const wchar_t *wide, uint32_t utf = 0) {
-    (void)utf;
-    size_t len = wcslen(wide) + 1; // +1 for '\0'
-    m_psz = (char*) malloc(len * sizeof(char));
-    wcstombs(m_psz, wide, len);
-    m_psz[len-1] = '\0';
-  }
-  ~CW2A() {
-    free(m_psz);
-  }
-  const char* c_str() const { return m_psz; }
-  operator const char*() const { return m_psz; }
+template< int t_nBufferLength = 128 >
+class CW2AEX
+{
+  public:
+  CW2AEX( LPCWSTR psz , UINT nCodePage = CP_UTF8)
+  {
+    if (nCodePage != CP_UTF8) {
+      // you have reached the limits of this half-assed implementation. So sorry.
+      m_psz = NULL;
+      return;
+    }
 
-public:
+    if (!psz) {
+      m_psz = NULL;
+      return;
+    }
+
+    int len = wcslen(psz)*4;
+    m_psz = new char[len];
+    std::wcstombs(m_psz, psz, len);
+  }
+
+  ~CW2AEX() { delete [] m_psz; }
+
+  operator LPSTR() const { return m_psz; }
+
   char *m_psz;
+  char m_szBuffer[t_nBufferLength]; // dunno what this is for
 
-private:
-  CW2A operator=(const CW2A&) = delete;
-  CW2A(const CW2A&) = delete;
 };
+typedef CW2AEX<> CW2A;
+
+template< int t_nBufferLength = 128 >
+class CA2WEX
+{
+  public:
+  CA2WEX( LPCSTR psz, UINT nCodePage = CP_UTF8 )
+  {
+    if (nCodePage != CP_UTF8) {
+      // you have reached the limits of this half-assed implementation. So sorry.
+      m_psz = NULL;
+      return;
+    }
+
+    if (!psz) {
+      m_psz = NULL;
+      return;
+    }
+
+    int len = strlen(psz) + 1;
+    m_psz = new wchar_t[len];
+    std::mbstowcs(m_psz, psz, len);
+  }
+
+  ~CA2WEX() { delete [] m_psz; }
+
+  operator LPWSTR() const { return m_psz; }
+
+  wchar_t *m_psz;
+  wchar_t m_szBuffer[t_nBufferLength];
+
+};
+typedef CA2WEX<> CA2W;
 
 template <class T, class Allocator = CAllocator>
 class CHeapPtrBase
