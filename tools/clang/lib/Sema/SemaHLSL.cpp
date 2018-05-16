@@ -2203,21 +2203,9 @@ private:
 
     _firstChecked = true;
 
-#ifdef LLVM_ON_WIN32 // SPIRV change
     // TODO: review this - this will allocate at least once per string
     CA2WEX<> typeName(_typeName.str().c_str(), CP_UTF8);
     CA2WEX<> functionName(_functionName.str().c_str(), CP_UTF8);
-// SPIRV change starts
-#else
-    // Need to use mbstowcs as we don'thave CA2WEX.
-    const char* typeNameUtf8 = _typeName.str().c_str();
-    const char* functionNameUtf8 = _functionName.str().c_str();
-    wchar_t typeName[80];
-    wchar_t functionName[80];
-    std::mbstowcs(typeName, typeNameUtf8, strlen(typeNameUtf8) + 1);
-    std::mbstowcs(functionName, functionNameUtf8, strlen(functionNameUtf8) + 1);
-#endif
-// SPIRV change ends
 
     if (FAILED(_tables[_tableIndex]->LookupIntrinsic(
             typeName, functionName, &_tableIntrinsic, &_tableLookupCookie))) {
@@ -3490,17 +3478,8 @@ public:
       const HLSL_INTRINSIC *pIntrinsic = nullptr;
       const HLSL_INTRINSIC *pPrior = nullptr;
       UINT64 lookupCookie = 0;
-#ifdef LLVM_ON_WIN32 // SPIRV change
       CA2W wideTypeName(typeName);
       HRESULT found = table->LookupIntrinsic(wideTypeName, L"*", &pIntrinsic, &lookupCookie);
-// SPIRV change starts
-#else
-      // Need to use mbstowcs as we don'thave CA2WEX.
-      wchar_t wideTypeName[80];
-      std::mbstowcs(wideTypeName, typeName, strlen(typeName) + 1);
-      HRESULT found = table->LookupIntrinsic(wideTypeName, L"*", &pIntrinsic, &lookupCookie);
-#endif
-// SPIRV change ends
       while (pIntrinsic != nullptr && SUCCEEDED(found)) {
         if (!AreIntrinsicTemplatesEquivalent(pIntrinsic, pPrior)) {
           AddObjectIntrinsicTemplate(recordDecl, startDepth, pIntrinsic);

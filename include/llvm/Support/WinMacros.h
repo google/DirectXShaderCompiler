@@ -111,7 +111,7 @@
 #define vsprintf_s vsprintf
 #define strcat_s strcat
 
-#define OutputDebugStringW(msg) fprintf(stdout, CW2A(msg).c_str())
+#define OutputDebugStringW(msg) fprintf(stdout, CW2A(msg).m_psz)
 #define OutputDebugFormatA(...) fprintf(stdout, __VA_ARGS__)
 
 // Note: This will *disable* the CRITICAL_SECTION structures in the code.
