@@ -16,7 +16,7 @@ env:
 
 compiler:
   - clang
-  - gcc
+    #  - gcc
 
 cache:
   apt: true
@@ -40,3 +40,6 @@ script:
   - mkdir build && cd build
   - python ../utils/linuxBuild.py --profile ${DXC_BUILD_TYPE} -GNinja --cc ${CC} --cxx ${CXX} .. .
   - ninja dxc
+  - ./bin/dxc --help
+  - ./bin/dxc -T ps_6_0 ../tools/clang/test/CodeGenSPIRV/passthru-ps.hlsl2spv
+  - ./bin/dxc -T ps_6_0 ../tools/clang/test/CodeGenSPIRV/passthru-ps.hlsl2spv -spirv

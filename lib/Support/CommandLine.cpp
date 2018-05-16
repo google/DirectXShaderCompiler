@@ -123,9 +123,11 @@ public:
     if (O->ArgStr[0]) {
       // Add argument to the argument map!
       if (!OptionsMap.insert(std::make_pair(O->ArgStr, O)).second) {
+        /*
         errs() << ProgramName << ": CommandLine Error: Option '" << O->ArgStr
                << "' registered more than once!\n";
         HadErrors = true;
+        */
       }
     }
 
