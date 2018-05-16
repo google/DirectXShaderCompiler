@@ -118,7 +118,7 @@ void WriteBlobToFile(_In_opt_ IDxcBlob *pBlob, _In_ LPCWSTR pFileName) {
     IFT_Data(HRESULT_FROM_WIN32(GetLastError()), pFileName);
   }
   #else
-  std::ofstream outputFile (CW2A(pFileName).c_str(), std::ios::out | std::ios::binary);
+  std::ofstream outputFile (CW2A(pFileName).m_psz, std::ios::out | std::ios::binary);
   void *file = static_cast<void*>(&outputFile);
   #endif
   WriteBlobToHandle(pBlob, file, pFileName);

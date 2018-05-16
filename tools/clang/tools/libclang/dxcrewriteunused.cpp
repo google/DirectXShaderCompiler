@@ -699,7 +699,7 @@ public:
       defineStr += "#define ";
       defineStr += utf8Name;
       defineStr += " ";
-      defineStr += utf8Value ? utf8Value : "1";
+      defineStr += utf8Value ? utf8Value.m_psz : "1";
       defineStr += "\n";
     }
 
