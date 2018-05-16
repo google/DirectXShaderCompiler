@@ -483,8 +483,6 @@ void RootSignatureVerifier::AddRegisterRange(unsigned iRP,
   if (!m_bAllowReservedRegisterSpace &&
        (RegisterSpace >= DxilSystemReservedRegisterSpaceValuesStart) &&
        (RegisterSpace <= DxilSystemReservedRegisterSpaceValuesEnd)) {
-    // TODO(ehsann): Looks like llvm::DiagnosticPrinter does not play well with std::hex.
-    /*
     if (nt == DESCRIPTOR_TABLE_ENTRY) {
       EAT(DiagPrinter << "Root parameter [" << iRP << "] descriptor table entry [" << iDTS
                       << "] specifies RegisterSpace=" << std::hex << RegisterSpace
@@ -501,7 +499,6 @@ void RootSignatureVerifier::AddRegisterRange(unsigned iRP,
                       << "," << std::hex << DxilSystemReservedRegisterSpaceValuesEnd
                       << "] are reserved for system use.\n");
     }
-    */
   }
 
   const RegisterRange *pNode = nullptr;
@@ -634,11 +631,8 @@ void RootSignatureVerifier::VerifyRootSignature(
 
   // Flags (assume they are bits that can be combined with OR).
   if ((pRootSignature->Flags & ~DxilRootSignatureFlags::ValidFlags) != DxilRootSignatureFlags::None) {
-    // TODO(ehsann): Looks like llvm::DiagnosticPrinter does not play well with std::hex.
-    /*
     EAT(DiagPrinter << "Unsupported bit-flag set (root signature flags " 
                     << std::hex << (uint32_t)pRootSignature->Flags << ").\n");
-                    */
   }
 
   m_RootSignatureFlags = pRootSignature->Flags;
