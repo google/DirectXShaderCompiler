@@ -10,7 +10,7 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 
 #include "dxc/Support/WinIncludes.h"
 #include <fcntl.h>

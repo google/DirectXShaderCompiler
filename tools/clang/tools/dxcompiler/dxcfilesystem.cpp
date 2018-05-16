@@ -39,7 +39,7 @@ namespace {
 #endif
 #endif
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #ifdef DBG
 
 // This should be improved with global enabled mask rather than a compile-time mask.
@@ -59,10 +59,10 @@ namespace {
 #define DXTRACE_FMT_APIFS(...)
 
 #endif // DBG
-#else  // LLVM_ON_WIN32
+#else  // _WIN32
 #define DXTRACE_FMT_APIFS(...)
 #define OutputDebugStringA(...);
-#endif // LLVM_ON_WIN32
+#endif // _WIN32
 
 
 
@@ -146,7 +146,7 @@ bool IsAbsoluteOrCurDirRelativeW(LPCWSTR Path) {
     return Path[1] == L'\\';
   }
 
-  #ifndef LLVM_ON_WIN32
+  #ifndef _WIN32
   // Absolute paths on unix systems start with '/'
   if (Path[0] == L'/') {
     return TRUE;

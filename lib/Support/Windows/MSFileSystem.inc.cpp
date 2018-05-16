@@ -14,7 +14,7 @@
 #define NOMINMAX
 #include "WindowsSupport.h"
 #include <fcntl.h>
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include <io.h>
 #endif
 #include <sys/stat.h>

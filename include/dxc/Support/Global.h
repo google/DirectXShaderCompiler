@@ -127,7 +127,7 @@ template<typename T> T *VerifyNullAndThrow(T *p) {
 }
 #define VNT(__p) VerifyNullAndThrow(__p)
 
-#ifdef LLVM_ON_WIN32
+#ifdef _MSC_VER
 
 extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(_In_opt_ const char *msg);
 
@@ -178,7 +178,7 @@ inline void OutputDebugFormatA(_In_ _Printf_format_string_ _Null_terminated_ con
 
 #ifdef DBG
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 
 // DXASSERT is used to debug break when 'exp' evaluates to false and is only
 //     intended for internal developer use. It is compiled out in free

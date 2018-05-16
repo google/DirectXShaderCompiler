@@ -13,7 +13,7 @@
 
 #include <string>
 
-#ifdef LLVM_ON_WIN32
+#ifdef _MSC_VER
 #include <specstrings.h>
 #else
 // Since several functions rely on MultiByteToWideChar which is a

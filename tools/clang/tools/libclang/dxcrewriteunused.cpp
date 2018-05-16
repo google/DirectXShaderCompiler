@@ -97,7 +97,7 @@ public:
 
 static void raw_string_ostream_to_CoString(raw_string_ostream &o, _Outptr_result_z_ LPSTR *pResult) {
   std::string& s = o.str(); // .str() will flush automatically
-  #ifdef LLVM_ON_WIN32
+  #ifdef _WIN32
   *pResult = (LPSTR)CoTaskMemAlloc(s.size() + 1);
   #else
   *pResult = (LPSTR)malloc(s.size() + 1);

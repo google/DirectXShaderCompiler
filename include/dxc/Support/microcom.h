@@ -43,7 +43,7 @@ public:
       m_length = 0;
     }
     if (m_pData) {
-      #ifdef LLVM_ON_WIN32
+      #ifdef _WIN32
       CoTaskMemFree(m_pData);
       #else
       free(m_pData);
@@ -53,7 +53,7 @@ public:
   }
   HRESULT alloc(unsigned count) {
     clear();
-    #ifdef LLVM_ON_WIN32
+    #ifdef _WIN32
     m_pData = (TIface**)CoTaskMemAlloc(sizeof(TIface*) * count);
     #else
     m_pData = malloc(sizeof(TIface*) * count);

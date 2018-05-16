@@ -22,7 +22,7 @@
 #include "llvm/Transforms/Utils/Local.h"
 #include <deque>
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include <winerror.h>
 #endif
 

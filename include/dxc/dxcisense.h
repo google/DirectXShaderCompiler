@@ -765,7 +765,7 @@ IDxcUnsavedFile : public IUnknown
 // CLSID_DxcIntelliSense is not visible externally (this is OK in C, since const is
 // not by default static in C)
 
-#ifdef LLVM_ON_WIN32
+#ifdef _MSC_VER
 #define EXTERN extern
 #else
 #define EXTERN

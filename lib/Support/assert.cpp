@@ -9,7 +9,7 @@
 
 #include "assert.h"
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 
 #include "windows.h"
 #include "dxc/Support/Global.h"

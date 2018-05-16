@@ -25,7 +25,7 @@ static void TrimEOL(_Inout_z_ char *pMsg) {
   pEnd[1] = '\0';
 }
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 static std::string GetWin32ErrorMessage(DWORD err) {
   char formattedMsg[200];
   DWORD formattedMsgLen =
@@ -41,7 +41,7 @@ static std::string GetWin32ErrorMessage(DWORD err) {
 
 void IFT_Data(HRESULT hr, LPCWSTR data) {
   if (SUCCEEDED(hr)) return;
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
   CW2A pData(data, CP_UTF8);
   std::string errMsg;
   if (HRESULT_IS_WIN32ERR(hr)) {
@@ -111,7 +111,7 @@ void WriteBlobToFile(_In_opt_ IDxcBlob *pBlob, _In_ LPCWSTR pFileName) {
   if (pBlob == nullptr) {
     return;
   }
-  #ifdef LLVM_ON_WIN32
+  #ifdef _WIN32
   CHandle file(CreateFile2(pFileName, GENERIC_WRITE, FILE_SHARE_READ,
                            CREATE_ALWAYS, nullptr));
   if (file == INVALID_HANDLE_VALUE) {
@@ -129,7 +129,7 @@ void WriteBlobToHandle(_In_opt_ IDxcBlob *pBlob, _In_ HANDLE hFile, _In_opt_ LPC
     return;
   }
 
-  #ifdef LLVM_ON_WIN32
+  #ifdef _WIN32
   DWORD written;
   if (FALSE == WriteFile(hFile, pBlob->GetBufferPointer(),
     pBlob->GetBufferSize(), &written, nullptr)) {
@@ -178,7 +178,7 @@ void WriteUtf8ToConsoleSizeT(_In_opt_count_(charCount) const char *pText,
   }
 
   int charCountInt = 0;
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
   IFT(SizeTToInt(charCount, &charCountInt));
 #else
   if(charCount <= INT_MAX)

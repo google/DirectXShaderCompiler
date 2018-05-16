@@ -17,7 +17,7 @@
 #define DXC_API_IMPORT __declspec(dllimport)
 #endif
 
-#ifndef LLVM_ON_WIN32
+#ifndef _WIN32
 #include <dlfcn.h>
 #include "llvm/Support/WinMacros.h"
 #include "llvm/Support/WinSAL.h"
@@ -74,8 +74,9 @@ typedef HRESULT(__stdcall *DxcCreateInstance2Proc)(
 /// <remarks>
 /// While this function is similar to CoCreateInstance, there is no COM involvement.
 /// </remarks>
-#ifndef LLVM_ON_WIN32
-extern "C" {
+
+#ifndef _MSC_VER
+extern "C"
 #endif
 DXC_API_IMPORT HRESULT __stdcall DxcCreateInstance(
   _In_ REFCLSID   rclsid,
@@ -83,15 +84,15 @@ DXC_API_IMPORT HRESULT __stdcall DxcCreateInstance(
   _Out_ LPVOID*   ppv
   );
 
+#ifndef _MSC_VER
+extern "C"
+#endif
 DXC_API_IMPORT HRESULT __stdcall DxcCreateInstance2(
   _In_ IMalloc    *pMalloc,
   _In_ REFCLSID   rclsid,
   _In_ REFIID     riid,
   _Out_ LPVOID*   ppv
 );
-#ifndef LLVM_ON_WIN32
-}
-#endif
 
 
 // IDxcBlob is an alias of ID3D10Blob and ID3DBlob
@@ -309,7 +310,7 @@ IDxcVersionInfo : public IUnknown {
 
 // Note: __declspec(selectany) requires 'extern'
 // On Linux __declspec(selectany) is removed and using 'extern' results in link error.
-#ifdef LLVM_ON_WIN32
+#ifdef _MSC_VER
 #define EXTERN extern
 #else
 #define EXTERN

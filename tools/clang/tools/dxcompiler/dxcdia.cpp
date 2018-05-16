@@ -26,7 +26,7 @@
 #include "dxc/HLSL/DxilModule.h"
 #include "dxc/HLSL/DxilUtil.h"
 #include "dxc/Support/Global.h"
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include "dia2.h"
 #endif
 
@@ -41,7 +41,7 @@
 #include "dxc/Support/dxcapi.impl.h"
 #include <algorithm>
 #include <array>
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include <comdef.h>
 #endif
 #include "dxcutil.h"

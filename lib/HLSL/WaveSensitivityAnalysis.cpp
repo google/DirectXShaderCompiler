@@ -31,7 +31,7 @@
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/DiagnosticPrinter.h"
 #include "llvm/ADT/BitVector.h"
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include <winerror.h>
 #endif
 #include "llvm/Support/raw_ostream.h"

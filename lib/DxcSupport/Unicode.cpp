@@ -10,7 +10,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include <specstrings.h>
 #endif
 #include <string>
@@ -19,7 +19,7 @@
 #include "dxc/Support/WinIncludes.h"
 #include "llvm/Support/WinMacros.h"
 
-#ifndef LLVM_ON_WIN32
+#ifndef _WIN32
 // Since several functions rely on MultiByteToWideChar which is a
 // Windows-specific method, here is a *very* simplistic implementation
 // which completely ignores CodePage and dwFlags.

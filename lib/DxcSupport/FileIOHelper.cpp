@@ -19,14 +19,14 @@
 #include <algorithm>
 #include <memory>
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include <intsafe.h>
 #endif
 
 #define CP_UTF16 1200
 
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 struct HeapMalloc : public IMalloc {
 public:
   ULONG STDMETHODCALLTYPE AddRef() {
@@ -95,7 +95,7 @@ IMalloc *GetGlobalHeapMalloc() throw() {
 _Use_decl_annotations_
 void ReadBinaryFile(IMalloc *pMalloc, LPCWSTR pFileName, void **ppData,
                     DWORD *pDataSize) {
-  #ifdef LLVM_ON_WIN32
+  #ifdef _WIN32
   HANDLE hFile = CreateFileW(pFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (hFile == INVALID_HANDLE_VALUE) {
@@ -157,7 +157,7 @@ void ReadBinaryFile(IMalloc *pMalloc, LPCWSTR pFileName, void **ppData,
   *ppData = pData;
   *pDataSize = FileSize;
 
-  #endif // LLVM_ON_WIN32
+  #endif // _WIN32
 }
 
 _Use_decl_annotations_
@@ -167,7 +167,7 @@ void ReadBinaryFile(LPCWSTR pFileName, void **ppData, DWORD *pDataSize) {
 
 _Use_decl_annotations_
 void WriteBinaryFile(LPCWSTR pFileName, const void *pData, DWORD DataSize) {
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
   HANDLE hFile = CreateFileW(pFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
   if(hFile == INVALID_HANDLE_VALUE) {
     IFT(HRESULT_FROM_WIN32(GetLastError()));
@@ -310,7 +310,7 @@ public:
     return m_BufferSize;
   }
   virtual HRESULT STDMETHODCALLTYPE GetEncoding(_Out_ BOOL *pKnown, _Out_ UINT32 *pCodePage) {
-    #ifdef LLVM_ON_WIN32
+    #ifdef _WIN32
     *pKnown = m_EncodingKnown ? TRUE : FALSE;
     *pCodePage = m_CodePage;
     #else

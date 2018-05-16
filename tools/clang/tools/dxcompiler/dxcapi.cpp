@@ -16,7 +16,7 @@
 #include "dxc/dxcisense.h"
 #include "dxc/dxctools.h"
 #include "dxc/Support/Global.h"
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include "dxcetw.h"
 #endif
 #include "dxillib.h"
@@ -75,7 +75,7 @@ static HRESULT ThreadMallocDxcCreateInstance(
     hr = CreateDxcOptimizer(riid, ppv);
   }
 // Note: The following targets are not yet enabled for non-Windows platforms.
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
   else if (IsEqualCLSID(rclsid, CLSID_DxcIntelliSense)) {
     hr = CreateDxcIntelliSense(riid, ppv);
   }

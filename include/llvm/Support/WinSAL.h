@@ -1,7 +1,7 @@
 #ifndef LLVM_SUPPORT_WIN_SAL_H
 #define LLVM_SUPPORT_WIN_SAL_H
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 
 #define _In_
 #define _In_z_

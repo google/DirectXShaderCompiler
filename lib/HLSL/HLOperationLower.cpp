@@ -27,10 +27,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-
-#ifndef LLVM_ON_WIN32
 #include "llvm/Support/WinMacros.h"
-#endif
 
 using namespace llvm;
 using namespace hlsl;

@@ -415,7 +415,7 @@ static HRESULT Utf8ToUtf16CoTaskMalloc(LPCSTR pValue, LPWSTR *ppResult) {
   if (ppResult == nullptr)
     return E_POINTER;
   int count = MultiByteToWideChar(CP_UTF8, 0, pValue, -1, nullptr, 0);
-  #ifdef LLVM_ON_WIN32
+  #ifdef _WIN32
   *ppResult = (wchar_t*)CoTaskMemAlloc(sizeof(wchar_t) * count);
   #else
   *ppResult = (wchar_t*)malloc(sizeof(wchar_t) * count);

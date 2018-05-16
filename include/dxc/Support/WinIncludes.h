@@ -10,7 +10,7 @@
 
 #pragma once
 
-#ifdef LLVM_ON_WIN32 // SPIRV change
+#ifdef _MSC_VER
 
 #define NOATOM 1
 #define NOGDICAPMASKS 1
@@ -48,8 +48,7 @@ template <class T> void swap(CComHeapPtr<T> &a, CComHeapPtr<T> &b) {
   b.m_pData = c;
 }
 
-// SPIRV change starts
-#else // LLVM_ON_WIN32
+#else // _MSC_VER
 
 #include "llvm/Support/WinTypes.h"
 #include "llvm/Support/WinResults.h"
@@ -102,5 +101,4 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) { return (ENUMTYPE &)(((_
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE) // NOP, C allows these operators.
 #endif
 
-#endif // LLVM_ON_WIN32
-// SPIRV change ends
+#endif // _MSC_VER

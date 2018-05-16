@@ -1,8 +1,7 @@
 version: 1.0.{build}
 
 image:
-# Turn off the Windows buildbot until build failures are fixed.
-#- Visual Studio 2017
+- Visual Studio 2017
 - Ubuntu
 
 platform: x64

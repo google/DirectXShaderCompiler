@@ -49,7 +49,7 @@ IDxcRewriter : public IUnknown {
 
 };
 
-#ifdef LLVM_ON_WIN32
+#ifdef _MSC_VER
 #define EXTERN extern
 #else
 #define EXTERN

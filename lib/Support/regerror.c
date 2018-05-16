@@ -108,7 +108,7 @@ llvm_regerror(int errcode, const llvm_regex_t *preg, _Out_writes_all_(errbuf_siz
 				assert(strlen(r->name) < sizeof(convbuf));
 				(void) llvm_strlcpy(convbuf, r->name, sizeof convbuf);
 			} else
-#ifndef LLVM_ON_WIN32
+#ifndef _WIN32
 				(void)snprintf(convbuf, sizeof convbuf,
 #else
 				(void)_snprintf_s(convbuf, _countof(convbuf), _countof(convbuf),
@@ -144,7 +144,7 @@ regatoi(
 	if (r->code == 0)
 		return("0");
 
-#ifndef LLVM_ON_WIN32
+#ifndef _WIN32
 	(void)snprintf(localbuf, localbufsize, "%d", r->code);
 #else
 	(void)_snprintf_s(localbuf, localbufsize, localbufsize, "%d", r->code);

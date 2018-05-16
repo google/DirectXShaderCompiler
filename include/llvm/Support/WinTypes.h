@@ -1,7 +1,7 @@
 #ifndef LLVM_SUPPORT_WINDTYPES_H
 #define LLVM_SUPPORT_WINDTYPES_H
 
-#ifndef LLVM_ON_WIN32
+#ifndef _WIN32
 
 #include <atomic>
 #include <vector>
@@ -610,6 +610,6 @@ static int _stricmp(const char* str1, const char* str2) {
   return str1[i] - str2[i];
 }
 
-#endif // LLVM_ON_WIN32
+#endif // _WIN32
 
 #endif // LLVM_SUPPORT_WINTYPES_H

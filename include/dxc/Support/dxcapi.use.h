@@ -23,7 +23,7 @@ protected:
   DxcCreateInstanceProc m_createFn;
   DxcCreateInstance2Proc m_createFn2;
 
-  #ifndef LLVM_ON_WIN32
+  #ifndef _WIN32
   void FreeLibrary(void* handle) {
     ::dlclose(handle);
   }
@@ -77,7 +77,7 @@ public:
   }
 
   HRESULT Initialize() {
-    #ifdef LLVM_ON_WIN32
+    #ifdef _WIN32
     return InitializeInternal(L"dxcompiler.dll", "DxcCreateInstance");
     #else
     return InitializeInternal(L"libdxcompiler.so", "DxcCreateInstance");

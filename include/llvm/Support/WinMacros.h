@@ -1,7 +1,7 @@
 #ifndef LLVM_SUPPORT_WINMACROS_H
 #define LLVM_SUPPORT_WINMACROS_H
 
-#ifndef LLVM_ON_WIN32
+#ifndef _WIN32
 
 #define C_ASSERT(expr) static_assert((expr), "")
 #define ATLASSERT assert
@@ -138,6 +138,6 @@
 #define UInt32Add     UIntAdd
 #define Int32ToUInt32 IntToUInt
 
-#endif // LLVM_ON_WIN32
+#endif // _WIN32
 
 #endif // LLVM_SUPPORT_WINMACROS_H

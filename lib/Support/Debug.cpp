@@ -73,7 +73,7 @@ void setCurrentDebugType(const char *Type) {
 // All Debug.h functionality is a no-op in NDEBUG mode.
 #ifndef NDEBUG
 
-#if LLVM_ON_WIN32 // HLSL Change Starts - redirect to OutputDebugString
+#if _MSC_VER // HLSL Change Starts - redirect to OutputDebugString
 namespace llvm {
   raw_ostream &dbgs() {
     struct ods_ostream : public llvm::raw_ostream {
