@@ -1,6 +1,12 @@
 #ifndef LLVM_SUPPORT_WINRESULTS_H
 #define LLVM_SUPPORT_WINRESULTS_H
 
+// On Windows, the following result codes are defined
+// in various Win-specific headers.
+#ifndef _WIN32
+
+typedef signed int HRESULT;
+
 #define S_OK 0x00000000
 #define E_ABORT 0x80004004
 #define E_ACCESSDENIED 0x80070005
@@ -13,12 +19,10 @@
 #define E_POINTER 0x80004003
 #define E_UNEXPECTED 0x8000FFFF
 
-#ifndef _HRESULT_DEFINED
-#define _HRESULT_DEFINED
-typedef long HRESULT;
-#endif
-
 #define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
 #define FAILED(hr) (((HRESULT)(hr)) < 0)
+#define DXC_FAILED(hr) (((HRESULT)(hr)) < 0)
+
+#endif // Non-Win32
 
 #endif // LLVM_SUPPORT_WINRESULTS_H

@@ -11,6 +11,7 @@
 #pragma once
 
 #include "dxc/Support/ErrorCodes.h"
+#include "llvm/Support/WinResults.h"
 #include <exception>
 #include <string>
 

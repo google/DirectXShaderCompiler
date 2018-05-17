@@ -11,6 +11,7 @@
 
 #pragma once
 
+#ifdef _WIN32
 // Redeclare some macros to not depend on winerror.h
 #define DXC_FAILED(hr) (((HRESULT)(hr)) < 0)
 #ifndef _HRESULT_DEFINED
@@ -21,9 +22,11 @@ typedef long HRESULT;
 typedef _Return_type_success_(return >= 0) long HRESULT;
 #endif // _Return_type_success_
 #endif // !_HRESULT_DEFINED
+#endif // _WIN32
 
 #include <stdarg.h>
 #include "dxc/Support/exception.h"
+#include "llvm/Support/WinResults.h"
 #include "llvm/Support/WinSAL.h"
 
 ///////////////////////////////////////////////////////////////////////////////

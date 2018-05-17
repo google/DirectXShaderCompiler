@@ -47,7 +47,7 @@ script:
       -DSPIRV_BUILD_TESTS=ON
       -DCMAKE_BUILD_TYPE=${DXC_BUILD_TYPE}
       -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}
-  - ninja dxc
+  - ninja dxc && ninja clang-spirv-tests
   - ./bin/dxc --help
   - ./bin/dxc -T ps_6_0 ../tools/clang/test/CodeGenSPIRV/passthru-ps.hlsl2spv
-  - ./bin/dxc -T ps_6_0 ../tools/clang/test/CodeGenSPIRV/passthru-ps.hlsl2spv -spirv
+  - ./bin/clang-spirv-tests --spirv-test-root ../tools/clang/test/CodeGenSPIRV/

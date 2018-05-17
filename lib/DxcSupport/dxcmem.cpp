@@ -71,14 +71,14 @@ void DxcCleanupThreadMalloc() throw() {
     g_pDefaultMalloc = nullptr;
   }
   #else
-  if (tlsMalloc) {
+  if (tlsMalloc)
     delete tlsMalloc;
-    DXASSERT(g_pDefaultMalloc, "else DxcInitThreadMalloc didn't work/fail atomically");
+  if (g_pDefaultMalloc) {
     g_pDefaultMalloc->Release();
     delete g_pDefaultMalloc;
-    tlsMalloc = nullptr;
-    g_pDefaultMalloc = nullptr;
   }
+  tlsMalloc = nullptr;
+  g_pDefaultMalloc = nullptr;
   #endif
 }
 
