@@ -3662,10 +3662,10 @@ struct PointerStatus {
         AccessingFunction(nullptr), HasMultipleAccessingFunctions(false),
         Size(size) {}
   void MarkAsStored() {
-    StoredType = PointerStatus::StoredType::Stored;
+    StoredType = StoredType::Stored;
     StoredOnceValue = nullptr;
   }
-  void MarkAsLoaded() { LoadedType = PointerStatus::LoadedType::Loaded; }
+  void MarkAsLoaded() { LoadedType = LoadedType::Loaded; }
 };
 
 void PointerStatus::analyzePointer(const Value *V, PointerStatus &PS,
@@ -3696,8 +3696,8 @@ void PointerStatus::analyzePointer(const Value *V, PointerStatus &PS,
         }
         if (MC->getRawDest() == V) {
           if (bFullCopy &&
-              PS.StoredType == PointerStatus::StoredType::NotStored) {
-            PS.StoredType = PointerStatus::StoredType::MemcopyDestOnce;
+              PS.StoredType == StoredType::NotStored) {
+            PS.StoredType = StoredType::MemcopyDestOnce;
             PS.StoringMemcpy = MI;
           } else {
             PS.MarkAsStored();
@@ -3705,8 +3705,8 @@ void PointerStatus::analyzePointer(const Value *V, PointerStatus &PS,
           }
         } else if (MC->getRawSource() == V) {
           if (bFullCopy &&
-              PS.LoadedType == PointerStatus::LoadedType::NotLoaded) {
-            PS.LoadedType = PointerStatus::LoadedType::MemcopySrcOnce;
+              PS.LoadedType == LoadedType::NotLoaded) {
+            PS.LoadedType = LoadedType::MemcopySrcOnce;
             PS.LoadingMemcpy = MI;
           } else {
             PS.MarkAsLoaded();
@@ -3732,8 +3732,8 @@ void PointerStatus::analyzePointer(const Value *V, PointerStatus &PS,
     } else if (const StoreInst *SI = dyn_cast<StoreInst>(U)) {
       Value *V = SI->getOperand(0);
 
-      if (PS.StoredType == PointerStatus::StoredType::NotStored) {
-        PS.StoredType = PointerStatus::StoredType::StoredOnce;
+      if (PS.StoredType == StoredType::NotStored) {
+        PS.StoredType = StoredType::StoredOnce;
         PS.StoredOnceValue = V;
       } else {
         PS.MarkAsStored();

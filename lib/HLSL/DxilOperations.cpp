@@ -330,7 +330,7 @@ const char *OP::GetAtomicOpName(DXIL::AtomicBinOpCode OpCode) {
 
 OP::OpCodeClass OP::GetOpCodeClass(OpCode OpCode) {
   DXASSERT(0 <= (unsigned)OpCode && OpCode < OpCode::NumOpCodes, "otherwise caller passed OOB index");
-  return m_OpCodeProps[(unsigned)OpCode].OpCodeClass;
+  return m_OpCodeProps[(unsigned)OpCode].opCodeClass;
 }
 
 const char *OP::GetOpCodeClassName(OpCode OpCode) {
@@ -346,7 +346,7 @@ bool OP::IsOverloadLegal(OpCode OpCode, Type *pType) {
 
 bool OP::CheckOpCodeTable() {
   for (unsigned i = 0; i < (unsigned)OpCode::NumOpCodes; i++) {
-    if ((unsigned)m_OpCodeProps[i].OpCode != i)
+    if ((unsigned)m_OpCodeProps[i].opCode != i)
       return false;
   }
 
@@ -507,7 +507,7 @@ Function *OP::GetOpFunc(OpCode OpCode, Type *pOverloadType) {
   _Analysis_assume_(0 <= (unsigned)OpCode && OpCode < OpCode::NumOpCodes);
   DXASSERT(IsOverloadLegal(OpCode, pOverloadType), "otherwise the caller requested illegal operation overload (eg HLSL function with unsupported types for mapped intrinsic function)");
   unsigned TypeSlot = GetTypeSlot(pOverloadType);
-  OpCodeClass opClass = m_OpCodeProps[(unsigned)OpCode].OpCodeClass;
+  OpCodeClass opClass = m_OpCodeProps[(unsigned)OpCode].opCodeClass;
   Function *&F = m_OpCodeClassCache[(unsigned)opClass].pOverloads[TypeSlot];
   if (F != nullptr) {
     UpdateCache(opClass, TypeSlot, F);
@@ -800,7 +800,7 @@ Function *OP::GetOpFunc(OpCode OpCode, Type *pOverloadType) {
 llvm::ArrayRef<llvm::Function *> OP::GetOpFuncList(OpCode OpCode) const {
   DXASSERT(0 <= (unsigned)OpCode && OpCode < OpCode::NumOpCodes, "otherwise caller passed OOB OpCode");
   _Analysis_assume_(0 <= (unsigned)OpCode && OpCode < OpCode::NumOpCodes);
-  return m_OpCodeClassCache[(unsigned)m_OpCodeProps[(unsigned)OpCode].OpCodeClass].pOverloads;
+  return m_OpCodeClassCache[(unsigned)m_OpCodeProps[(unsigned)OpCode].opCodeClass].pOverloads;
 }
 
 void OP::RemoveFunction(Function *F) {

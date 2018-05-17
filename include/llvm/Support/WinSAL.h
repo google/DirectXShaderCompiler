@@ -88,6 +88,17 @@
 
 #define __debugbreak()
 
-#endif // _MSC_VER
+// GCC produces erros on calling convention attributes.
+#ifdef __GNUC__
+#define __cdecl
+#define __CRTDECL
+#define __stdcall
+#define __vectorcall
+#define __thiscall
+#define __fastcall
+#define __clrcall
+#endif
+
+#endif // _WIN32
 
 #endif // LLVM_SUPPORT_WIN_SAL_H

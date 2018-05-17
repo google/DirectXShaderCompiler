@@ -129,9 +129,9 @@ private:
 private:
   // Static properties.
   struct OpCodeProperty {
-    OpCode OpCode;
+    OpCode opCode;
     const char *pOpCodeName;
-    OpCodeClass OpCodeClass;
+    OpCodeClass opCodeClass;
     const char *pOpCodeClassName;
     bool bAllowOverload[kNumTypeOverloads];   // void, h,f,d, i1, i8,i16,i32,i64
     llvm::Attribute::AttrKind FuncAttr;

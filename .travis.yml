@@ -16,7 +16,7 @@ env:
 
 compiler:
   - clang
-    #  - gcc
+  - gcc
 
 cache:
   apt: true
@@ -30,11 +30,15 @@ branches:
 
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
       - ninja-build
+      - g++-6
 
 before_script:
   - git submodule update --init
+  - if [ ${CC} = gcc ]; then CC=gcc-6; CXX=g++-6; fi
 
 script:
   - mkdir build && cd build

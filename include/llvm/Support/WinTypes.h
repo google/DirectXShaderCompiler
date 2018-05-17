@@ -11,6 +11,7 @@
 #include <cassert>
 #include <climits>
 #include <fstream>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <typeinfo>

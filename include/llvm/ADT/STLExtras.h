@@ -18,6 +18,7 @@
 #define LLVM_ADT_STLEXTRAS_H
 
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/WinSAL.h"
 #include <algorithm> // for std::all_of
 #include <cassert>
 #include <cstddef> // for std::size_t

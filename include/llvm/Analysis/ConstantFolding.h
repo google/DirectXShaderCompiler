@@ -20,6 +20,8 @@
 #ifndef LLVM_ANALYSIS_CONSTANTFOLDING_H
 #define LLVM_ANALYSIS_CONSTANTFOLDING_H
 
+#include "llvm/Support/WinSAL.h"
+
 namespace llvm {
   class Constant;
   class ConstantFP;
