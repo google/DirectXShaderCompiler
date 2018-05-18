@@ -210,7 +210,7 @@ inline void OutputDebugFormatA(_In_ _Printf_format_string_ _Null_terminated_ con
 #define DXASSERT(expr, msg) do { if (!(expr)) { assert(false && msg); } } while (0);
 #define DXASSERT_LOCALVAR(local, exp, msg) DXASSERT(exp, msg)
 #define DXVERIFY_NOMSG assert
-#define DXASSERT(expr, fmt, ...) do { if (!(expr)) { char msg[80]; sprintf(msg, fmt, ##__VA_ARGS__); assert(false && msg); } } while (0);
+#define DXASSERT(expr, fmt, ...) do { if (!(expr)) { fprintf(stderr, fmt, ##__VA_ARGS__); assert(false); } } while (0);
 #endif
 
 #else
