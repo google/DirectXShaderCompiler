@@ -377,6 +377,7 @@ elseif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
     # Colorize GCC output even with ninja's stdout redirection.
     if (CMAKE_COMPILER_IS_GNUCXX)
        append("-fdiagnostics-color" CMAKE_C_FLAGS CMAKE_CXX_FLAGS) # SPIRV Change
+       append("-std=c++11" CMAKE_CXX_FLAGS) # SPIRV Change
     endif (CMAKE_COMPILER_IS_GNUCXX)
 
     # Turn off missing field initializer warnings for gcc to avoid noise from
