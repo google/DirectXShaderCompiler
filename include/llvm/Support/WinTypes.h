@@ -289,8 +289,7 @@ struct IMalloc : public IUnknown {
   }
 };
 
-#define CoGetMalloc(dwMemContext, ppMalloc) \
-  (*ppMalloc = new IMalloc) && true
+HRESULT CoGetMalloc(DWORD dwMemContext, IMalloc **ppMalloc);
 
 // Stuff...
 typedef void *HANDLE;

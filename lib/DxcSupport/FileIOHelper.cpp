@@ -827,7 +827,7 @@ public:
   ULONG STDMETHODCALLTYPE Release() {
     // Because memory streams are also used by tests and utilities,
     // we avoid using TLS.
-    ULONG result = InterlockedDecrement(&m_dwRef); \
+    ULONG result = InterlockedDecrement(&m_dwRef);
     if (result == 0) {
       CComPtr<IMalloc> pTmp(m_pMalloc);
       this->~MemoryStream();

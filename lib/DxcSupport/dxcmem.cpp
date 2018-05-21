@@ -135,3 +135,11 @@ IMalloc *DxcSwapThreadMalloc(IMalloc *pMalloc, IMalloc **ppPrior) throw() {
 IMalloc *DxcSwapThreadMallocOrDefault(IMalloc *pMallocOrNull, IMalloc **ppPrior) throw() {
   return DxcSwapThreadMalloc(pMallocOrNull ? pMallocOrNull : g_pDefaultMalloc, ppPrior);
 }
+
+#ifndef _WIN32
+HRESULT CoGetMalloc(DWORD dwMemContext, IMalloc **ppMalloc) {
+  *ppMalloc = new IMalloc;
+  (*ppMalloc)->AddRef();
+  return S_OK;
+}
+#endif

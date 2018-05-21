@@ -22,8 +22,8 @@
 
 
 // TODO (ehsann): These are not atomic.
-#define InterlockedIncrement(x) *x+1
-#define InterlockedDecrement(x) *x-1
+#define InterlockedIncrement(x) ++*x
+#define InterlockedDecrement(x) --*x
 
 #define UNREFERENCED_PARAMETER(P) (P)
 
