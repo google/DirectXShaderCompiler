@@ -21,10 +21,6 @@
 #define STDMETHODIMP_(type)     type STDMETHODCALLTYPE
 
 
-// TODO (ehsann): These are not atomic.
-#define InterlockedIncrement(x) ++*x
-#define InterlockedDecrement(x) --*x
-
 #define UNREFERENCED_PARAMETER(P) (P)
 
 #define RtlEqualMemory(Destination,Source,Length) (!memcmp((Destination),(Source),(Length)))

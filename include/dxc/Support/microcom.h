@@ -12,6 +12,8 @@
 #ifndef __DXC_MICROCOM__
 #define __DXC_MICROCOM__
 
+#include "llvm/Support/Atomic.h"
+
 template <typename TIface>
 class CComInterfaceArray {
 private:
@@ -81,15 +83,15 @@ public:
   }
 };
 
-#define DXC_MICROCOM_REF_FIELD(m_dwRef) volatile ULONG m_dwRef = 0;
+#define DXC_MICROCOM_REF_FIELD(m_dwRef) volatile llvm::sys::cas_flag m_dwRef = 0;
 #define DXC_MICROCOM_ADDREF_IMPL(m_dwRef) \
     ULONG STDMETHODCALLTYPE AddRef() {\
-        return InterlockedIncrement(&m_dwRef); \
+        return (ULONG)llvm::sys::AtomicIncrement(&m_dwRef); \
     }
 #define DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef) \
     DXC_MICROCOM_ADDREF_IMPL(m_dwRef) \
     ULONG STDMETHODCALLTYPE Release() { \
-        ULONG result = InterlockedDecrement(&m_dwRef); \
+        ULONG result = (ULONG)llvm::sys::AtomicDecrement(&m_dwRef); \
         if (result == 0) delete this; \
         return result; \
     }
@@ -110,13 +112,13 @@ void DxcCallDestructor(T *obj) {
 // The "TM" version keep an IMalloc field that, if not null, indicate
 // ownership of 'this' and of any allocations used during release.
 #define DXC_MICROCOM_TM_REF_FIELDS()                                           \
-  volatile ULONG m_dwRef = 0;                                                  \
+  volatile llvm::sys::cas_flag m_dwRef = 0;                                    \
   CComPtr<IMalloc> m_pMalloc;
 
 #define DXC_MICROCOM_TM_ADDREF_RELEASE_IMPL()                                  \
   DXC_MICROCOM_ADDREF_IMPL(m_dwRef)                                            \
   ULONG STDMETHODCALLTYPE Release() {                                          \
-    ULONG result = InterlockedDecrement(&m_dwRef);                             \
+    ULONG result = (ULONG)llvm::sys::AtomicDecrement(&m_dwRef);                \
     if (result == 0) {                                                         \
       CComPtr<IMalloc> pTmp(m_pMalloc);                                        \
       DxcThreadMalloc M(pTmp);                                                 \
