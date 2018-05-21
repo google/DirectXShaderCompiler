@@ -108,13 +108,6 @@
 #define OutputDebugStringA(msg) fputs(msg, stderr)
 #define OutputDebugFormatA(...) fprintf(stderr, __VA_ARGS__)
 
-// Note: This will *disable* the CRITICAL_SECTION structures in the code.
-#define CRITICAL_SECTION int
-#define InitializeCriticalSection(cs)
-#define DeleteCriticalSection(cs)
-#define EnterCriticalSection(cs)
-#define LeaveCriticalSection(cs)
-
 // Event Tracing for Windows (ETW) provides application programmers the ability
 // to start and stop event tracing sessions, instrument an application to
 // provide trace events, and consume trace events.
