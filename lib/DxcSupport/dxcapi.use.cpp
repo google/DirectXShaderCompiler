@@ -16,6 +16,7 @@
 
 namespace dxc {
 
+#ifdef _WIN32
 static void TrimEOL(_Inout_z_ char *pMsg) {
   char *pEnd = pMsg + strlen(pMsg);
   --pEnd;
@@ -25,7 +26,6 @@ static void TrimEOL(_Inout_z_ char *pMsg) {
   pEnd[1] = '\0';
 }
 
-#ifdef _WIN32
 static std::string GetWin32ErrorMessage(DWORD err) {
   char formattedMsg[200];
   DWORD formattedMsgLen =

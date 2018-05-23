@@ -140,6 +140,7 @@ static OnDiskData &getOnDiskData(const ASTUnit *AU) {
   return *D;
 }
 
+#if 0 // HLSL Change Starts - no support for PCH
 static void erasePreambleFile(const ASTUnit *AU) {
   getOnDiskData(AU).CleanPreambleFile();
 }
@@ -159,6 +160,7 @@ static void removeOnDiskEntry(const ASTUnit *AU) {
 static void setPreambleFile(const ASTUnit *AU, StringRef preambleFile) {
   getOnDiskData(AU).PreambleFile = preambleFile;
 }
+#endif // HLSL Change Ends - no support for PCH
 
 static const std::string &getPreambleFile(const ASTUnit *AU) {
   return getOnDiskData(AU).PreambleFile;  
@@ -209,7 +211,8 @@ void ASTUnit::addTemporaryFile(StringRef TempFile) {
 /// errors in the source that occurs in the preamble), the number of
 /// reparses during which we'll skip even trying to precompile the
 /// preamble.
-const unsigned DefaultPreambleRebuildInterval = 5;
+//const unsigned DefaultPreambleRebuildInterval = 5; // HLSL Change Starts - no support for PCH
+
 
 /// \brief Tracks the number of ASTUnit objects that are currently active.
 ///
@@ -1206,6 +1209,7 @@ error:
   return true;
 }
 
+#if 0 // HLSL Change Ends - no support for PCH
 /// \brief Simple function to retrieve a path for a preamble precompiled header.
 static std::string GetPreamblePCHPath() {
   // FIXME: This is a hack so that we can override the preamble file during
@@ -1220,6 +1224,7 @@ static std::string GetPreamblePCHPath() {
 
   return Path.str();
 }
+#endif // HLSL Change Ends - no support for PCH
 
 /// \brief Compute the preamble for the main file, providing the source buffer
 /// that corresponds to the main file along with a pair (bytes, start-of-line)
@@ -1311,6 +1316,7 @@ bool operator==(const ASTUnit::PreambleFileHash &LHS,
 }
 } // namespace clang
 
+#if 0 // HLSL Change Starts - no support for PCH
 static std::pair<unsigned, unsigned>
 makeStandaloneRange(CharSourceRange Range, const SourceManager &SM,
                     const LangOptions &LangOpts) {
@@ -1355,6 +1361,7 @@ makeStandaloneDiagnostic(const LangOptions &LangOpts,
 
   return OutDiag;
 }
+#endif // HLSL Change Ends - no support for PCH
 
 /// \brief Attempt to build or re-use a precompiled preamble when (re-)parsing
 /// the source file.
@@ -2885,6 +2892,7 @@ struct PCHLocatorInfo {
 };
 }
 
+#if 0 // HLSL Change Starts - no support for PCH
 static bool PCHLocator(serialization::ModuleFile &M, void *UserData) {
   PCHLocatorInfo &Info = *static_cast<PCHLocatorInfo*>(UserData);
   switch (M.Kind) {
@@ -2902,6 +2910,7 @@ static bool PCHLocator(serialization::ModuleFile &M, void *UserData) {
 
   return true;
 }
+#endif // HLSL Change Ends - no support for PCH
 
 const FileEntry *ASTUnit::getPCHFile() {
 #if 1 // HLSL Change Starts - no support for modules or PCH
