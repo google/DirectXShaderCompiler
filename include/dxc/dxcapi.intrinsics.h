@@ -1,12 +1,6 @@
 #ifndef __DXC_API_INTRINSICS__
 #define __DXC_API_INTRINSICS__
 
-// SPIRV change starts
-#include "llvm/Support/WinTypes.h"
-#include "llvm/Support/WinMacros.h"
-#include "llvm/Support/WinSAL.h"
-// SPIRV change ends
-
 ///////////////////////////////////////////////////////////////////////////////
 // Intrinsic definitions.
 #define AR_QUAL_IN             0x0000000000000010ULL

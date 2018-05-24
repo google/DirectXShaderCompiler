@@ -26,6 +26,7 @@ typedef _Return_type_success_(return >= 0) long HRESULT;
 
 #include <stdarg.h>
 #include "dxc/Support/exception.h"
+#include "llvm/Support/WinMacros.h"
 #include "llvm/Support/WinResults.h"
 #include "llvm/Support/WinSAL.h"
 

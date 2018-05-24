@@ -17,10 +17,14 @@
 #define DXC_API_IMPORT __declspec(dllimport)
 #endif
 
-#ifndef _WIN32
+#ifdef _WIN32
+#define DECLARE_CROSS_PLATFORM_UUIDOF(T)
+#define DEFINE_CROSS_PLATFORM_UUIDOF(T)
+#else
 #include <dlfcn.h>
 #include "llvm/Support/WinMacros.h"
 #include "llvm/Support/WinSAL.h"
+#include "llvm/Support/WinTypes.h"
 #endif
 
 struct IMalloc;
@@ -101,6 +105,7 @@ IDxcBlob : public IUnknown {
 public:
   virtual LPVOID STDMETHODCALLTYPE GetBufferPointer(void) = 0;
   virtual SIZE_T STDMETHODCALLTYPE GetBufferSize(void) = 0;
+
   DECLARE_CROSS_PLATFORM_UUIDOF(IDxcBlob);
 };
 
@@ -109,6 +114,7 @@ IDxcBlobEncoding : public IDxcBlob {
 public:
   virtual HRESULT STDMETHODCALLTYPE GetEncoding(_Out_ BOOL *pKnown,
                                                 _Out_ UINT32 *pCodePage) = 0;
+
   DECLARE_CROSS_PLATFORM_UUIDOF(IDxcBlobEncoding);
 };
 
@@ -146,6 +152,7 @@ IDxcOperationResult : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE GetStatus(_Out_ HRESULT *pStatus) = 0;
   virtual HRESULT STDMETHODCALLTYPE GetResult(_COM_Outptr_result_maybenull_ IDxcBlob **pResult) = 0;
   virtual HRESULT STDMETHODCALLTYPE GetErrorBuffer(_COM_Outptr_result_maybenull_ IDxcBlobEncoding **pErrors) = 0;
+
   DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOperationResult);
 };
 
@@ -155,6 +162,7 @@ IDxcIncludeHandler : public IUnknown {
     _In_ LPCWSTR pFilename,                                   // Candidate filename.
     _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
     ) = 0;
+
   DECLARE_CROSS_PLATFORM_UUIDOF(IDxcIncludeHandler);
 };
 

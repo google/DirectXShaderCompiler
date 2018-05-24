@@ -1,20 +1,6 @@
 #ifndef LLVM_SUPPORT_WINDTYPES_H
 #define LLVM_SUPPORT_WINDTYPES_H
 
-// The following macros are defined to facilitate the lack of 'uuid' on Linux.
-#ifdef _WIN32
-#define DECLARE_CROSS_PLATFORM_UUIDOF(T)
-#define DEFINE_CROSS_PLATFORM_UUIDOF(T)
-#else
-#define DECLARE_CROSS_PLATFORM_UUIDOF(T)                                       \
-public:                                                                        \
-  static const char T##_ID;                                                    \
-  static REFIID uuidof() { return static_cast<REFIID>(&T##_ID); }
-
-#define DEFINE_CROSS_PLATFORM_UUIDOF(T) const char T::T##_ID = '\0';
-#endif
-
-
 #ifndef _WIN32
 
 #include <atomic>
@@ -91,6 +77,14 @@ typedef const GUID &REFGUID;
 typedef const void *REFIID;
 typedef const GUID &REFCLSID;
 
+// The following macros are defined to facilitate the lack of 'uuid' on Linux.
+#define DECLARE_CROSS_PLATFORM_UUIDOF(T)                                       \
+private:                                                                       \
+  static const char T##_ID;                                                    \
+public:                                                                        \
+  static REFIID uuidof() { return static_cast<REFIID>(&T##_ID); }
+
+#define DEFINE_CROSS_PLATFORM_UUIDOF(T) const char T::T##_ID = '\0';
 #define __uuidof(T) T::uuidof()
 
 #define interface struct
