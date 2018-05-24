@@ -1,6 +1,20 @@
 #ifndef LLVM_SUPPORT_WINDTYPES_H
 #define LLVM_SUPPORT_WINDTYPES_H
 
+// The following macros are defined to facilitate the lack of 'uuid' on Linux.
+#ifdef _WIN32
+#define DECLARE_CROSS_PLATFORM_UUIDOF(T)
+#define DEFINE_CROSS_PLATFORM_UUIDOF(T)
+#else
+#define DECLARE_CROSS_PLATFORM_UUIDOF(T)                                       \
+public:                                                                        \
+  static const char T##_ID;                                                    \
+  static REFIID uuidof() { return static_cast<REFIID>(&T##_ID); }
+
+#define DEFINE_CROSS_PLATFORM_UUIDOF(T) const char T::T##_ID = '\0';
+#endif
+
+
 #ifndef _WIN32
 
 #include <atomic>
@@ -18,15 +32,14 @@
 #include <typeindex>
 #include "llvm/Support/WinResults.h"
 
-
 typedef unsigned char BYTE;
-typedef unsigned char* LPBYTE;
+typedef unsigned char *LPBYTE;
 
 typedef BYTE BOOLEAN;
 typedef BOOLEAN *PBOOLEAN;
 
 typedef bool BOOL;
-typedef BOOL* LPBOOL;
+typedef BOOL *LPBOOL;
 
 typedef int INT;
 typedef long LONG;
@@ -42,45 +55,43 @@ typedef DWORD *LPDWORD;
 typedef uint32_t UINT32;
 typedef uint64_t UINT64;
 
-typedef signed char         INT8, *PINT8;
-typedef signed int          INT32, *PINT32;
-
+typedef signed char INT8, *PINT8;
+typedef signed int INT32, *PINT32;
 
 typedef size_t SIZE_T;
-typedef const char* LPCSTR;
-typedef const char* PCSTR;
+typedef const char *LPCSTR;
+typedef const char *PCSTR;
 
 typedef int errno_t;
 
 typedef wchar_t WCHAR;
-typedef wchar_t* LPWSTR;
-typedef wchar_t* PWCHAR;
-typedef const wchar_t* LPCWSTR;
-typedef const wchar_t* PCWSTR;
+typedef wchar_t *LPWSTR;
+typedef wchar_t *PWCHAR;
+typedef const wchar_t *LPCWSTR;
+typedef const wchar_t *PCWSTR;
 
 typedef WCHAR OLECHAR;
 typedef OLECHAR *BSTR;
 typedef OLECHAR *LPOLESTR;
-typedef char* LPSTR;
+typedef char *LPSTR;
 
-typedef void* LPVOID;
+typedef void *LPVOID;
 typedef const void *LPCVOID;
 
 typedef std::nullptr_t nullptr_t;
 
-typedef struct _GUID {
-  DWORD Data1;
-  WORD  Data2;
-  WORD  Data3;
-  BYTE  Data4[8];
-} GUID;
+struct GUID {
+  uint32_t Data1;
+  uint16_t Data2;
+  uint16_t Data3;
+  uint8_t Data4[8];
+};
 typedef GUID CLSID;
-typedef const GUID& REFGUID;
-typedef std::type_index REFIID;
-typedef const GUID& REFCLSID;
+typedef const GUID &REFGUID;
+typedef const void *REFIID;
+typedef const GUID &REFCLSID;
 
-#define __uuidof(T) std::type_index(typeid(T))
-#define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), reinterpret_cast<void**>(ppType)
+#define __uuidof(T) T::uuidof()
 
 #define interface struct
 
@@ -121,9 +132,12 @@ interface IUnknown {
 
   private:
   std::atomic<unsigned long> m_count;
+
+  DECLARE_CROSS_PLATFORM_UUIDOF(IUnknown);
 };
 
 struct INoMarshal : public IUnknown {
+  DECLARE_CROSS_PLATFORM_UUIDOF(INoMarshal);
 };
 
 template <class T>
@@ -373,7 +387,7 @@ typedef struct tagSTATSTG
   CLSID clsid;
   DWORD grfStateBits;
   DWORD reserved;
-} 	STATSTG;
+} STATSTG;
 
 enum tagSTATFLAG {
   STATFLAG_DEFAULT = 0,
@@ -381,43 +395,36 @@ enum tagSTATFLAG {
   STATFLAG_NOOPEN  = 2
 };
 
-struct ISequentialStream : public IUnknown
-{
+struct ISequentialStream : public IUnknown {
 public:
   virtual HRESULT Read(void *pv, ULONG cb, ULONG *pcbRead) = 0;
   virtual HRESULT Write(const void *pv, ULONG cb, ULONG *pcbWritten) = 0;
+  DECLARE_CROSS_PLATFORM_UUIDOF(ISequentialStream);
 };
 
-struct IStream : public ISequentialStream
-{
+struct IStream : public ISequentialStream {
 public:
-    virtual HRESULT Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *plibNewPosition) = 0;
-    virtual HRESULT SetSize(ULARGE_INTEGER libNewSize) = 0;
-    virtual HRESULT CopyTo( 
-        IStream *pstm,
-        ULARGE_INTEGER cb,
-        ULARGE_INTEGER *pcbRead,
-        ULARGE_INTEGER *pcbWritten) = 0;
-    
-    virtual HRESULT Commit(DWORD grfCommitFlags) = 0;
-    
-    virtual HRESULT Revert(void) = 0;
-    
-    virtual HRESULT LockRegion( 
-        ULARGE_INTEGER libOffset,
-        ULARGE_INTEGER cb,
-        DWORD dwLockType) = 0;
-    
-    virtual HRESULT UnlockRegion( 
-        ULARGE_INTEGER libOffset,
-        ULARGE_INTEGER cb,
-        DWORD dwLockType) = 0;
-    
-    virtual HRESULT Stat( 
-        STATSTG *pstatstg,
-        DWORD grfStatFlag) = 0;
-    
-    virtual HRESULT Clone(IStream **ppstm) = 0;
+  virtual HRESULT Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin,
+                       ULARGE_INTEGER *plibNewPosition) = 0;
+  virtual HRESULT SetSize(ULARGE_INTEGER libNewSize) = 0;
+  virtual HRESULT CopyTo(IStream *pstm, ULARGE_INTEGER cb,
+                         ULARGE_INTEGER *pcbRead,
+                         ULARGE_INTEGER *pcbWritten) = 0;
+
+  virtual HRESULT Commit(DWORD grfCommitFlags) = 0;
+
+  virtual HRESULT Revert(void) = 0;
+
+  virtual HRESULT LockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb,
+                             DWORD dwLockType) = 0;
+
+  virtual HRESULT UnlockRegion(ULARGE_INTEGER libOffset, ULARGE_INTEGER cb,
+                               DWORD dwLockType) = 0;
+
+  virtual HRESULT Stat(STATSTG *pstatstg, DWORD grfStatFlag) = 0;
+
+  virtual HRESULT Clone(IStream **ppstm) = 0;
+  DECLARE_CROSS_PLATFORM_UUIDOF(IStream);
 };
 
 template<class T>

@@ -47,6 +47,7 @@ IDxcRewriter : public IUnknown {
                                                      _In_ UINT32  rewriteOption,
                                                      _COM_Outptr_ IDxcOperationResult **ppResult) = 0;
 
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcRewriter);
 };
 
 #ifdef _MSC_VER

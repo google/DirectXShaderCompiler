@@ -55,14 +55,7 @@ bool CreateValidator(CComPtr<IDxcValidator> &pValidator) {
   }
   bool bInternalValidator = false;
   if (pValidator == nullptr) {
-    #ifdef LLVM_ON_WIN32
-    IFT(CreateDxcValidator(IID_PPV_ARGS(&pValidator)));
-    #else
-    // Note: IID_PPV_ARGS tries to dereference the given pointer twice, which
-    // will result in nullptr in this case.
-    IFT(CreateDxcValidator(std::type_index(typeid(IDxcValidator)),
-        reinterpret_cast<void**>(&pValidator)));
-    #endif
+    IFT(CreateDxcValidator(__uuidof(IDxcValidator), (LPVOID*)&pValidator));
     bInternalValidator = true;
   }
   return bInternalValidator;
