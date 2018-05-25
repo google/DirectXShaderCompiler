@@ -55,7 +55,7 @@ bool CreateValidator(CComPtr<IDxcValidator> &pValidator) {
   }
   bool bInternalValidator = false;
   if (pValidator == nullptr) {
-    IFT(CreateDxcValidator(__uuidof(IDxcValidator), (LPVOID*)&pValidator));
+    IFT(CreateDxcValidator(IID_PPV_ARGS(&pValidator)));
     bInternalValidator = true;
   }
   return bInternalValidator;

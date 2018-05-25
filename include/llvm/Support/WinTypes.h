@@ -79,13 +79,14 @@ typedef const GUID &REFCLSID;
 
 // The following macros are defined to facilitate the lack of 'uuid' on Linux.
 #define DECLARE_CROSS_PLATFORM_UUIDOF(T)                                       \
+public:                                                                        \
+  static REFIID uuidof() { return static_cast<REFIID>(&T##_ID); }              \
 private:                                                                       \
   static const char T##_ID;                                                    \
-public:                                                                        \
-  static REFIID uuidof() { return static_cast<REFIID>(&T##_ID); }
 
 #define DEFINE_CROSS_PLATFORM_UUIDOF(T) const char T::T##_ID = '\0';
 #define __uuidof(T) T::uuidof()
+#define IID_PPV_ARGS(ppType) (**(ppType)).uuidof(), reinterpret_cast<void**>(ppType)
 
 #define interface struct
 
@@ -393,6 +394,7 @@ struct ISequentialStream : public IUnknown {
 public:
   virtual HRESULT Read(void *pv, ULONG cb, ULONG *pcbRead) = 0;
   virtual HRESULT Write(const void *pv, ULONG cb, ULONG *pcbWritten) = 0;
+
   DECLARE_CROSS_PLATFORM_UUIDOF(ISequentialStream);
 };
 
@@ -418,6 +420,7 @@ public:
   virtual HRESULT Stat(STATSTG *pstatstg, DWORD grfStatFlag) = 0;
 
   virtual HRESULT Clone(IStream **ppstm) = 0;
+
   DECLARE_CROSS_PLATFORM_UUIDOF(IStream);
 };
 
