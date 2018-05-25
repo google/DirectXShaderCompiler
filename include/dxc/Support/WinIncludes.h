@@ -51,7 +51,6 @@ template <class T> void swap(CComHeapPtr<T> &a, CComHeapPtr<T> &b) {
 #else // _MSC_VER
 
 #include "llvm/Support/WinTypes.h"
-#include "llvm/Support/WinResults.h"
 
 #ifdef __cplusplus
 // Define operator overloads to enable bit operations on enum values that are

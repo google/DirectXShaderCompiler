@@ -29,6 +29,12 @@
 #include "dxc/HLSL/DxilUtil.h"
 #include "dxcutil.h"
 
+// SPIRV Change Starts
+#ifndef _WIN32
+#include "llvm/Support/WinFunctions.h"
+#endif
+// SPIRV Change Ends
+
 using namespace llvm;
 using namespace hlsl;
 

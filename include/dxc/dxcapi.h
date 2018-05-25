@@ -106,7 +106,7 @@ public:
   virtual LPVOID STDMETHODCALLTYPE GetBufferPointer(void) = 0;
   virtual SIZE_T STDMETHODCALLTYPE GetBufferSize(void) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcBlob);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcBlob)
 };
 
 struct __declspec(uuid("7241d424-2646-4191-97c0-98e96e42fc68"))
@@ -115,7 +115,7 @@ public:
   virtual HRESULT STDMETHODCALLTYPE GetEncoding(_Out_ BOOL *pKnown,
                                                 _Out_ UINT32 *pCodePage) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcBlobEncoding);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcBlobEncoding)
 };
 
 struct __declspec(uuid("e5204dc7-d18c-4c3c-bdfb-851673980fe7"))
@@ -144,7 +144,7 @@ IDxcLibrary : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE GetBlobAsUtf16(
       _In_ IDxcBlob *pBlob, _COM_Outptr_ IDxcBlobEncoding **pBlobEncoding) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcLibrary);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcLibrary)
 };
 
 struct __declspec(uuid("CEDB484A-D4E9-445A-B991-CA21CA157DC2"))
@@ -153,7 +153,7 @@ IDxcOperationResult : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE GetResult(_COM_Outptr_result_maybenull_ IDxcBlob **pResult) = 0;
   virtual HRESULT STDMETHODCALLTYPE GetErrorBuffer(_COM_Outptr_result_maybenull_ IDxcBlobEncoding **pErrors) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOperationResult);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOperationResult)
 };
 
 struct __declspec(uuid("7f61fc7d-950d-467f-b3e3-3c02fb49187c"))
@@ -163,7 +163,7 @@ IDxcIncludeHandler : public IUnknown {
     _COM_Outptr_result_maybenull_ IDxcBlob **ppIncludeSource  // Resultant source object for included file, nullptr if not found.
     ) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcIncludeHandler);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcIncludeHandler)
 };
 
 struct DxcDefine {
@@ -205,7 +205,7 @@ IDxcCompiler : public IUnknown {
     _COM_Outptr_ IDxcBlobEncoding **ppDisassembly   // Disassembly text.
     ) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcCompiler);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcCompiler)
 };
 
 struct __declspec(uuid("A005A9D9-B8BB-4594-B5C9-0E633BEC4D37"))
@@ -226,7 +226,7 @@ IDxcCompiler2 : public IDxcCompiler {
     _COM_Outptr_opt_ IDxcBlob **ppDebugBlob       // Debug blob
   ) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcCompiler2);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcCompiler2)
 };
 
 struct __declspec(uuid("F1B5BE2A-62DD-4327-A1C2-42AC1E1E78E6"))
@@ -253,7 +253,7 @@ public:
           *ppResult // Linker output status, buffer, and errors
   ) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcLinker);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcLinker)
 };
 
 static const UINT32 DxcValidatorFlags_Default = 0;
@@ -271,7 +271,7 @@ IDxcValidator : public IUnknown {
     _COM_Outptr_ IDxcOperationResult **ppResult   // Validation output status, buffer, and errors
     ) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcValidator);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcValidator)
 };
 
 struct __declspec(uuid("334b1f50-2292-4b35-99a1-25588d8c17fe"))
@@ -281,7 +281,7 @@ IDxcContainerBuilder : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE RemovePart(_In_ UINT32 fourCC) = 0;                           // Remove the part with fourCC
   virtual HRESULT STDMETHODCALLTYPE SerializeContainer(_Out_ IDxcOperationResult **ppResult) = 0; // Builds a container of the given container builder state
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcContainerBuilder);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcContainerBuilder)
 };
 
 struct __declspec(uuid("091f7a26-1c1f-4948-904b-e6e3a8a771d5"))
@@ -292,7 +292,7 @@ IDxcAssembler : public IUnknown {
     _COM_Outptr_ IDxcOperationResult **ppResult   // Assembly output status, buffer, and errors
     ) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcAssembler);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcAssembler)
 };
 
 struct __declspec(uuid("d2c21b26-8350-4bdc-976a-331ce6f4c54c"))
@@ -304,7 +304,7 @@ IDxcContainerReflection : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE FindFirstPartKind(UINT32 kind, _Out_ UINT32 *pResult) = 0;
   virtual HRESULT STDMETHODCALLTYPE GetPartReflection(UINT32 idx, REFIID iid, void **ppvObject) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcContainerReflection);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcContainerReflection)
 };
 
 struct __declspec(uuid("AE2CD79F-CC22-453F-9B6B-B124E7A5204C"))
@@ -315,7 +315,7 @@ IDxcOptimizerPass : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE GetOptionArgName(UINT32 argIndex, _COM_Outptr_ LPWSTR *ppResult) = 0;
   virtual HRESULT STDMETHODCALLTYPE GetOptionArgDescription(UINT32 argIndex, _COM_Outptr_ LPWSTR *ppResult) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOptimizerPass);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOptimizerPass)
 };
 
 struct __declspec(uuid("25740E2E-9CBA-401B-9119-4FB42F39F270"))
@@ -327,7 +327,7 @@ IDxcOptimizer : public IUnknown {
     _COM_Outptr_ IDxcBlob **pOutputModule,
     _COM_Outptr_opt_ IDxcBlobEncoding **ppOutputText) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOptimizer);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcOptimizer)
 };
 
 static const UINT32 DxcVersionInfoFlags_None = 0;
@@ -339,7 +339,7 @@ IDxcVersionInfo : public IUnknown {
   virtual HRESULT STDMETHODCALLTYPE GetVersion(_Out_ UINT32 *pMajor, _Out_ UINT32 *pMinor) = 0;
   virtual HRESULT STDMETHODCALLTYPE GetFlags(_Out_ UINT32 *pFlags) = 0;
 
-  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcVersionInfo);
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcVersionInfo)
 };
 
 // Note: __declspec(selectany) requires 'extern'

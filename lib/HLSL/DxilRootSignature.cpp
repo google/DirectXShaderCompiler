@@ -26,6 +26,12 @@
 #include <vector>
 #include <set>
 
+// SPIRV Change Starts
+#ifndef _WIN32
+#include "llvm/Support/WinFunctions.h"
+#endif
+// SPIRV Change Ends
+
 using namespace llvm;
 using std::string;
 

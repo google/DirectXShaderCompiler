@@ -21,6 +21,10 @@
 
 #ifdef _WIN32
 #include <intsafe.h>
+// SPIRV Change Starts
+#else
+#include "llvm/Support/WinFunctions.h"
+// SPIRV Change Ends
 #endif
 
 #define CP_UTF16 1200
