@@ -50,7 +50,7 @@
 // TODO(ehsann): This is an unsafe conversion.
 #define UIntToInt(uint_arg, int_ptr_arg) *int_ptr_arg = uint_arg
 
-#define INVALID_HANDLE_VALUE (void *)nullptr
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
 #define ERROR_SUCCESS 0L
 #define ERROR_OUT_OF_STRUCTURES 0L
 #define ERROR_UNHANDLED_EXCEPTION 574L

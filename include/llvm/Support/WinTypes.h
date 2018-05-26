@@ -47,6 +47,7 @@ typedef long LONG;
 typedef unsigned int UINT;
 typedef unsigned long ULONG;
 typedef long long LONGLONG;
+typedef long long LONG_PTR;
 typedef unsigned long long ULONGLONG;
 
 typedef uint16_t WORD;
@@ -140,8 +141,6 @@ typedef const GUID &REFGUID;
 typedef const void *REFIID;
 typedef const GUID &REFCLSID;
 
-#define IsEqualGUI(a, b) !memcmp(&a, &b, sizeof(GUID))
-//#define IsEqualIID(a, b) !memcmp(&a, &b, sizeof(GUID))
 #define IsEqualIID(a, b) a == b
 #define IsEqualCLSID(a, b) !memcmp(&a, &b, sizeof(GUID))
 
@@ -273,7 +272,7 @@ struct IMalloc : public IUnknown {
   virtual void Free(void *ptr) { free(ptr); }
   virtual HRESULT QueryInterface(REFIID riid, void **ppvObject) {
     assert(false && "QueryInterface not implemented for IMalloc.");
-    return -1;
+    return E_NOINTERFACE;
   }
 };
 
