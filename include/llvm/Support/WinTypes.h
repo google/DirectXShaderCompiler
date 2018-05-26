@@ -457,8 +457,6 @@ public:
   }
 };
 
-HRESULT CoGetMalloc(DWORD dwMemContext, IMalloc **ppMalloc);
-
 template <class T> class CSimpleArray : public std::vector<T> {
 public:
   bool Add(const T &t) {
