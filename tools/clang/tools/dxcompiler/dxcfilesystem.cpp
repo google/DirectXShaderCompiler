@@ -477,7 +477,7 @@ public:
         SetLastError(ERROR_IO_DEVICE);
         return FALSE;
       }
-      lpFileInformation->nFileSizeLow = stat.cbSize.LowPart;
+      lpFileInformation->nFileSizeLow = stat.cbSize.u.LowPart;
       return TRUE;
     }
     else if (argsHandle.IsDirHandle()) {
@@ -661,8 +661,8 @@ public:
     }
 
     LARGE_INTEGER li;
-    li.LowPart = offset;
-    li.HighPart = 0;
+    li.u.LowPart = offset;
+    li.u.HighPart = 0;
     ULARGE_INTEGER newOffset;
     HRESULT hr = stream->Seek(li, origin, &newOffset);
     if (FAILED(hr)) {
@@ -670,7 +670,7 @@ public:
       return -1;
     }
 
-    return newOffset.LowPart;
+    return newOffset.u.LowPart;
   }
   int setmode(int fd, int mode) throw() override {
     return 0;

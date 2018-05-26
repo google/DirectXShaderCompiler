@@ -181,8 +181,8 @@ typedef struct _WIN32_FIND_DATAW {
 typedef union _LARGE_INTEGER {
   struct {
     DWORD LowPart;
-    LONG HighPart;
-  };
+    DWORD HighPart;
+  } u;
   LONGLONG QuadPart;
 } LARGE_INTEGER;
 
@@ -192,7 +192,7 @@ typedef union _ULARGE_INTEGER {
   struct {
     DWORD LowPart;
     DWORD HighPart;
-  };
+  } u;
   ULONGLONG QuadPart;
 } ULARGE_INTEGER;
 
