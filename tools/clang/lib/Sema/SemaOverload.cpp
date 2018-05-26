@@ -5134,7 +5134,7 @@ static ExprResult CheckConvertedConstantExpression(Sema &S, Expr *From,
                                                    QualType T, APValue &Value,
                                                    Sema::CCEKind CCE,
                                                    bool RequireInt) {
-  assert(S.getLangOpts().CPlusPlus11 || S.getLangOpts().HLSLVersion >= 2017 &&
+  assert((S.getLangOpts().CPlusPlus11 || S.getLangOpts().HLSLVersion >= 2017) &&
          "converted constant expression outside C++11");
 
   if (checkPlaceholderForOverload(S, From))
@@ -5851,8 +5851,8 @@ Sema::AddOverloadCandidate(FunctionDecl *Function,
                                   AllowExplicit);
       }
       // HLSL Change Ends
-      if (Candidate.Conversions[ArgIdx].isInitialized() && Candidate.Conversions[ArgIdx].isBad()
-          || Candidate.OutConversions[ArgIdx].isInitialized() && Candidate.OutConversions[ArgIdx].isBad()) { // HLSL Change - add out conversion, check initialized
+      if ((Candidate.Conversions[ArgIdx].isInitialized() && Candidate.Conversions[ArgIdx].isBad())
+          || (Candidate.OutConversions[ArgIdx].isInitialized() && Candidate.OutConversions[ArgIdx].isBad())) { // HLSL Change - add out conversion, check initialized
         Candidate.Viable = false;
         Candidate.FailureKind = ovl_fail_bad_conversion;
         return;
