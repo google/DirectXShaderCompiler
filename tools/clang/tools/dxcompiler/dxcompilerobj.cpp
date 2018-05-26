@@ -177,7 +177,7 @@ public:
     return false;
   }
 
-  virtual HLSLExtensionsCodegenHelper::CustomRootSignature::Status GetCustomRootSignature(CustomRootSignature *out) {
+  virtual HLSLExtensionsCodegenHelper::CustomRootSignature::Status GetCustomRootSignature(CustomRootSignature *out) override {
     // Find macro definition in preprocessor.
     Preprocessor &pp = m_CI.getPreprocessor();
     MacroInfo *macro = MacroExpander::FindMacroInfo(pp, m_rootSigDefine);
@@ -255,7 +255,7 @@ public:
     return S_OK;
   }
 
-  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) {
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) override {
     return DoBasicQueryInterface<IDxcCompiler,
                                  IDxcCompiler2,
                                  IDxcLangExtensions,
