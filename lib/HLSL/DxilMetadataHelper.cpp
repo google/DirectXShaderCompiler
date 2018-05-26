@@ -68,7 +68,7 @@ const char DxilMDHelper::kDxilSourceDefinesMDName[]                   = "dx.sour
 const char DxilMDHelper::kDxilSourceMainFileNameMDName[]              = "dx.source.mainFileName";
 const char DxilMDHelper::kDxilSourceArgsMDName[]                      = "dx.source.args";
 
-static std::array<const char *, 7> DxilMDNames = {
+static std::array<const char *, 7> DxilMDNames = { {
   DxilMDHelper::kDxilVersionMDName,
   DxilMDHelper::kDxilShaderModelMDName,
   DxilMDHelper::kDxilEntryPointsMDName,
@@ -76,11 +76,11 @@ static std::array<const char *, 7> DxilMDNames = {
   DxilMDHelper::kDxilTypeSystemMDName,
   DxilMDHelper::kDxilValidatorVersionMDName,
   DxilMDHelper::kDxilViewIdStateMDName,
-};
+}};
 
 DxilMDHelper::DxilMDHelper(Module *pModule, std::unique_ptr<ExtraPropertyHelper> EPH)
-: m_pModule(pModule)
-, m_Ctx(pModule->getContext())
+: m_Ctx(pModule->getContext())
+, m_pModule(pModule)
 , m_pSM(nullptr)
 , m_ExtraPropertyHelper(std::move(EPH)) {
 }
@@ -1336,8 +1336,8 @@ void DxilMDHelper::LoadDxilHSState(const MDOperand &MDO,
 // DxilExtraPropertyHelper methods.
 //
 DxilMDHelper::ExtraPropertyHelper::ExtraPropertyHelper(Module *pModule)
-: m_pModule(pModule)
-, m_Ctx(pModule->getContext()) {
+: m_Ctx(pModule->getContext())
+, m_pModule(pModule) {
 }
 
 DxilExtraPropertyHelper::DxilExtraPropertyHelper(Module *pModule)
