@@ -365,7 +365,7 @@ public:
   void Attach(T *p2) throw() {
     if (p) {
       ULONG ref = p->Release();
-      (ref);
+      (void)(ref);
       // Attaching to the same object only works if duplicate references are
       // being coalesced.  Otherwise re-attaching will cause the pointer to be
       // released and may cause a crash on a subsequent dereference.

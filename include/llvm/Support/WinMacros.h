@@ -20,7 +20,7 @@
 #define STDMETHODIMP HRESULT STDMETHODCALLTYPE
 #define STDMETHODIMP_(type) type STDMETHODCALLTYPE
 
-#define UNREFERENCED_PARAMETER(P) (P)
+#define UNREFERENCED_PARAMETER(P) (void)(P)
 
 #define RtlEqualMemory(Destination, Source, Length)                            \
   (!memcmp((Destination), (Source), (Length)))
