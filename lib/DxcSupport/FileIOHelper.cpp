@@ -348,7 +348,7 @@ static HRESULT CodePageBufferToUtf16(UINT32 codePage, LPCVOID bufferPointer,
 
   // Calculate the length of the buffer in wchar_t elements.
   int numToConvertUTF16 =
-      MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, (char *)bufferPointer,
+      MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, (LPCSTR)bufferPointer,
                           bufferSize, nullptr, 0);
   if (numToConvertUTF16 == 0)
     return HRESULT_FROM_WIN32(GetLastError());
@@ -362,7 +362,7 @@ static HRESULT CodePageBufferToUtf16(UINT32 codePage, LPCVOID bufferPointer,
   IFROOM(utf16NewCopy.m_pData);
 
   int numActuallyConvertedUTF16 =
-      MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, (char *)bufferPointer,
+      MultiByteToWideChar(codePage, MB_ERR_INVALID_CHARS, (LPCSTR)bufferPointer,
                           bufferSize, utf16NewCopy, buffSizeUTF16);
 
   if (numActuallyConvertedUTF16 == 0)
@@ -641,7 +641,7 @@ HRESULT DxcGetBlobAsUtf8(IDxcBlob *pBlob, IDxcBlobEncoding **pBlobEncoding) thro
 
   SIZE_T blobLen = pBlob->GetBufferSize();
   if (!known && blobLen > 0) {
-    codePage = DxcCodePageFromBytes((char *)pBlob->GetBufferPointer(), blobLen);
+    codePage = DxcCodePageFromBytes((const char *)pBlob->GetBufferPointer(), blobLen);
   }
 
   if (codePage == CP_UTF8) {
@@ -659,10 +659,10 @@ HRESULT DxcGetBlobAsUtf8(IDxcBlob *pBlob, IDxcBlobEncoding **pBlobEncoding) thro
   // Any UTF-16 output must be converted to UTF-16 first, then
   // back to the target code page.
   CDxcMallocHeapPtr<WCHAR> utf16NewCopy(DxcGetThreadMallocNoRef());
-  wchar_t* utf16Chars = nullptr;
+  const wchar_t* utf16Chars = nullptr;
   UINT32 utf16CharCount;
   if (codePage == CP_UTF16) {
-    utf16Chars = (wchar_t*)pBlob->GetBufferPointer();
+    utf16Chars = (const wchar_t*)pBlob->GetBufferPointer();
     utf16CharCount = blobLen / sizeof(wchar_t);
   }
   else {
