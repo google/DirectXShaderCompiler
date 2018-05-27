@@ -3585,9 +3585,9 @@ static void SimplifyBitCast(BitCastOperator *BC, SmallInstSet &deadInsts) {
           I->dropAllReferences();
           deadInsts.insert(I);
         }
-    } else if (CallInst *CI = dyn_cast<CallInst>(U)) {
+    } else if (dyn_cast<CallInst>(U)) {
       // Skip function call.
-    } else if (BitCastInst *Cast = dyn_cast<BitCastInst>(U)) {
+    } else if (dyn_cast<BitCastInst>(U)) {
       // Skip bitcast.
     } else {
       DXASSERT(0, "not support yet");
@@ -5072,7 +5072,7 @@ static void FlatConstToList(Constant *C, SmallVector<Constant *, 4> &EltValList,
       FlatConstToList(C->getAggregateElement(i), EltValList, EltTy, Types,
                       bDefaultRowMajor);
     }
-  } else if (llvm::StructType *ST = dyn_cast<llvm::StructType>(Ty)) {
+  } else if (dyn_cast<llvm::StructType>(Ty)) {
     RecordDecl *RD = Type->getAsStructureType()->getDecl();
     const CGRecordLayout &RL = Types.getCGRecordLayout(RD);
     // Take care base.
@@ -5462,7 +5462,7 @@ Value *CGMSHLSLRuntime::EmitHLSLLiteralCast(CodeGenFunction &CGF, Value *Src,
         return Builder.CreateFPTrunc(Src, DstTy);
       }
     }
-  } else if (UndefValue *UV = dyn_cast<UndefValue>(Src)) {
+  } else if (dyn_cast<UndefValue>(Src)) {
     return UndefValue::get(DstTy);
   } else {
     Instruction *I = cast<Instruction>(Src);
@@ -5517,7 +5517,7 @@ Value *CGMSHLSLRuntime::EmitHLSLLiteralCast(CodeGenFunction &CGF, Value *Src,
             CalcHLSLLiteralToLowestPrecision(Builder, BO, bSigned);
         if (!CastResult)
           return nullptr;
-        if (llvm::IntegerType *IT = dyn_cast<llvm::IntegerType>(DstTy)) {
+        if (dyn_cast<llvm::IntegerType>(DstTy)) {
           if (DstTy == CastResult->getType()) {
             return CastResult;
           } else {
