@@ -50,8 +50,7 @@ DEFINE_ENUM_FLAG_OPERATORS(DxilRootDescriptorFlags)
 DEFINE_ENUM_FLAG_OPERATORS(DxilDescriptorRangeFlags)
 
 RootSignatureTokenizer::RootSignatureTokenizer(const char *pStr, size_t len)
-  : m_pOrigStr(pStr)
-  , m_pStrPos(pStr)
+  : m_pStrPos(pStr)
   , m_pEndPos(pStr + len)
 {
     m_TokenBufferIdx = 0;
@@ -59,8 +58,7 @@ RootSignatureTokenizer::RootSignatureTokenizer(const char *pStr, size_t len)
 }
 
 RootSignatureTokenizer::RootSignatureTokenizer(const char *pStr)
-  : m_pOrigStr(pStr)
-  , m_pStrPos(pStr)
+  : m_pStrPos(pStr)
   , m_pEndPos(pStr + strlen(pStr))
 {
   m_TokenBufferIdx = 0;
