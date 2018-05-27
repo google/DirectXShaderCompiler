@@ -1102,7 +1102,6 @@ Value *TransalteAbs(CallInst *CI, IntrinsicOp IOP, OP::OpCode opcode,
     Value *src = CI->getArgOperand(HLOperandIndex::kUnaryOpSrc0Idx);
     IRBuilder<> Builder(CI);
     Value *neg = Builder.CreateNeg(src);
-    Value *refArgs[] = {nullptr, src, neg};
     return TrivialDxilBinaryOperation(DXIL::OpCode::IMax, src, neg, hlslOP,
                                       Builder);
   }
@@ -3081,26 +3080,6 @@ void Make64bitResultForLoad(Type *EltTy, ArrayRef<Value *> resultElts32,
       hi = Builder.CreateShl(hi, 32);
       resultElts[i] = Builder.CreateOr(lo, hi);
     }
-  }
-}
-
-static uint8_t GetRawBufferMaskFromIOP(IntrinsicOp IOP, hlsl::OP *OP) {
-  switch (IOP) {
-    // one component
-    case IntrinsicOp::MOP_Load:
-      return DXIL::kCompMask_X;
-    // two component
-    case IntrinsicOp::MOP_Load2:
-      return DXIL::kCompMask_X | DXIL::kCompMask_Y;
-    // three component
-    case IntrinsicOp::MOP_Load3:
-      return DXIL::kCompMask_X | DXIL::kCompMask_Y | DXIL::kCompMask_Z;
-    // four component
-    case IntrinsicOp::MOP_Load4:
-      return DXIL::kCompMask_All;
-    default:
-      DXASSERT(false, "Invalid Intrinsic for computing load mask.");
-      return 0;
   }
 }
 
@@ -6235,8 +6214,6 @@ Value *UpdateVectorElt(Value *VecVal, Value *EltVal, Value *EltIdx,
 }
 
 void TranslateDefaultSubscript(CallInst *CI, HLOperationLowerHelper &helper,  HLObjectOperationLowerHelper *pObjHelper, bool &Translated) {
-  auto U = CI->user_begin();
-
   Value *ptr = CI->getArgOperand(HLOperandIndex::kSubscriptObjectOpIdx);
 
   hlsl::OP *hlslOP = &helper.hlslOP;
