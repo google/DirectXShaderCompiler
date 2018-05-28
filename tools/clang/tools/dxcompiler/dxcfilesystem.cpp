@@ -59,6 +59,7 @@ namespace {
 #endif // DBG
 #else  // _WIN32
 #define DXTRACE_FMT_APIFS(...)
+#define OutputDebugStringA(...);
 #endif // _WIN32
 
 
