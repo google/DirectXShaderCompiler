@@ -2424,9 +2424,9 @@ namespace hlsl {
     void dump() const {
       OutputDebugStringW(L"Call Nodes:\r\n");
       for (auto &node : m_callNodes) {
-        OutputDebugFormatA("%s [%p]:\r\n", node.first->getName().str().c_str(), (void*)node.first);
+        OutputDebugFormatA("%s [%p]:\r\n", node.first->getName().str().c_str(), node.first);
         for (auto callee : node.second.CalleeFns) {
-          OutputDebugFormatA("    %s [%p]\r\n", callee->getName().str().c_str(), (void*)callee);
+          OutputDebugFormatA("    %s [%p]\r\n", callee->getName().str().c_str(), callee);
         }
       }
     }
@@ -2896,7 +2896,7 @@ private:
     TypeSourceInfo *float4TypeSourceInfo = m_context->getTrivialTypeSourceInfo(float4Type, NoLoc);
     m_objectTypeLazyInitMask = 0;
     unsigned effectKindIndex = 0;
-    for (unsigned i = 0; i < _countof(g_ArBasicKindsAsTypes); i++)
+    for (int i = 0; i < _countof(g_ArBasicKindsAsTypes); i++)
     {
       ArBasicKind kind = g_ArBasicKindsAsTypes[i];
       if (kind == AR_OBJECT_WAVE) { // wave objects are currently unused
@@ -2944,7 +2944,7 @@ private:
       // Create decls for each deprecated effect object type:
       unsigned effectObjBase = _countof(g_ArBasicKindsAsTypes);
       // TypeSourceInfo* effectObjTypeSource = m_context->getTrivialTypeSourceInfo(GetBasicKindType(AR_OBJECT_LEGACY_EFFECT));
-      for (unsigned i = 0; i < _countof(g_DeprecatedEffectObjectNames); i++) {
+      for (int i = 0; i < _countof(g_DeprecatedEffectObjectNames); i++) {
         IdentifierInfo& idInfo = m_context->Idents.get(StringRef(g_DeprecatedEffectObjectNames[i]), tok::TokenKind::identifier);
         //TypedefDecl* effectObjDecl = TypedefDecl::Create(*m_context, currentDeclContext, NoLoc, NoLoc, &idInfo, effectObjTypeSource);
         CXXRecordDecl *effectObjDecl = CXXRecordDecl::Create(*m_context, TagTypeKind::TTK_Struct, currentDeclContext, NoLoc, NoLoc, &idInfo);
@@ -2974,7 +2974,8 @@ private:
 
   clang::TypedefDecl *LookupMatrixShorthandType(HLSLScalarType scalarType, UINT rowCount, UINT colCount) {
     DXASSERT_NOMSG(scalarType != HLSLScalarType::HLSLScalarType_unknown &&
-                   rowCount <= 4 && colCount <= 4);
+                   rowCount >= 0 && rowCount <= 4 && colCount >= 0 &&
+                   colCount <= 4);
     TypedefDecl *qts =
         m_matrixShorthandTypes[scalarType][rowCount - 1][colCount - 1];
     if (qts == nullptr) {
@@ -2988,7 +2989,7 @@ private:
 
   clang::TypedefDecl *LookupVectorShorthandType(HLSLScalarType scalarType, UINT colCount) {
     DXASSERT_NOMSG(scalarType != HLSLScalarType::HLSLScalarType_unknown &&
-                   colCount <= 4);
+                   colCount >= 0 && colCount <= 4);
     TypedefDecl *qts = m_vectorTypedefs[scalarType][colCount - 1];
     if (qts == nullptr) {
       QualType type = LookupVectorType(scalarType, colCount);
@@ -3403,12 +3404,13 @@ public:
     DXASSERT_NOMSG(table != nullptr);
 
     // Function intrinsics are added on-demand, objects get template methods.
-    for (unsigned i = 0; i < _countof(g_ArBasicKindsAsTypes); i++) {
+    for (int i = 0; i < _countof(g_ArBasicKindsAsTypes); i++) {
       // Grab information already processed by AddObjectTypes.
       ArBasicKind kind = g_ArBasicKindsAsTypes[i];
       const char *typeName = g_ArBasicTypeNames[kind];
       uint8_t templateArgCount = g_ArBasicKindsTemplateCount[i];
-      DXASSERT(templateArgCount <= 2, "otherwise a new case has been added");
+      DXASSERT(0 <= templateArgCount && templateArgCount <= 2,
+        "otherwise a new case has been added");
       int startDepth = (templateArgCount == 0) ? 0 : 1;
       CXXRecordDecl *recordDecl = m_objectTypeDecls[i];
       if (recordDecl == nullptr) {

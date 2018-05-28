@@ -98,7 +98,7 @@ void PrintSignature(LPCSTR pName, const DxilProgramSignature *pSignature,
     if (pSig->Mask & DxilProgramSigMaskW)
       Mask[3] = 'w';
 
-    if (pSig->Register == (unsigned)-1) {
+    if (pSig->Register == -1) {
       OS << "    N/A";
       if (!_stricmp(pSemanticName, "SV_Depth"))
         OS << "   oDepth";
@@ -243,7 +243,7 @@ void PrintSignature(LPCSTR pName, const DxilProgramSignature *pSignature,
     if (rwMask & DxilProgramSigMaskW)
       Mask[3] = 'w';
 
-    if (pSig->Register == (unsigned)-1)
+    if (pSig->Register == -1)
       OS << (rwMask ? "    YES" : "     NO");
     else
       OS << "   " << Mask[0] << Mask[1] << Mask[2] << Mask[3];

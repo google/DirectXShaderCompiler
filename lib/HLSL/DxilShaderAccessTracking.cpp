@@ -416,7 +416,7 @@ bool DxilShaderAccessTracking::runOnModule(Module &M)
 
       ID = DM.AddUAV(std::move(pUAV));
 
-      assert((unsigned)ID == UAVResourceHandle);
+      assert(ID == UAVResourceHandle);
 
       // Create handle for the newly-added UAV
       Function* CreateHandleOpFunc = HlslOP->GetOpFunc(DXIL::OpCode::CreateHandle, Type::getVoidTy(Ctx));
