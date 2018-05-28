@@ -27,9 +27,7 @@ typedef _Return_type_success_(return >= 0) long HRESULT;
 #include <stdarg.h>
 #include <system_error>
 #include "dxc/Support/exception.h"
-#include "llvm/Support/WinMacros.h" // SPIRV Change
-#include "llvm/Support/WinSAL.h"    // SPIRV Change
-#include "llvm/Support/WinTypes.h"  // SPIRV Change
+#include "llvm/Support/WinAdapter.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Memory allocation support.

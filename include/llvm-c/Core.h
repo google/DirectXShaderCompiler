@@ -16,8 +16,7 @@
 #define LLVM_C_CORE_H
 
 #include "llvm-c/Support.h"
-
-#include "llvm/Support/WinSAL.h"
+#include "llvm/Support/WinAdapter.h"
 
 #ifdef __cplusplus
 extern "C" {

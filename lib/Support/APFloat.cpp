@@ -12,6 +12,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstring>
+#include <limits.h>
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/FoldingSet.h"
@@ -20,10 +23,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
-#include "llvm/Support/WinSAL.h"
-#include <cstring>
-#include <limits.h>
-
+#include "llvm/Support/WinAdapter.h"
 
 using namespace llvm;
 

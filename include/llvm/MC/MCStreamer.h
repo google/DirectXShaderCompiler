@@ -14,6 +14,8 @@
 #ifndef LLVM_MC_MCSTREAMER_H
 #define LLVM_MC_MCSTREAMER_H
 
+#include <string>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/MC/MCDirectives.h"
@@ -22,9 +24,8 @@
 #include "llvm/MC/MCWinEH.h"
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/SMLoc.h"
-#include <string>
+#include "llvm/Support/WinAdapter.h"
 
-#include "llvm/Support/WinSAL.h"
 
 namespace llvm {
 class MCAsmBackend;

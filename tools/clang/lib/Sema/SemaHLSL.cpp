@@ -12,6 +12,7 @@
 
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/WinAdapter.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Attr.h"
 #include "clang/AST/DeclCXX.h"
@@ -39,7 +40,6 @@
 #include "dxc/HLSL/DxilShaderModel.h"
 #include <array>
 #include <float.h>
-#include "llvm/Support/WinSAL.h"
 
 enum ArBasicKind {
   AR_BASIC_BOOL,

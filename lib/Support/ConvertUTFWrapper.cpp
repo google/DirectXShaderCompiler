@@ -7,12 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/ConvertUTF.h"
-#include "llvm/Support/SwapByteOrder.h"
-#include "llvm/Support/WinSAL.h"
 #include <string>
 #include <vector>
 
+#include "llvm/Support/WinAdapter.h"
+#include "llvm/Support/ConvertUTF.h"
+#include "llvm/Support/SwapByteOrder.h"
 
 namespace llvm {
 

@@ -15,10 +15,10 @@
 #ifndef LLVM_C_DISASSEMBLER_H
 #define LLVM_C_DISASSEMBLER_H
 
-#include "llvm/Support/DataTypes.h"
 #include <stddef.h>
 
-#include "llvm/Support/WinSAL.h"
+#include "llvm/Support/WinAdapter.h"
+#include "llvm/Support/DataTypes.h"
 
 /**
  * @defgroup LLVMCDisassembler Disassembler

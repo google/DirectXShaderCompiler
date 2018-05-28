@@ -24,7 +24,7 @@
 #include "dxc/Support/Global.h"
 #include "dxc/HLSL/HLOperations.h"
 #include "dxc/HLSL/DxilSemantic.h"
-#include "llvm/Support/WinMacros.h"
+#include "llvm/Support/WinAdapter.h"
 
 using namespace clang;
 using namespace hlsl;

@@ -12,6 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cassert>
+
 #include "clang/AST/NestedNameSpecifier.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
@@ -19,11 +21,10 @@
 #include "clang/AST/PrettyPrinter.h"
 #include "clang/AST/Type.h"
 #include "clang/AST/TypeLoc.h"
+#include "llvm/Support/WinAdapter.h"
 #include "llvm/Support/AlignOf.h"
 #include "llvm/Support/raw_ostream.h"
-#include <cassert>
 
-#include "llvm/Support/WinSAL.h"
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 using namespace clang;

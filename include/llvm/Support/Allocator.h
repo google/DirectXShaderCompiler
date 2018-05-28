@@ -21,17 +21,17 @@
 #ifndef LLVM_SUPPORT_ALLOCATOR_H
 #define LLVM_SUPPORT_ALLOCATOR_H
 
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/AlignOf.h"
-#include "llvm/Support/DataTypes.h"
-#include "llvm/Support/MathExtras.h"
-#include "llvm/Support/Memory.h"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
 
-#include "llvm/Support/WinSAL.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/AlignOf.h"
+#include "llvm/Support/DataTypes.h"
+#include "llvm/Support/MathExtras.h"
+#include "llvm/Support/Memory.h"
+#include "llvm/Support/WinAdapter.h"
 
 namespace llvm {
 

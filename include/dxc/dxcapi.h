@@ -22,9 +22,7 @@
 #define DEFINE_CROSS_PLATFORM_UUIDOF(T)
 #else
 #include <dlfcn.h>
-#include "llvm/Support/WinMacros.h"
-#include "llvm/Support/WinSAL.h"
-#include "llvm/Support/WinTypes.h"
+#include "llvm/Support/WinAdapter.h"
 #endif
 
 struct IMalloc;

@@ -14,11 +14,12 @@
 #ifndef LLVM_SUPPORT_RAW_OSTREAM_H
 #define LLVM_SUPPORT_RAW_OSTREAM_H
 
+#include <system_error>
+
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
-#include "llvm/Support/WinSAL.h"
-#include <system_error>
+#include "llvm/Support/WinAdapter.h"
 
 
 namespace llvm {

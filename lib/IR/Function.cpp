@@ -33,7 +33,8 @@
 #include "llvm/Support/RWMutex.h"
 #include "llvm/Support/StringPool.h"
 #include "llvm/Support/Threading.h"
-#include "llvm/Support/WinMacros.h"
+#include "llvm/Support/WinAdapter.h"
+
 using namespace llvm;
 
 // Explicit instantiations of SymbolTableListTraits since some of the methods

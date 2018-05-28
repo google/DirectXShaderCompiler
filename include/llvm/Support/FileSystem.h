@@ -33,7 +33,7 @@
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/TimeValue.h"
-#include "llvm/Support/WinSAL.h"
+#include "llvm/Support/WinAdapter.h"
 #include <ctime>
 #include <iterator>
 #include <stack>

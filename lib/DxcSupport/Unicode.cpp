@@ -16,8 +16,8 @@
 #include <string>
 #include "dxc/Support/Global.h"
 #include "dxc/Support/Unicode.h"
+#include "llvm/Support/WinAdapter.h"
 #include "dxc/Support/WinIncludes.h"
-#include "llvm/Support/WinMacros.h"
 
 #ifndef _WIN32
 // Since several functions rely on MultiByteToWideChar which is a

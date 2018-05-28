@@ -17,9 +17,9 @@
 #include "CXTranslationUnit.h"
 #include "clang-c/Index.h"
 #include "clang/Frontend/ASTUnit.h"
+#include "llvm/Support/WinAdapter.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/WinMacros.h"
 
 using namespace clang;
 

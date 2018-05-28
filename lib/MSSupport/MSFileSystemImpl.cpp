@@ -26,10 +26,8 @@
 #include <new>
 
 #include "dxc/Support/WinIncludes.h"
-#include "llvm/Support/WinMacros.h"
-#include "llvm/Support/WinSAL.h"
-#include "llvm/Support/WinTypes.h"
 #include "llvm/Support/MSFileSystem.h"
+#include "llvm/Support/WinAdapter.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Externally visible functions.

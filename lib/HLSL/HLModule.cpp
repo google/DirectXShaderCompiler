@@ -15,6 +15,7 @@
 #include "dxc/HLSL/HLModule.h"
 #include "dxc/HLSL/DxilTypeSystem.h"
 #include "dxc/HLSL/DxilRootSignature.h"
+#include "llvm/Support/WinAdapter.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/Constants.h"
@@ -26,9 +27,7 @@
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DIBuilder.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/WinMacros.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
-
 
 using namespace llvm;
 using std::string;

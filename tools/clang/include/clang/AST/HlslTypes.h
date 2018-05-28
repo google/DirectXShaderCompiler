@@ -19,10 +19,9 @@
 #include "clang/AST/Type.h"             // needs QualType
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/Specifiers.h"
-#include "llvm/Support/Casting.h"
 #include "dxc/HLSL/DxilConstants.h"
-
-#include "llvm/Support/WinSAL.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/WinAdapter.h"
 
 namespace clang {
   class ASTContext;

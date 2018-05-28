@@ -20,7 +20,7 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
-#include "llvm/Support/WinMacros.h"
+#include "llvm/Support/WinAdapter.h"
 #include <cstring>
 
 using namespace llvm;

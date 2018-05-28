@@ -17,10 +17,10 @@
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/LexDiagnostic.h"
 #include "clang/Lex/Preprocessor.h"
+#include "llvm/Support/WinAdapter.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/WinSAL.h"
 
 using namespace clang;
 

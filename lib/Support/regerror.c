@@ -41,11 +41,11 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdlib.h>
-#include "regex_impl.h"
 
+#include "regex_impl.h"
 #include "regutils.h"
 
-#include "llvm/Support/WinSAL.h"
+#include "llvm/Support/WinAdapter.h"
 
 #ifdef _MSC_VER
 #define snprintf _snprintf

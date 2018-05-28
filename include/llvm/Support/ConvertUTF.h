@@ -182,8 +182,7 @@ unsigned getNumBytesForUTF8(UTF8 firstByte);
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
-
-#include "llvm/Support/WinSAL.h"
+#include "llvm/Support/WinAdapter.h"
 
 namespace llvm {
 
