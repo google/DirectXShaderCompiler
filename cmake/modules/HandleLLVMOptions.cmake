@@ -373,12 +373,12 @@ elseif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
     append("-Wcast-qual" CMAKE_CXX_FLAGS)
 
     # Disable unknown pragma warnings because the output is just too long with them.
-    append("-Wno-unknown-pragmas" CMAKE_C_FLAGS CMAKE_CXX_FLAGS) # SPIRV Change
+    append("-Wno-unknown-pragmas" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
 
     # Colorize GCC output even with ninja's stdout redirection.
     if (CMAKE_COMPILER_IS_GNUCXX)
-       append("-fdiagnostics-color" CMAKE_C_FLAGS CMAKE_CXX_FLAGS) # SPIRV Change
-       append("-std=c++11" CMAKE_CXX_FLAGS) # SPIRV Change
+       append("-fdiagnostics-color" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+       append("-std=c++11" CMAKE_CXX_FLAGS)
     endif (CMAKE_COMPILER_IS_GNUCXX)
 
     # Turn off missing field initializer warnings for gcc to avoid noise from

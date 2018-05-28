@@ -1,5 +1,5 @@
 set(LLVM_LINK_COMPONENTS
-  HLSL # SPIRV change -- SemaHLSL.cpp references {Has|Get}UnsignedOpcode()
+  HLSL # SemaHLSL.cpp references {Has|Get}UnsignedOpcode()
   Support
   )
 

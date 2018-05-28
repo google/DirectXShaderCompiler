@@ -597,7 +597,7 @@ endif( ${CMAKE_SYSTEM_NAME} MATCHES SunOS )
 set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 
 # enable warnings as errors for debug build
-if (WIN32) # SPIRV change
+if (WIN32)
   SET(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} /WX")
 endif (WIN32)
 

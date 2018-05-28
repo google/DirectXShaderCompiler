@@ -111,24 +111,21 @@ set(GENERATED_HEADERS
   )
 
 add_clang_library(dxcompiler SHARED ${SOURCES})
-if (WIN32) # SPIRV change
+if (WIN32)
   target_link_libraries(dxcompiler PRIVATE ${LIBRARIES} ${DIASDK_LIBRARIES})
-# SPIRV change starts
   if (ENABLE_SPIRV_CODEGEN)
     target_link_libraries(dxcompiler PRIVATE clangSPIRV)
   endif (ENABLE_SPIRV_CODEGEN)
-# SPIRV change ends
   add_dependencies(dxcompiler DxcEtw)
   include_directories(AFTER ${LLVM_INCLUDE_DIR}/dxc/Tracing ${DIASDK_INCLUDE_DIRS})
-# SPIRV change starts
 else ()
+  # No DIASDK or DxcEtw on non-Windows platforms.
   target_link_libraries(dxcompiler PRIVATE ${LIBRARIES})
   if (ENABLE_SPIRV_CODEGEN)
     target_link_libraries(dxcompiler PRIVATE clangSPIRV)
   endif (ENABLE_SPIRV_CODEGEN)
   include_directories(AFTER ${LLVM_INCLUDE_DIR}/dxc/Tracing)
 endif (WIN32)
-# SPIRV change ends
 
 set_target_properties(dxcompiler
   PROPERTIES
