@@ -29,6 +29,7 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/circular_raw_ostream.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/WinMacros.h"
 #include "dxc/Support/WinIncludes.h" // HLSL Change
 
 #undef isCurrentDebugType
@@ -73,7 +74,7 @@ void setCurrentDebugType(const char *Type) {
 // All Debug.h functionality is a no-op in NDEBUG mode.
 #ifndef NDEBUG
 
-#if _MSC_VER // HLSL Change Starts - redirect to OutputDebugString
+#if 1 // HLSL Change Starts - redirect to OutputDebugString
 namespace llvm {
   raw_ostream &dbgs() {
     struct ods_ostream : public llvm::raw_ostream {
