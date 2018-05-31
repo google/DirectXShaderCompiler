@@ -51,15 +51,28 @@
 #define UIntToInt(uint_arg, int_ptr_arg) *int_ptr_arg = uint_arg
 
 #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
-#define ERROR_SUCCESS 0L
-#define ERROR_OUT_OF_STRUCTURES 0L
-#define ERROR_UNHANDLED_EXCEPTION 574L
-#define ERROR_NOT_FOUND 1168L
-#define ERROR_NOT_CAPABLE 775L
-#define ERROR_FILE_NOT_FOUND 2L
 
-// Note: This will nullify some functionality.
-#define SetLastError(err)
+// Use errno to implement {Get|Set}LastError
+#define GetLastError() errno
+#define SetLastError(ERR) errno = ERR
+#define GetWin32ErrorMessage(err) std::strerror(err)
+// Map these errors to equivalent errnos.
+#define ERROR_SUCCESS 0L
+#define ERROR_OUT_OF_STRUCTURES ENOMEM
+#define ERROR_UNHANDLED_EXCEPTION EINTR
+#define ERROR_NOT_FOUND ENOTSUP
+#define ERROR_NOT_CAPABLE EPERM
+#define ERROR_FILE_NOT_FOUND ENOENT
+#define ERROR_IO_DEVICE EIO
+#define ERROR_INVALID_HANDLE EBADF
+
+// Used by HRESULT <--> WIN32 error code conversion
+#define SEVERITY_ERROR 1
+#define FACILITY_WIN32 7
+#define HRESULT_CODE(hr) ((hr) & 0xFFFF)
+#define MAKE_HRESULT(severity, facility, code)                                 \
+  ((HRESULT)(((unsigned long)(severity) << 31) |                               \
+             ((unsigned long)(facility) << 16) | ((unsigned long)(code))))
 
 #define FILE_TYPE_UNKNOWN 0x0000
 #define FILE_TYPE_DISK 0x0001
@@ -70,7 +83,6 @@
 #define FILE_ATTRIBUTE_NORMAL 0x00000080
 #define FILE_ATTRIBUTE_DIRECTORY 0x00000010
 #define INVALID_FILE_ATTRIBUTES ((DWORD)-1)
-#define ERROR_INVALID_HANDLE 6L
 
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
@@ -92,10 +104,6 @@
 #define HEAP_NO_SERIALIZE 1
 
 #define MB_ERR_INVALID_CHARS 0x00000008 // error for invalid chars
-
-// Ouch. This method returns the last error code of the calling thread.
-// These are not meaningful in Liunx anyway.
-#define GetLastError() -1
 
 #define _atoi64 atoll
 #define sprintf_s snprintf

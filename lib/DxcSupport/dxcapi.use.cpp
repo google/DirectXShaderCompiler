@@ -41,7 +41,6 @@ static std::string GetWin32ErrorMessage(DWORD err) {
 
 void IFT_Data(HRESULT hr, LPCWSTR data) {
   if (SUCCEEDED(hr)) return;
-#ifdef _WIN32
   CW2A pData(data, CP_UTF8);
   std::string errMsg;
   if (HRESULT_IS_WIN32ERR(hr)) {
@@ -54,11 +53,6 @@ void IFT_Data(HRESULT hr, LPCWSTR data) {
   if (data != nullptr) {
     errMsg.append(pData);
   }
-#else
-  char mbs[80]; // multibyte string
-  wcstombs(mbs, data, sizeof(mbs));
-  std::string errMsg(mbs);
-#endif
   throw ::hlsl::Exception(hr, errMsg);
 }
 
