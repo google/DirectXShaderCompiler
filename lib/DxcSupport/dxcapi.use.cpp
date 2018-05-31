@@ -37,6 +37,10 @@ static std::string GetWin32ErrorMessage(DWORD err) {
   }
   return std::string();
 }
+#else
+static std::string GetWin32ErrorMessage(DWORD err) {
+  return std::string(std::strerror(err));
+}
 #endif
 
 void IFT_Data(HRESULT hr, LPCWSTR data) {

@@ -55,7 +55,7 @@
 // Use errno to implement {Get|Set}LastError
 #define GetLastError() errno
 #define SetLastError(ERR) errno = ERR
-#define GetWin32ErrorMessage(err) std::strerror(err)
+
 // Map these errors to equivalent errnos.
 #define ERROR_SUCCESS 0L
 #define ERROR_OUT_OF_STRUCTURES ENOMEM
