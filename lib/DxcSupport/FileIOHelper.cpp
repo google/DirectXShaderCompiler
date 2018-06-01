@@ -136,8 +136,7 @@ void ReadBinaryFile(IMalloc *pMalloc, LPCWSTR pFileName, void **ppData,
   // Open file
   std::ifstream ifs(CW2A(pFileName).m_psz, std::ios::binary|std::ios::ate);
   if(ifs.fail()) {
-    fprintf(stderr, "The system cannot file the file specified:");
-    throw ::hlsl::Exception(GetLastError());
+    IFT(HRESULT_FROM_WIN32(GetLastError()));
   }
   // Find out the file size (number of bytes).
   std::ifstream::pos_type pos = ifs.tellg();
