@@ -53,6 +53,9 @@ bool hasHLSLMatOrientation(QualType type, bool *pIsRowMajor) {
       if (pIsRowMajor)
         *pIsRowMajor = false;
       return true;
+    default:
+      // Only oriented matrices return true.
+      break;
     }
     AT = AT->getLocallyUnqualifiedSingleStepDesugaredType()
              ->getAs<AttributedType>();
@@ -93,6 +96,9 @@ bool TypeTranslator::isRelaxedPrecisionType(QualType type,
           // If the options is not enabled, these types are translated to 32-bit
           // types with the added RelaxedPrecision decoration.
           return !opts.enable16BitTypes;
+        default:
+          // Filter switch only interested in relaxed precision eligible types.
+          break;
         }
         }
   }
@@ -278,6 +284,9 @@ uint32_t TypeTranslator::getLocationCount(QualType type) {
       case BuiltinType::ULongLong:
         if (elemCount >= 3)
           return 2;
+      default:
+        // Filter switch only interested in types occupying 2 locations.
+        break;
       }
       return 1;
     }
@@ -463,6 +472,9 @@ uint32_t TypeTranslator::getElementSpirvBitwidth(QualType type) {
       // 32-bit int in SPIR-V.
       return bitwidth > 32 ? 64 : 32;
     }
+    default:
+      // Other builtin types are either not relevant to bitcount or not in HLSL.
+      break;
     }
   }
   llvm_unreachable("invalid type passed to getElementSpirvBitwidth");
@@ -1095,6 +1107,9 @@ bool TypeTranslator::isRowMajorMatrix(QualType type) const {
       return true;
     case AttributedType::attr_hlsl_column_major:
       return false;
+    default:
+      // Only oriented matrices are relevant.
+      break;
     }
   }
 
@@ -1577,6 +1592,9 @@ TypeTranslator::translateSampledTypeToImageFormat(QualType sampledType) {
         return elemCount == 1 ? spv::ImageFormat::R32f
                               : elemCount == 2 ? spv::ImageFormat::Rg32f
                                                : spv::ImageFormat::Rgba32f;
+      default:
+        // Other sampled types unimplemented or irrelevant.
+        break;
       }
     }
   }
@@ -1926,6 +1944,10 @@ QualType TypeTranslator::desugarType(QualType type) {
     case AttributedType::attr_hlsl_row_major:
     case AttributedType::attr_hlsl_column_major:
       typeMatMajorAttr = kind;
+      break;
+    default:
+      // Only matrices should apply to typeMatMajorAttr.
+      break;
     }
     return desugarType(
         attrType->getLocallyUnqualifiedSingleStepDesugaredType());

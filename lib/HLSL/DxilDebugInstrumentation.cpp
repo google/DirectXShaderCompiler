@@ -688,6 +688,9 @@ void DxilDebugInstrumentation::addStepDebugEntry(BuilderContext &BC, Instruction
   case Type::TypeID::FunctionTyID:
   case Type::TypeID::ArrayTyID:
   case Type::TypeID::VectorTyID:
+  case Type::TypeID::X86_FP80TyID:
+  case Type::TypeID::X86_MMXTyID:
+  case Type::TypeID::PPC_FP128TyID:
     assert(false);
   }
 
