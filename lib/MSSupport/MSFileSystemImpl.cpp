@@ -26,8 +26,8 @@
 #include <new>
 
 #include "dxc/Support/WinIncludes.h"
+#include "dxc/Support/WinAdapter.h"
 #include "llvm/Support/MSFileSystem.h"
-#include "llvm/Support/WinAdapter.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // Externally visible functions.

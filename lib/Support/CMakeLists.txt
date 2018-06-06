@@ -126,7 +126,6 @@ add_llvm_library(LLVMSupport
   TimeValue.cpp
   Valgrind.cpp
   Watchdog.cpp
-  WinAdapter.cpp
   WinFunctions.cpp
 
   ADDITIONAL_HEADER_DIRS

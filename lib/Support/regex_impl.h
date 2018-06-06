@@ -39,7 +39,7 @@
 #define	_REGEX_H_
 
 #include <sys/types.h>
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 typedef off_t llvm_regoff_t;
 typedef struct {

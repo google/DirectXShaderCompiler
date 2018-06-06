@@ -624,7 +624,6 @@ void system_temp_directory(bool ErasedOnReboot, SmallVectorImpl<char> &Result) {
 // The following is implementation of MSFileSystem for Unix.
 // This will make usages of MSFileSystem throughout DirectXShaderCompiler
 // compatible with Unix.
-#include "llvm/Support/WinAdapter.h"
 #include "llvm/Support/MSFileSystem.h"
 namespace llvm {
 namespace sys  {

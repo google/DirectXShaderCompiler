@@ -29,7 +29,6 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/circular_raw_ostream.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/WinAdapter.h"
 #include "dxc/Support/WinIncludes.h" // HLSL Change
 
 #undef isCurrentDebugType

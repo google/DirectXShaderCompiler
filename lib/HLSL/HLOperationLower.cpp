@@ -22,7 +22,6 @@
 #include "dxc/HLSL/HLOperationLowerExtension.h"
 #include "dxc/HLSL/HLOperations.h"
 #include "dxc/HlslIntrinsicOp.h"
-#include "llvm/Support/WinAdapter.h"
 
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/IRBuilder.h"

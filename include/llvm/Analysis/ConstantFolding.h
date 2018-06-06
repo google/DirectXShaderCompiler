@@ -20,8 +20,6 @@
 #ifndef LLVM_ANALYSIS_CONSTANTFOLDING_H
 #define LLVM_ANALYSIS_CONSTANTFOLDING_H
 
-#include "llvm/Support/WinAdapter.h"
-
 namespace llvm {
   class Constant;
   class ConstantFP;

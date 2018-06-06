@@ -14,7 +14,7 @@
 #include <string>
 
 #include "dxc/Support/ErrorCodes.h"
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 namespace hlsl
 {

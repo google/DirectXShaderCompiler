@@ -11,8 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <map>
-
 #include "clang/AST/ASTContext.h"
 #include "CXXABI.h"
 #include "clang/AST/ASTMutationListener.h"
@@ -41,7 +39,7 @@
 #include "llvm/Support/Capacity.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/WinAdapter.h"
+#include <map>
 
 using namespace clang;
 

@@ -180,9 +180,9 @@ unsigned getNumBytesForUTF8(UTF8 firstByte);
 /*************************************************************************/
 /* Below are LLVM-specific wrappers of the functions above. */
 
+#include "dxc/Support/WinAdapter.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/WinAdapter.h"
 
 namespace llvm {
 

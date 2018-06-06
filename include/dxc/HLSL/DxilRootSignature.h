@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 struct IDxcBlob;
 struct IDxcBlobEncoding;

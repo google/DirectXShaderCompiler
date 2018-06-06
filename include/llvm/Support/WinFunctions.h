@@ -17,7 +17,7 @@
 
 #ifndef _WIN32
 
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 HRESULT StringCchPrintfA(char *dst, size_t dstSize, const char *format, ...);
 HRESULT UIntAdd(UINT uAugend, UINT uAddend, UINT *puResult);

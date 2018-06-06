@@ -11,8 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <map>
-
 #include "clang/Basic/DiagnosticIDs.h"
 #include "clang/Basic/AllDiagnostics.h"
 #include "clang/Basic/DiagnosticCategories.h"
@@ -20,8 +18,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/WinAdapter.h"
-
+#include <map>
 using namespace clang;
 
 //===----------------------------------------------------------------------===//

@@ -12,7 +12,7 @@
 #ifndef __DXC_ISENSE__
 #define __DXC_ISENSE__
 
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 typedef enum DxcGlobalOptions
 {

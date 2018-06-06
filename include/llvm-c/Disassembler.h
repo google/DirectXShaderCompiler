@@ -17,7 +17,7 @@
 
 #include <stddef.h>
 
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 #include "llvm/Support/DataTypes.h"
 
 /**

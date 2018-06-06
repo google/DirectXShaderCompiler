@@ -27,7 +27,7 @@ typedef _Return_type_success_(return >= 0) long HRESULT;
 #include <stdarg.h>
 #include <system_error>
 #include "dxc/Support/exception.h"
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Memory allocation support.

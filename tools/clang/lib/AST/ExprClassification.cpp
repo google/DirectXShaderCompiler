@@ -18,7 +18,6 @@
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ExprObjC.h"
-#include "llvm/Support/WinAdapter.h"
 #include "llvm/Support/ErrorHandling.h"
 
 using namespace clang;

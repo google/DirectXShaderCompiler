@@ -11,10 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <atomic>
-#include <cstdio>
-#include <cstdlib>
-
 #include "clang/Frontend/ASTUnit.h"
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
@@ -30,7 +26,6 @@
 #include "clang/Frontend/FrontendDiagnostic.h"
 #include "clang/Frontend/FrontendOptions.h"
 #include "clang/Frontend/MultiplexConsumer.h"
-#include "clang/Frontend/VerifyDiagnosticConsumer.h"  // HLSL Change
 #include "clang/Frontend/Utils.h"
 #include "clang/Lex/HeaderSearch.h"
 #include "clang/Lex/Preprocessor.h"
@@ -38,7 +33,6 @@
 #include "clang/Sema/Sema.h"
 #include "clang/Serialization/ASTReader.h"
 #include "clang/Serialization/ASTWriter.h"
-#include "llvm/Support/WinAdapter.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringSet.h"
@@ -50,8 +44,12 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/raw_ostream.h"
-
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include "clang/Frontend/VerifyDiagnosticConsumer.h"  // HLSL Change
 using namespace clang;
+
 using llvm::TimeRecord;
 
 namespace {

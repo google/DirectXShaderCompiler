@@ -16,7 +16,6 @@
 #include <string>
 #include "dxc/Support/Global.h"
 #include "dxc/Support/Unicode.h"
-#include "llvm/Support/WinAdapter.h"
 #include "dxc/Support/WinIncludes.h"
 
 #ifndef _WIN32

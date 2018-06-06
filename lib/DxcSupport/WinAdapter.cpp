@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h"
 
 DEFINE_CROSS_PLATFORM_UUIDOF(IUnknown)
 DEFINE_CROSS_PLATFORM_UUIDOF(INoMarshal)

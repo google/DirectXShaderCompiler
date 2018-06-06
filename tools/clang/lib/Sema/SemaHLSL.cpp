@@ -12,7 +12,6 @@
 
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/Support/WinAdapter.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Attr.h"
 #include "clang/AST/DeclCXX.h"
@@ -33,6 +32,7 @@
 #include "clang/Sema/SemaHLSL.h"
 #include "dxc/Support/Global.h"
 #include "dxc/Support/WinIncludes.h"
+#include "dxc/Support/WinAdapter.h"
 #include "dxc/dxcapi.internal.h"
 #include "dxc/HlslIntrinsicOp.h"
 #include "gen_intrin_main_tables_15.h"

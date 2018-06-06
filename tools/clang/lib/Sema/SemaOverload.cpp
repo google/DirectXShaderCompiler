@@ -11,9 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <algorithm>
-#include <cstdlib>
-
 #include "clang/Sema/Overload.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/CXXInheritance.h"
@@ -32,11 +29,12 @@
 #include "clang/Sema/Template.h"
 #include "clang/Sema/TemplateDeduction.h"
 #include "clang/Sema/SemaHLSL.h" // HLSL Change
-#include "llvm/Support/WinAdapter.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallString.h"
+#include <algorithm>
+#include <cstdlib>
 
 using namespace clang;
 using namespace sema;
