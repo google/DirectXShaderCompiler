@@ -192,6 +192,9 @@ void PrintSignature(LPCSTR pName, const DxilProgramSignature *pSignature,
       break;
     case DxilProgramSigSemantic::Barycentrics:
       pSysValue = "BARYCEN";
+      break;
+    case DxilProgramSigSemantic::Undefined:
+      break;
     }
     OS << right_justify(pSysValue, 9);
 
@@ -223,6 +226,8 @@ void PrintSignature(LPCSTR pName, const DxilProgramSignature *pSignature,
       break;
     case DxilProgramSigCompType::Float64:
       pFormat = "double";
+      break;
+    case DxilProgramSigCompType::Unknown:
       break;
     }
 
@@ -362,6 +367,8 @@ void PrintResourceFormat(DxilResourceBase &res, unsigned alignment,
       OS << right_justify(compName, alignment);
       break;
     }
+  case DxilResource::Class::Invalid:
+    break;
   }
 }
 
@@ -402,6 +409,8 @@ void PrintResourceDim(DxilResourceBase &res, unsigned alignment,
       OS << right_justify(res.GetResDimName(), alignment);
       break;
     }
+    break;
+  case DxilResourceBase::Class::Invalid:
     break;
   }
 }
@@ -588,6 +597,9 @@ void PrintTypeAndName(llvm::Type *Ty, DxilFieldAnnotation &annotation,
     case MatrixOrientation::ColumnMajor:
       Stream << "column_major ";
       break;
+    case MatrixOrientation::Undefined:
+    case MatrixOrientation::LastEntry:
+      break;
     }
     Stream << compTyName << Matrix.Rows << "x" << Matrix.Cols;
   } else if (Ty->isVectorTy())
@@ -632,6 +644,9 @@ void PrintFieldLayout(llvm::Type *Ty, DxilFieldAnnotation &annotation,
         break;
       case MatrixOrientation::ColumnMajor:
         arraySize /= Matrix.Cols;
+        break;
+      case MatrixOrientation::Undefined:
+      case MatrixOrientation::LastEntry:
         break;
       }
       if (EltTy->isVectorTy()) {
@@ -1231,6 +1246,11 @@ void PrintPipelineStateValidationRuntimeInfo(const char *pBuffer,
     OS << comment << " DepthOutput=" << (bool)pInfo->PS.DepthOutput << "\n";
     OS << comment << " SampleFrequency=" << (bool)pInfo->PS.SampleFrequency
        << "\n";
+    break;
+  case DXIL::ShaderKind::Compute:
+  case DXIL::ShaderKind::Library:
+  case DXIL::ShaderKind::Invalid:
+    // Nothing to print for these shader kinds.
     break;
   }
 
