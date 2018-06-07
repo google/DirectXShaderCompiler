@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#ifndef _WIN32
+
 #include "dxc/Support/WinAdapter.h"
 
 DEFINE_CROSS_PLATFORM_UUIDOF(IUnknown)
@@ -47,3 +49,4 @@ void *CAllocator::Reallocate(void *p, size_t nBytes) throw() {
 void *CAllocator::Allocate(size_t nBytes) throw() { return malloc(nBytes); }
 void CAllocator::Free(void *p) throw() { free(p); }
 
+#endif

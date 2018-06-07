@@ -1,4 +1,4 @@
-//===-- WinTypes.h - Windows Types for non-Windows platforms ----*- C++ -*-===//
+//===- WinAdapter.h - Windows Adapter for non-Windows platforms -*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
