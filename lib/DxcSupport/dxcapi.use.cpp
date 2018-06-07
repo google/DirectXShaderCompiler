@@ -13,6 +13,7 @@
 #include "dxc/Support/dxcapi.use.h"
 #include "dxc/Support/Global.h"
 #include "dxc/Support/Unicode.h"
+#include "llvm/Support/WinFunctions.h"
 
 namespace dxc {
 
@@ -109,16 +110,11 @@ void WriteBlobToFile(_In_opt_ IDxcBlob *pBlob, _In_ LPCWSTR pFileName) {
   if (pBlob == nullptr) {
     return;
   }
-  #ifdef _WIN32
   CHandle file(CreateFile2(pFileName, GENERIC_WRITE, FILE_SHARE_READ,
                            CREATE_ALWAYS, nullptr));
   if (file == INVALID_HANDLE_VALUE) {
     IFT_Data(HRESULT_FROM_WIN32(GetLastError()), pFileName);
   }
-  #else
-  std::ofstream outputFile (CW2A(pFileName).m_psz, std::ios::out | std::ios::binary);
-  void *file = static_cast<void*>(&outputFile);
-  #endif
   WriteBlobToHandle(pBlob, file, pFileName);
 }
 
@@ -127,18 +123,11 @@ void WriteBlobToHandle(_In_opt_ IDxcBlob *pBlob, _In_ HANDLE hFile, _In_opt_ LPC
     return;
   }
 
-  #ifdef _WIN32
   DWORD written;
   if (FALSE == WriteFile(hFile, pBlob->GetBufferPointer(),
     pBlob->GetBufferSize(), &written, nullptr)) {
     IFT_Data(HRESULT_FROM_WIN32(GetLastError()), pFileName);
   }
-  #else
-  std::ofstream *file = static_cast<std::ofstream*>(hFile);
-  assert(file && file->is_open());
-  file->write(static_cast<char*>(pBlob->GetBufferPointer()), pBlob->GetBufferSize());
-  file->close();
-  #endif
 }
 
 void WriteUtf8ToConsole(_In_opt_count_(charCount) const char *pText,
