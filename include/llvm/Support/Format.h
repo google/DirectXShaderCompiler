@@ -23,14 +23,13 @@
 #ifndef LLVM_SUPPORT_FORMAT_H
 #define LLVM_SUPPORT_FORMAT_H
 
+#include "dxc/Support/WinAdapter.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
 #include <cassert>
 #include <cstdio>
 #include <tuple>
-
-#include "llvm/Support/WinSAL.h"
 
 namespace llvm {
 

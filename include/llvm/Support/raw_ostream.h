@@ -17,9 +17,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/DataTypes.h"
-#include "llvm/Support/WinSAL.h"
 #include <system_error>
-
 
 namespace llvm {
 class format_object_base;

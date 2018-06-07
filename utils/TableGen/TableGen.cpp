@@ -24,10 +24,6 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
-#else
-#include "llvm/Support/WinTypes.h"
-#include "llvm/Support/WinMacros.h"
-#include "llvm/Support/WinSAL.h"
 #endif
 
 #include "llvm/Support/FileSystem.h"

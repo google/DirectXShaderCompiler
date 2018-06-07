@@ -17,7 +17,7 @@
 #ifdef _WIN32
 #include <sal.h>  // HLSL Change - SAL
 #else
-#include "llvm/Support/WinSAL.h"
+#include "dxc/Support/WinAdapter.h"
 #endif
 
 namespace llvm {

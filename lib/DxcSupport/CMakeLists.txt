@@ -7,6 +7,7 @@ add_llvm_library(LLVMDxcSupport
   Global.cpp
   HLSLOptions.cpp
   Unicode.cpp
+  WinAdapter.cpp
   )
 
 add_dependencies(LLVMDxcSupport TablegenHLSLOptions)

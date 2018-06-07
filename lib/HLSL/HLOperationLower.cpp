@@ -27,7 +27,6 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Support/WinMacros.h"
 
 using namespace llvm;
 using namespace hlsl;

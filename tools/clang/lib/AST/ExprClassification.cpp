@@ -20,8 +20,6 @@
 #include "clang/AST/ExprObjC.h"
 #include "llvm/Support/ErrorHandling.h"
 
-#include "llvm/Support/WinSAL.h"
-
 using namespace clang;
 
 typedef Expr::Classification Cl;

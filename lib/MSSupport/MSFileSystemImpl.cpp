@@ -26,9 +26,7 @@
 #include <new>
 
 #include "dxc/Support/WinIncludes.h"
-#include "llvm/Support/WinMacros.h"
-#include "llvm/Support/WinSAL.h"
-#include "llvm/Support/WinTypes.h"
+#include "dxc/Support/WinAdapter.h"
 #include "llvm/Support/MSFileSystem.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

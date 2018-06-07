@@ -14,7 +14,7 @@
 #include <string>
 
 #include "dxc/Support/ErrorCodes.h"
-#include "llvm/Support/WinTypes.h" // SPIRV Change
+#include "dxc/Support/WinAdapter.h"
 
 namespace hlsl
 {

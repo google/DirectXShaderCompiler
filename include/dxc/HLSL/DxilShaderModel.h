@@ -13,7 +13,6 @@
 
 #include <string>
 #include "dxc/HLSL/DxilConstants.h"
-#include "llvm/Support/WinSAL.h"
 
 namespace hlsl {
 

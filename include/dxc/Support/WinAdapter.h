@@ -1,4 +1,4 @@
-//===-- WinTypes.h - Windows Types for non-Windows platforms ----*- C++ -*-===//
+//===- WinAdapter.h - Windows Adapter for non-Windows platforms -*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,16 +7,17 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines Windows-specific types used in the codebase for
-// non-Windows platforms.
+// This file defines Windows-specific types, macros, and SAL annotations used
+// in the codebase for non-Windows platforms.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_SUPPORT_WINDTYPES_H
-#define LLVM_SUPPORT_WINDTYPES_H
+#ifndef LLVM_SUPPORT_WIN_ADAPTER_H
+#define LLVM_SUPPORT_WIN_ADAPTER_H
 
 #ifndef _WIN32
 
+#ifdef __cplusplus
 #include <atomic>
 #include <cassert>
 #include <climits>
@@ -30,8 +31,276 @@
 #include <typeindex>
 #include <typeinfo>
 #include <vector>
+#endif
 
-//===--------------------- Basic Types ------------------------------------===//
+//===----------------------------------------------------------------------===//
+//
+//                             Begin: Macro Definitions
+//
+//===----------------------------------------------------------------------===//
+#define C_ASSERT(expr) static_assert((expr), "")
+#define ATLASSERT assert
+
+#define ARRAYSIZE(array) (sizeof(array) / sizeof(array[0]))
+
+#define _countof(a) (sizeof(a) / sizeof(*(a)))
+
+#define __declspec(x)
+
+#define uuid(id)
+
+#define STDMETHODCALLTYPE
+#define STDAPI extern "C" HRESULT STDAPICALLTYPE
+#define STDAPI_(type) extern "C" type STDAPICALLTYPE
+#define STDMETHODIMP HRESULT STDMETHODCALLTYPE
+#define STDMETHODIMP_(type) type STDMETHODCALLTYPE
+
+#define UNREFERENCED_PARAMETER(P) (void)(P)
+
+#define RtlEqualMemory(Destination, Source, Length)                            \
+  (!memcmp((Destination), (Source), (Length)))
+#define RtlMoveMemory(Destination, Source, Length)                             \
+  memmove((Destination), (Source), (Length))
+#define RtlCopyMemory(Destination, Source, Length)                             \
+  memcpy((Destination), (Source), (Length))
+#define RtlFillMemory(Destination, Length, Fill)                               \
+  memset((Destination), (Fill), (Length))
+#define RtlZeroMemory(Destination, Length) memset((Destination), 0, (Length))
+#define MoveMemory RtlMoveMemory
+#define CopyMemory RtlCopyMemory
+#define FillMemory RtlFillMemory
+#define ZeroMemory RtlZeroMemory
+
+#define FALSE 0
+#define TRUE 1
+
+#define REGDB_E_CLASSNOTREG 1
+
+// We ignore the code page completely on Linux.
+#define GetConsoleOutputCP() 0
+
+#define _HRESULT_TYPEDEF_(_sc) ((HRESULT)_sc)
+#define DISP_E_BADINDEX _HRESULT_TYPEDEF_(0x8002000BL)
+
+// This is an unsafe conversion. If needed, we can later implement a safe
+// conversion that throws exceptions for overflow cases.
+#define UIntToInt(uint_arg, int_ptr_arg) *int_ptr_arg = uint_arg
+
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
+
+// Use errno to implement {Get|Set}LastError
+#define GetLastError() errno
+#define SetLastError(ERR) errno = ERR
+
+// Map these errors to equivalent errnos.
+#define ERROR_SUCCESS 0L
+#define ERROR_OUT_OF_STRUCTURES ENOMEM
+#define ERROR_UNHANDLED_EXCEPTION EINTR
+#define ERROR_NOT_FOUND ENOTSUP
+#define ERROR_NOT_CAPABLE EPERM
+#define ERROR_FILE_NOT_FOUND ENOENT
+#define ERROR_IO_DEVICE EIO
+#define ERROR_INVALID_HANDLE EBADF
+
+// Used by HRESULT <--> WIN32 error code conversion
+#define SEVERITY_ERROR 1
+#define FACILITY_WIN32 7
+#define HRESULT_CODE(hr) ((hr)&0xFFFF)
+#define MAKE_HRESULT(severity, facility, code)                                 \
+  ((HRESULT)(((unsigned long)(severity) << 31) |                               \
+             ((unsigned long)(facility) << 16) | ((unsigned long)(code))))
+
+#define FILE_TYPE_UNKNOWN 0x0000
+#define FILE_TYPE_DISK 0x0001
+#define FILE_TYPE_CHAR 0x0002
+#define FILE_TYPE_PIPE 0x0003
+#define FILE_TYPE_REMOTE 0x8000
+
+#define FILE_ATTRIBUTE_NORMAL 0x00000080
+#define FILE_ATTRIBUTE_DIRECTORY 0x00000010
+#define INVALID_FILE_ATTRIBUTES ((DWORD)-1)
+
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+
+// STGTY ENUMS
+#define STGTY_STORAGE 1
+#define STGTY_STREAM 2
+#define STGTY_LOCKBYTES 3
+#define STGTY_PROPERTY 4
+
+// Storage errors
+#define STG_E_INVALIDFUNCTION 1L
+#define STG_E_ACCESSDENIED 2L
+
+#define STREAM_SEEK_SET 0
+#define STREAM_SEEK_CUR 1
+#define STREAM_SEEK_END 2
+
+#define HEAP_NO_SERIALIZE 1
+
+#define MB_ERR_INVALID_CHARS 0x00000008 // error for invalid chars
+
+#define _atoi64 atoll
+#define sprintf_s snprintf
+#define _strdup strdup
+#define vsprintf_s vsprintf
+#define strcat_s strcat
+
+#define OutputDebugStringW(msg) fputws(msg, stderr)
+
+#define OutputDebugStringA(msg) fputs(msg, stderr)
+#define OutputDebugFormatA(...) fprintf(stderr, __VA_ARGS__)
+
+// Event Tracing for Windows (ETW) provides application programmers the ability
+// to start and stop event tracing sessions, instrument an application to
+// provide trace events, and consume trace events.
+#define DxcEtw_DXCompilerCreateInstance_Start()
+#define DxcEtw_DXCompilerCreateInstance_Stop(hr)
+#define DxcEtw_DXCompilerCompile_Start()
+#define DxcEtw_DXCompilerCompile_Stop(hr)
+#define DxcEtw_DXCompilerDisassemble_Start()
+#define DxcEtw_DXCompilerDisassemble_Stop(hr)
+#define DxcEtw_DXCompilerPreprocess_Start()
+#define DxcEtw_DXCompilerPreprocess_Stop(hr)
+#define DxcEtw_DxcValidation_Start()
+#define DxcEtw_DxcValidation_Stop(hr)
+
+#define UInt32Add UIntAdd
+#define Int32ToUInt32 IntToUInt
+
+//===--------------------- HRESULT Related Macros -------------------------===//
+
+#define S_OK ((HRESULT)0L)
+#define S_FALSE ((HRESULT)1L)
+
+#define E_ABORT (HRESULT)0x80004004
+#define E_ACCESSDENIED (HRESULT)0x80070005
+#define E_FAIL (HRESULT)0x80004005
+#define E_HANDLE (HRESULT)0x80070006
+#define E_INVALIDARG (HRESULT)0x80070057
+#define E_NOINTERFACE (HRESULT)0x80004002
+#define E_NOTIMPL (HRESULT)0x80004001
+#define E_OUTOFMEMORY (HRESULT)0x8007000E
+#define E_POINTER (HRESULT)0x80004003
+#define E_UNEXPECTED (HRESULT)0x8000FFFF
+
+#define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
+#define FAILED(hr) (((HRESULT)(hr)) < 0)
+#define DXC_FAILED(hr) (((HRESULT)(hr)) < 0)
+
+#define HRESULT_FROM_WIN32(x)                                                  \
+  (HRESULT)(x) <= 0 ? (HRESULT)(x)                                             \
+                    : (HRESULT)(((x)&0x0000FFFF) | (7 << 16) | 0x80000000)
+
+//===----------------------------------------------------------------------===//
+//
+//                         Begin: Disable SAL Annotations
+//
+//===----------------------------------------------------------------------===//
+#define _In_
+#define _In_z_
+#define _In_opt_
+#define _In_opt_count_(size)
+#define _In_opt_z_
+#define _In_reads_(size)
+#define _In_reads_bytes_(size)
+#define _In_reads_bytes_opt_(size)
+#define _In_reads_opt_(size)
+#define _In_reads_to_ptr_(ptr)
+#define _In_count_(size)
+#define _In_range_(lb, ub)
+#define _In_bytecount_(size)
+#define _In_NLS_string_(size)
+#define __in_bcount(size)
+
+#define _Out_
+#define _Out_bytecap_(nbytes)
+#define _Out_writes_to_opt_(a, b)
+#define _Outptr_
+#define _Outptr_opt_
+#define _Outptr_opt_result_z_
+#define _Out_opt_
+#define _Out_writes_(size)
+#define _Out_write_bytes_(size)
+#define _Out_writes_z_(size)
+#define _Out_writes_all_(size)
+#define _Out_writes_bytes_(size)
+#define _Outref_result_buffer_(size)
+#define _Outptr_result_buffer_(size)
+#define _Out_cap_(size)
+#define _Out_cap_x_(size)
+#define _Out_range_(lb, ub)
+#define _Outptr_result_z_
+#define _Outptr_result_buffer_maybenull_(ptr)
+#define _Outptr_result_maybenull_
+#define _Outptr_result_nullonfailure_
+
+#define __out_ecount_part(a, b)
+
+#define _Inout_
+#define _Inout_z_
+#define _Inout_opt_
+#define _Inout_cap_(size)
+#define _Inout_count_(size)
+#define _Inout_count_c_(size)
+#define _Inout_opt_count_c_(size)
+#define _Inout_bytecount_c_(size)
+#define _Inout_opt_bytecount_c_(size)
+
+#define _Ret_maybenull_
+#define _Ret_notnull_
+#define _Ret_opt_
+
+#define _Use_decl_annotations_
+#define _Analysis_assume_(expr)
+#define _Analysis_assume_nullterminated_(x)
+#define _Success_(expr)
+
+#define __inexpressible_readableTo(size)
+#define __inexpressible_writableTo(size)
+
+#define _Printf_format_string_
+#define _Null_terminated_
+#define __fallthrough
+
+#define _Field_size_(size)
+#define _Field_size_full_(size)
+#define _Field_size_opt_(size)
+#define _Post_writable_byte_size_(size)
+#define _Post_readable_byte_size_(size)
+#define __drv_allocatesMem(mem)
+
+#define _COM_Outptr_
+#define _COM_Outptr_opt_
+#define _COM_Outptr_result_maybenull_
+
+#define _Null_
+#define _Notnull_
+#define _Maybenull_
+
+#define _Outptr_result_bytebuffer_(size)
+
+#define __debugbreak()
+
+// GCC produces erros on calling convention attributes.
+#ifdef __GNUC__
+#define __cdecl
+#define __CRTDECL
+#define __stdcall
+#define __vectorcall
+#define __thiscall
+#define __fastcall
+#define __clrcall
+#endif
+
+//===----------------------------------------------------------------------===//
+//
+//                             Begin: Type Definitions
+//
+//===----------------------------------------------------------------------===//
+
+#ifdef __cplusplus
 
 typedef unsigned char BYTE;
 typedef unsigned char *LPBYTE;
@@ -82,34 +351,7 @@ typedef const void *LPCVOID;
 
 typedef std::nullptr_t nullptr_t;
 
-#define interface struct
-
-//===--------------------- HRESULT Related Macros -------------------------===//
-
 typedef signed int HRESULT;
-
-#define S_OK ((HRESULT)0L)
-#define S_FALSE ((HRESULT)1L)
-
-#define E_ABORT (HRESULT)0x80004004
-#define E_ACCESSDENIED (HRESULT)0x80070005
-#define E_FAIL (HRESULT)0x80004005
-#define E_HANDLE (HRESULT)0x80070006
-#define E_INVALIDARG (HRESULT)0x80070057
-#define E_NOINTERFACE (HRESULT)0x80004002
-#define E_NOTIMPL (HRESULT)0x80004001
-#define E_OUTOFMEMORY (HRESULT)0x8007000E
-#define E_POINTER (HRESULT)0x80004003
-#define E_UNEXPECTED (HRESULT)0x8000FFFF
-
-#define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
-#define FAILED(hr) (((HRESULT)(hr)) < 0)
-#define DXC_FAILED(hr) (((HRESULT)(hr)) < 0)
-
-#define HRESULT_FROM_WIN32(x)                                                  \
-  (HRESULT)(x) <= 0 ? (HRESULT)(x)                                             \
-                    : (HRESULT)(((x)&0x0000FFFF) | (7 << 16) | 0x80000000)
-
 
 //===--------------------- Handle Types -----------------------------------===//
 
@@ -235,23 +477,11 @@ private:                                                                       \
 
 //===--------------------- COM Interfaces ---------------------------------===//
 
-// Note: This implementation is inspired by:
-// https://msdn.microsoft.com/en-us/library/office/cc839627.aspx
 struct IUnknown {
   virtual HRESULT QueryInterface(REFIID riid, void **ppvObject) = 0;
-  virtual ULONG AddRef() {
-    ++m_count;
-    return m_count;
-  }
-  virtual ULONG Release() {
-    --m_count;
-    if (m_count == 0) {
-      delete this;
-    }
-    return m_count;
-  }
-  virtual ~IUnknown() {}
-
+  virtual ULONG AddRef();
+  virtual ULONG Release();
+  virtual ~IUnknown();
   template <class Q> HRESULT QueryInterface(Q **pp) {
     return QueryInterface(__uuidof(Q), (void **)pp);
   }
@@ -267,13 +497,10 @@ struct INoMarshal : public IUnknown {
 };
 
 struct IMalloc : public IUnknown {
-  virtual void *Alloc(size_t size) { return malloc(size); }
-  virtual void *Realloc(void *ptr, size_t size) { return realloc(ptr, size); }
-  virtual void Free(void *ptr) { free(ptr); }
-  virtual HRESULT QueryInterface(REFIID riid, void **ppvObject) {
-    assert(false && "QueryInterface not implemented for IMalloc.");
-    return E_NOINTERFACE;
-  }
+  virtual void *Alloc(size_t size);
+  virtual void *Realloc(void *ptr, size_t size);
+  virtual void Free(void *ptr);
+  virtual HRESULT QueryInterface(REFIID riid, void **ppvObject);
 };
 
 struct ISequentialStream : public IUnknown {
@@ -312,11 +539,9 @@ struct IStream : public ISequentialStream {
 
 class CAllocator {
 public:
-  static void *Reallocate(void *p, size_t nBytes) throw() {
-    return realloc(p, nBytes);
-  }
-  static void *Allocate(size_t nBytes) throw() { return malloc(nBytes); }
-  static void Free(void *p) throw() { free(p); }
+  static void *Reallocate(void *p, size_t nBytes) throw();
+  static void *Allocate(size_t nBytes) throw();
+  static void Free(void *p) throw();
 };
 
 template <class T> class CComPtrBase {
@@ -565,9 +790,6 @@ public:
   }
 };
 
-// Based on what I see, CComHeapPtr is basically the same as CHeapPtr.
-// It is inherited from it and doesn't seem to add anything...
-// TODO: Verify
 #define CComHeapPtr CHeapPtr
 
 //===--------------------- UTF-8 Related Types ----------------------------===//
@@ -637,6 +859,8 @@ public:
 
 typedef CA2WEX<> CA2W;
 
+#endif  // __cplusplus
+
 #endif // _WIN32
 
-#endif // LLVM_SUPPORT_WINTYPES_H
+#endif // LLVM_SUPPORT_WIN_ADAPTER_H

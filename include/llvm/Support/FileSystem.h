@@ -27,13 +27,13 @@
 #ifndef LLVM_SUPPORT_FILESYSTEM_H
 #define LLVM_SUPPORT_FILESYSTEM_H
 
+#include "dxc/Support/WinAdapter.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/TimeValue.h"
-#include "llvm/Support/WinSAL.h"
 #include <ctime>
 #include <iterator>
 #include <stack>

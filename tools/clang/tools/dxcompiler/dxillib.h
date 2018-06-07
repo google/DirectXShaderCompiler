@@ -13,8 +13,8 @@
 #ifndef __DXC_DXILLIB__
 #define __DXC_DXILLIB__
 
+#include "dxc/Support/WinAdapter.h"
 #include "dxc/Support/WinIncludes.h"
-#include "llvm/Support/WinSAL.h"
 
 // Initialize Dxil library. 
 HRESULT DxilLibInitialize();

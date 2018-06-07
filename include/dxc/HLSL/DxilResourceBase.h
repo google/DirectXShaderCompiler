@@ -15,10 +15,6 @@
 
 #include "DxilConstants.h"
 
-#include "llvm/Support/WinTypes.h"
-#include "llvm/Support/WinMacros.h"
-#include "llvm/Support/WinSAL.h"
-
 namespace llvm {
 class Value;
 class Constant;

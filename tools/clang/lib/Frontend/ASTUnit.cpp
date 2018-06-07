@@ -44,7 +44,6 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Timer.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/WinMacros.h"
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
