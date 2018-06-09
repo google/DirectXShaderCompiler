@@ -13,7 +13,7 @@
 #include "dxc/Support/dxcapi.use.h"
 #include "dxc/Support/Global.h"
 #include "dxc/Support/Unicode.h"
-#include "llvm/Support/WinFunctions.h"
+#include "dxc/Support/WinFunctions.h"
 
 namespace dxc {
 

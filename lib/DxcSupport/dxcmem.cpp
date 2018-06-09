@@ -14,9 +14,9 @@
 #include <specstrings.h>
 #endif
 
+#include "dxc/Support/WinFunctions.h"
 #include "dxc/Support/WinIncludes.h"
 #include "llvm/Support/ThreadLocal.h"
-#include "llvm/Support/WinFunctions.h"
 #include <memory>
 
 static llvm::sys::ThreadLocal<IMalloc> *g_ThreadMallocTls;

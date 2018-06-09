@@ -61,7 +61,7 @@
 #include <dia2.h>
 #include <comdef.h>
 #else
-#include "llvm/Support/WinFunctions.h"
+#include "dxc/Support/WinFunctions.h"
 #endif
 #include <algorithm>
 #include <unordered_map>
