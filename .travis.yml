@@ -4,7 +4,7 @@ language: cpp
 
 os:
   - linux
-    #  - osx
+  - osx
 
 # Use Ubuntu 14.04 LTS (Trusty) as the Linux testing environment.
 sudo: required
@@ -18,6 +18,7 @@ compiler:
   - clang
 
 matrix:
+  fast_finish: true
   include:
     - os: linux
       compiler: gcc
@@ -33,6 +34,8 @@ matrix:
           sources: ubuntu-toolchain-r-test
           packages: ninja-build g++-5
       env: DXC_BUILD_TYPE=Release
+  allow_failures:
+    - os: osx
 
 cache:
   apt: true
@@ -49,9 +52,13 @@ addons:
     packages:
       - ninja-build
 
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja; fi
+
 before_script:
   - git submodule update --init
   - if [ ${CC} = gcc ]; then CC=gcc-5; CXX=g++-5; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ulimit -Sn 1024; fi
 
 script:
   - mkdir build && cd build
