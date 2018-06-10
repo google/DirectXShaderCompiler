@@ -79,6 +79,8 @@ public:
   HRESULT Initialize() {
     #ifdef _WIN32
     return InitializeInternal(L"dxcompiler.dll", "DxcCreateInstance");
+    #elif __APPLE__
+    return InitializeInternal(L"libdxcompiler.dylib", "DxcCreateInstance");
     #else
     return InitializeInternal(L"libdxcompiler.so", "DxcCreateInstance");
     #endif
