@@ -27,7 +27,7 @@
 #include <set>
 
 #ifndef _WIN32
-#include "llvm/Support/WinFunctions.h"
+#include "dxc/Support/WinFunctions.h"
 #endif
 
 using namespace llvm;

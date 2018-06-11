@@ -10,7 +10,7 @@
 #ifndef _WIN32
 
 #include "dxc/Support/WinAdapter.h"
-#include "llvm/Support/WinFunctions.h"
+#include "dxc/Support/WinFunctions.h"
 
 DEFINE_CROSS_PLATFORM_UUIDOF(IUnknown)
 DEFINE_CROSS_PLATFORM_UUIDOF(INoMarshal)

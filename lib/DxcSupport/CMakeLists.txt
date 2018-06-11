@@ -8,6 +8,7 @@ add_llvm_library(LLVMDxcSupport
   HLSLOptions.cpp
   Unicode.cpp
   WinAdapter.cpp
+  WinFunctions.cpp
   )
 
 add_dependencies(LLVMDxcSupport TablegenHLSLOptions)

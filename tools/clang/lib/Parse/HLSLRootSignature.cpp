@@ -23,7 +23,7 @@
 
 // SPIRV Change Starts
 #ifndef _WIN32
-#include "llvm/Support/WinFunctions.h"
+#include "dxc/Support/WinFunctions.h"
 #endif
 // SPIRV Change Ends
 

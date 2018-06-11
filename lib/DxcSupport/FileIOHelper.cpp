@@ -23,7 +23,7 @@
 #include <intsafe.h>
 // SPIRV Change Starts
 #else
-#include "llvm/Support/WinFunctions.h"
+#include "dxc/Support/WinFunctions.h"
 // SPIRV Change Ends
 #endif
 
