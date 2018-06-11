@@ -268,7 +268,6 @@ static void WritePartToFile(IDxcBlob *pBlob, hlsl::DxilFourCC CC,
   const char *pData = hlsl::GetDxilPartData(*it);
   DWORD dataLen = (*it)->PartSize;
 
-  #ifdef LLVM_ON_WIN32
   StringRefUtf16 WideName(FName);
   CHandle file(CreateFile2(WideName, GENERIC_WRITE, FILE_SHARE_READ,
                            CREATE_ALWAYS, nullptr));
@@ -279,11 +278,6 @@ static void WritePartToFile(IDxcBlob *pBlob, hlsl::DxilFourCC CC,
   if (FALSE == WriteFile(file, pData, dataLen, &written, nullptr)) {
     IFT_Data(HRESULT_FROM_WIN32(GetLastError()), WideName);
   }
-  #else
-  std::ofstream file(FName, std::ios::out | std::ios::binary);
-  file.write(static_cast<const char*>(pData), dataLen);
-  file.close();
-  #endif
 }
 
 // This function is called either after the compilation is done or /dumpbin option is provided
@@ -920,30 +914,18 @@ void DxcContext::Preprocess() {
 }
 
 static void WriteString(HANDLE hFile, _In_z_ LPCSTR value, LPCWSTR pFileName) {
-  #ifdef LLVM_ON_WIN32
   DWORD written;
   if (FALSE == WriteFile(hFile, value, strlen(value) * sizeof(value[0]), &written, nullptr))
     IFT_Data(HRESULT_FROM_WIN32(GetLastError()), pFileName);
-  #else
-  std::ofstream *file = static_cast<std::ofstream*>(hFile);
-  assert(file && file->is_open());
-  file->write(value, strlen(value));
-  file->close();
-  #endif
 }
 
 void DxcContext::WriteHeader(IDxcBlobEncoding *pDisassembly, IDxcBlob *pCode,
                              llvm::Twine &pVariableName, LPCWSTR pFileName) {
-  #ifdef LLVM_ON_WIN32
   CHandle file(CreateFile2(pFileName, GENERIC_WRITE, FILE_SHARE_READ,
                            CREATE_ALWAYS, nullptr));
   if (file == INVALID_HANDLE_VALUE) {
     IFT_Data(HRESULT_FROM_WIN32(GetLastError()), pFileName);
   }
-  #else
-  std::ofstream outputFile (CW2A(pFileName).m_psz, std::ios::out | std::ios::binary);
-  void *file = static_cast<void*>(&outputFile);
-  #endif
 
   {
     std::string s;

@@ -141,6 +141,21 @@
 
 #define MB_ERR_INVALID_CHARS 0x00000008 // error for invalid chars
 
+// File IO
+
+#define CREATE_ALWAYS 2
+#define CREATE_NEW 1
+#define OPEN_ALWAYS 4
+#define OPEN_EXISTING 3
+#define TRUNCATE_EXISTING 5
+
+#define FILE_SHARE_DELETE 0x00000004
+#define FILE_SHARE_READ 0x00000001
+#define FILE_SHARE_WRITE 0x00000002
+
+#define GENERIC_READ 0x80000000
+#define GENERIC_WRITE 0x40000000
+
 #define _atoi64 atoll
 #define sprintf_s snprintf
 #define _strdup strdup
@@ -859,7 +874,19 @@ public:
 
 typedef CA2WEX<> CA2W;
 
-#endif  // __cplusplus
+//===--------- File IO Related Types ----------------===//
+
+class CHandle {
+public:
+  CHandle(HANDLE h);
+  ~CHandle();
+  operator HANDLE() const throw();
+
+private:
+  HANDLE m_h;
+};
+
+#endif // __cplusplus
 
 #endif // _WIN32
 

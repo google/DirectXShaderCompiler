@@ -10,6 +10,7 @@
 #ifndef _WIN32
 
 #include "dxc/Support/WinAdapter.h"
+#include "llvm/Support/WinFunctions.h"
 
 DEFINE_CROSS_PLATFORM_UUIDOF(IUnknown)
 DEFINE_CROSS_PLATFORM_UUIDOF(INoMarshal)
@@ -48,5 +49,11 @@ void *CAllocator::Reallocate(void *p, size_t nBytes) throw() {
 }
 void *CAllocator::Allocate(size_t nBytes) throw() { return malloc(nBytes); }
 void CAllocator::Free(void *p) throw() { free(p); }
+
+//===--------------------------- CHandle -------------------------------===//
+
+CHandle::CHandle(HANDLE h) { m_h = h; }
+CHandle::~CHandle() { CloseHandle(m_h); }
+CHandle::operator HANDLE() const throw() { return m_h; }
 
 #endif

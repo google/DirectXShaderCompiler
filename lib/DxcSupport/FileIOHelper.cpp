@@ -99,7 +99,6 @@ IMalloc *GetGlobalHeapMalloc() throw() {
 _Use_decl_annotations_
 void ReadBinaryFile(IMalloc *pMalloc, LPCWSTR pFileName, void **ppData,
                     DWORD *pDataSize) {
-  #ifdef _WIN32
   HANDLE hFile = CreateFileW(pFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (hFile == INVALID_HANDLE_VALUE) {
@@ -132,35 +131,6 @@ void ReadBinaryFile(IMalloc *pMalloc, LPCWSTR pFileName, void **ppData,
   *ppData = pData;
   *pDataSize = FileSize.u.LowPart;
 
-  #else
-  // Open file
-  std::ifstream ifs(CW2A(pFileName).m_psz, std::ios::binary|std::ios::ate);
-  if(ifs.fail()) {
-    IFT(HRESULT_FROM_WIN32(GetLastError()));
-  }
-  // Find out the file size (number of bytes).
-  std::ifstream::pos_type pos = ifs.tellg();
-  if(pos == std::ifstream::pos_type(-1))
-    throw ::hlsl::Exception(DXC_E_INPUT_FILE_TOO_LARGE, "input file is too large");
-
-  // Allocate memory.
-  uint32_t FileSize = pos;
-  char *pData = (char *)pMalloc->Alloc(FileSize);
-  if (!pData)
-    throw std::bad_alloc();
-
-  // Go back to the beginning and read FileSize bytes.
-  ifs.seekg(0, std::ios::beg);
-  ifs.read(pData, FileSize);
-  uint32_t BytesRead = ifs.gcount();
-  DXASSERT(FileSize == BytesRead, "ReadFile operation failed");
-  ifs.close();
-  
-  // Fill for the caller.
-  *ppData = pData;
-  *pDataSize = FileSize;
-
-  #endif // _WIN32
 }
 
 _Use_decl_annotations_
@@ -170,7 +140,6 @@ void ReadBinaryFile(LPCWSTR pFileName, void **ppData, DWORD *pDataSize) {
 
 _Use_decl_annotations_
 void WriteBinaryFile(LPCWSTR pFileName, const void *pData, DWORD DataSize) {
-#ifdef _WIN32
   HANDLE hFile = CreateFileW(pFileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
   if(hFile == INVALID_HANDLE_VALUE) {
     IFT(HRESULT_FROM_WIN32(GetLastError()));
@@ -182,9 +151,6 @@ void WriteBinaryFile(LPCWSTR pFileName, const void *pData, DWORD DataSize) {
     IFT(HRESULT_FROM_WIN32(GetLastError()));
   }
   DXASSERT(DataSize == BytesWritten, "WriteFile operation failed");
-#else
-  assert(false && "Must implement WriteBinaryFile for Linux.");
-#endif
 }
 
 _Use_decl_annotations_
