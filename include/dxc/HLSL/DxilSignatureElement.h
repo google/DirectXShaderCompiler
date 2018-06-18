@@ -20,7 +20,6 @@
 #include <vector>
 #include <limits.h>
 
-
 namespace hlsl {
 
 class ShaderModel;

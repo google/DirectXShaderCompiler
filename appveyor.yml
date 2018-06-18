@@ -27,7 +27,7 @@ before_build:
         -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 
 build_script:
-- cmd: call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -vs2017 -spirvtest
+- cmd: call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -spirvtest
 - sh: cd build && ninja dxc && ninja clang-spirv-tests
 
 test_script:

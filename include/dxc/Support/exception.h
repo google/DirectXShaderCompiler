@@ -10,11 +10,10 @@
 
 #pragma once
 
-#include <exception>
-#include <string>
-
 #include "dxc/Support/ErrorCodes.h"
 #include "dxc/Support/WinAdapter.h"
+#include <exception>
+#include <string>
 
 namespace hlsl
 {

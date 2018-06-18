@@ -7974,7 +7974,7 @@ void HLSLExternalSource::CheckBinOpForHLSL(
     ResultTy = RHS.get()->getType();
     return;
   default:
-    // Only assign and comman operations handled.
+    // Only assign and comma operations handled.
     break;
   }
 

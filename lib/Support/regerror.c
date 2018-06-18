@@ -45,7 +45,7 @@
 #include "regex_impl.h"
 #include "regutils.h"
 
-#include "dxc/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h" // HLSL Change
 
 #ifdef _MSC_VER
 #define snprintf _snprintf
