@@ -25,7 +25,7 @@
 #include "dxc/Support/dxcapi.impl.h"
 #include "dxc/HLSL/DxilRootSignature.h"
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include "dxcetw.h"
 #endif
 

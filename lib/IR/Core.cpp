@@ -60,8 +60,8 @@ void LLVMShutdown() {
   llvm_shutdown();
 }
 
-#ifdef _MSC_VER
 // HLSL Change: use ISO _strdup rather than strdup, which compiled but fails to link
+#ifdef _MSC_VER
 #define strdup _strdup
 #endif
 

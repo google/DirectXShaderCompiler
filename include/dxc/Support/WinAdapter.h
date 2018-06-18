@@ -31,7 +31,7 @@
 #include <typeindex>
 #include <typeinfo>
 #include <vector>
-#endif
+#endif // __cplusplus
 
 //===----------------------------------------------------------------------===//
 //
@@ -307,7 +307,7 @@
 #define __thiscall
 #define __fastcall
 #define __clrcall
-#endif
+#endif // __GNUC__
 
 //===----------------------------------------------------------------------===//
 //
@@ -431,7 +431,7 @@ typedef struct _WIN32_FIND_DATAW {
   DWORD nFileSizeLow;
   DWORD dwReserved0;
   DWORD dwReserved1;
-  WCHAR cFileName[260]; // This is defined for windows in minwindef.h
+  WCHAR cFileName[260];
   WCHAR cAlternateFileName[14];
 } WIN32_FIND_DATAW, *PWIN32_FIND_DATAW, *LPWIN32_FIND_DATAW;
 

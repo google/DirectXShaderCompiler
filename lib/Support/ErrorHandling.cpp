@@ -29,7 +29,7 @@
 #include <cassert>
 #include <cstdlib>
 
-#ifdef LLVM_ON_WIN32
+#ifdef _WIN32
 #include "windows.h"  // HLSL Change
 #endif
 

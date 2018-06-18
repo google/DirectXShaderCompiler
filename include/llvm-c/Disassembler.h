@@ -15,10 +15,9 @@
 #ifndef LLVM_C_DISASSEMBLER_H
 #define LLVM_C_DISASSEMBLER_H
 
-#include <stddef.h>
-
-#include "dxc/Support/WinAdapter.h"
+#include "dxc/Support/WinAdapter.h" // HLSL Change
 #include "llvm/Support/DataTypes.h"
+#include <stddef.h>
 
 /**
  * @defgroup LLVMCDisassembler Disassembler

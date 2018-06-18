@@ -207,16 +207,22 @@ inline void OutputDebugFormatA(_In_ _Printf_format_string_ _Null_terminated_ con
 
 #define DXVERIFY_NOMSG(exp) DXASSERT(exp, "")
 
-#else
+#else // _WIN32
 #include <cassert>
-#define DXASSERT_NOMSG assert
-#define DXASSERT_LOCALVAR(local, exp, msg) DXASSERT(exp, msg)
-#define DXVERIFY_NOMSG assert
-#define DXASSERT_ARGS(expr, fmt, ...) do { if (!(expr)) { fprintf(stderr, fmt, __VA_ARGS__); assert(false); } } while (0);
-#define DXASSERT(expr, msg) do { if (!(expr)) { fprintf(stderr, msg); assert(false && msg); } } while (0);
-#endif
 
-#else
+#define DXASSERT_NOMSG assert
+
+#define DXASSERT_LOCALVAR(local, exp, msg) DXASSERT(exp, msg)
+
+#define DXVERIFY_NOMSG assert
+
+#define DXASSERT_ARGS(expr, fmt, ...) do { if (!(expr)) { fprintf(stderr, fmt, __VA_ARGS__); assert(false); } } while (0);
+
+#define DXASSERT(expr, msg) do { if (!(expr)) { fprintf(stderr, msg); assert(false && msg); } } while (0);
+
+#endif // _WIN32
+
+#else // DBG
 
 // DXASSERT_ARGS is disabled in free builds.
 #define DXASSERT_ARGS(exp, s, ...) _Analysis_assume_(exp)
