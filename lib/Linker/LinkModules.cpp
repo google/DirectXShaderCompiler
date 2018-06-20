@@ -1811,7 +1811,7 @@ LLVMBool LLVMLinkModules(LLVMModuleRef Dest, LLVMModuleRef Src,
 #ifdef _WIN32
     *OutMessages = _strdup(Message.c_str()); // HLSL Change for strdup
 #else
-    *OutMessages = strdup(Message.c_str()); // HLSL Change for strdup
+    *OutMessages = strdup(Message.c_str());
 #endif
   }
   return Result;
