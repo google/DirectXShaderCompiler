@@ -925,6 +925,7 @@ SpirvEvalInfo SPIRVEmitter::loadIfGLValue(const Expr *expr,
       } else {
         const bool isMat =
             TypeTranslator::isMxNMatrix(exprType, nullptr, &numRows, &numCols);
+        assert(isMat);
         (void)isMat;
         const auto uintRowQualType =
             astContext.getExtVectorType(uintType, numCols);

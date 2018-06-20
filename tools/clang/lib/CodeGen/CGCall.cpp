@@ -498,7 +498,8 @@ CodeGenTypes::arrangeLLVMFunctionInfo(CanQualType resultType,
   // HLSL Change Ends
   assert(std::all_of(argTypes.begin(), argTypes.end(),
                      isCanonicalAsParam)); // HLSL Change - skip array when
-  (void)isCanonicalAsParam;                // check isCanonicalAsParam
+                                           // check isCanonicalAsParam
+  (void)isCanonicalAsParam;
 
   unsigned CC = ClangCallConvToLLVMCallConv(info.getCC());
 
