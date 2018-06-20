@@ -16,7 +16,23 @@ env:
 
 compiler:
   - clang
-  - gcc
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: ninja-build g++-5
+      env: DXC_BUILD_TYPE=Debug
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: ninja-build g++-5
+      env: DXC_BUILD_TYPE=Release
 
 cache:
   apt: true
@@ -30,11 +46,8 @@ branches:
 
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
     packages:
       - ninja-build
-      - g++-5
 
 before_script:
   - git submodule update --init
