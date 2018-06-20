@@ -1164,4 +1164,4 @@ HRESULT CreateMSFileSystemBlocked(::llvm::sys::fs::MSFileSystem** pResult) throw
   return (*pResult != nullptr) ? S_OK : E_OUTOFMEMORY;
 }
 
-#endif
+#endif // _WIN32

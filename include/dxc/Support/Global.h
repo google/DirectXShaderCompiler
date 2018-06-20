@@ -176,7 +176,7 @@ inline void OutputDebugFormatA(_In_ _Printf_format_string_ _Null_terminated_ con
   }
 }
 
-#endif
+#endif // _MSC_VER
 
 #ifdef DBG
 

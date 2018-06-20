@@ -83,18 +83,20 @@ public:
   }
 };
 
-#define DXC_MICROCOM_REF_FIELD(m_dwRef) volatile llvm::sys::cas_flag m_dwRef = 0;
-#define DXC_MICROCOM_ADDREF_IMPL(m_dwRef) \
-    ULONG STDMETHODCALLTYPE AddRef() override {\
-        return (ULONG)llvm::sys::AtomicIncrement(&m_dwRef); \
-    }
-#define DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef) \
-    DXC_MICROCOM_ADDREF_IMPL(m_dwRef) \
-    ULONG STDMETHODCALLTYPE Release() override { \
-        ULONG result = (ULONG)llvm::sys::AtomicDecrement(&m_dwRef); \
-        if (result == 0) delete this; \
-        return result; \
-    }
+#define DXC_MICROCOM_REF_FIELD(m_dwRef)                                        \
+  volatile llvm::sys::cas_flag m_dwRef = 0;
+#define DXC_MICROCOM_ADDREF_IMPL(m_dwRef)                                      \
+  ULONG STDMETHODCALLTYPE AddRef() override {                                  \
+    return (ULONG)llvm::sys::AtomicIncrement(&m_dwRef);                        \
+  }
+#define DXC_MICROCOM_ADDREF_RELEASE_IMPL(m_dwRef)                              \
+  DXC_MICROCOM_ADDREF_IMPL(m_dwRef)                                            \
+  ULONG STDMETHODCALLTYPE Release() override {                                 \
+    ULONG result = (ULONG)llvm::sys::AtomicDecrement(&m_dwRef);                \
+    if (result == 0)                                                           \
+      delete this;                                                             \
+    return result;                                                             \
+  }
 
 template <typename T, typename... Args>
 inline T *CreateOnMalloc(IMalloc * pMalloc, Args&&... args) {
@@ -131,10 +133,8 @@ void DxcCallDestructor(T *obj) {
 #define DXC_MICROCOM_TM_CTOR(T)                                                \
   DXC_MICROCOM_TM_CTOR_ONLY(T)                                                 \
   DXC_MICROCOM_TM_ALLOC(T)
-
 #define DXC_MICROCOM_TM_CTOR_ONLY(T)                                           \
   T(IMalloc *pMalloc) : m_dwRef(0), m_pMalloc(pMalloc) {}
-
 #define DXC_MICROCOM_TM_ALLOC(T)                                               \
   template <typename... Args>                                                  \
   static T *Alloc(IMalloc *pMalloc, Args &&... args) {                         \

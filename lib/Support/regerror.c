@@ -108,11 +108,11 @@ llvm_regerror(int errcode, const llvm_regex_t *preg, _Out_writes_all_(errbuf_siz
 				assert(strlen(r->name) < sizeof(convbuf));
 				(void) llvm_strlcpy(convbuf, r->name, sizeof convbuf);
 			} else
-#ifndef _WIN32
-				(void)snprintf(convbuf, sizeof convbuf,
-#else
+#ifdef _WIN32
 				(void)_snprintf_s(convbuf, _countof(convbuf), _countof(convbuf),
-#endif
+#else
+				(void)snprintf(convbuf, sizeof convbuf,
+#endif // WIN32
 				    "REG_0x%x", target);
 			s = convbuf;
 		} else
@@ -144,10 +144,10 @@ regatoi(
 	if (r->code == 0)
 		return("0");
 
-#ifndef _WIN32
-	(void)snprintf(localbuf, localbufsize, "%d", r->code);
-#else
+#ifdef _WIN32
 	(void)_snprintf_s(localbuf, localbufsize, localbufsize, "%d", r->code);
-#endif
+#else
+	(void)snprintf(localbuf, localbufsize, "%d", r->code);
+#endif // WIN32
 	return(localbuf);
 }

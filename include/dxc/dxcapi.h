@@ -340,6 +340,13 @@ IDxcVersionInfo : public IUnknown {
   DECLARE_CROSS_PLATFORM_UUIDOF(IDxcVersionInfo)
 };
 
+struct __declspec(uuid("fb6904c4-42f0-4b62-9c46-983af7da7c83"))
+IDxcVersionInfo2 : public IDxcVersionInfo {
+  virtual HRESULT STDMETHODCALLTYPE GetCommitInfo(_Out_ UINT32 *pCommitCount, _Out_ char **pCommitHash) = 0;
+
+  DECLARE_CROSS_PLATFORM_UUIDOF(IDxcVersionInfo2)
+};
+
 // Note: __declspec(selectany) requires 'extern'
 // On Linux __declspec(selectany) is removed and using 'extern' results in link error.
 #ifdef _MSC_VER
