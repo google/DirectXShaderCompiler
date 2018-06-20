@@ -45,21 +45,13 @@ public:
       m_length = 0;
     }
     if (m_pData) {
-      #ifdef _WIN32
       CoTaskMemFree(m_pData);
-      #else
-      free(m_pData);
-      #endif
       m_pData = nullptr;
     }
   }
   HRESULT alloc(unsigned count) {
     clear();
-    #ifdef _WIN32
     m_pData = (TIface**)CoTaskMemAlloc(sizeof(TIface*) * count);
-    #else
-    m_pData = malloc(sizeof(TIface*) * count);
-    #endif
     if (m_pData == nullptr)
       return E_OUTOFMEMORY;
     m_length = count;

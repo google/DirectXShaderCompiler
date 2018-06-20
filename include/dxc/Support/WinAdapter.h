@@ -41,6 +41,9 @@
 #define C_ASSERT(expr) static_assert((expr), "")
 #define ATLASSERT assert
 
+#define CoTaskMemAlloc malloc
+#define CoTaskMemFree free
+
 #define ARRAYSIZE(array) (sizeof(array) / sizeof(array[0]))
 
 #define _countof(a) (sizeof(a) / sizeof(*(a)))
