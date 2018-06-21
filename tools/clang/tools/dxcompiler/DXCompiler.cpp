@@ -89,7 +89,7 @@ void __attribute__ ((destructor)) DllShutdown() {
   DxcClearThreadMalloc();
   DxcCleanupThreadMalloc();
 }
-#else // UNIX
+#else // LLVM_ON_UNIX
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD Reason, LPVOID reserved) {
   BOOL result = TRUE;
   if (Reason == DLL_PROCESS_ATTACH) {
@@ -119,4 +119,4 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD Reason, LPVOID reserved) {
 
   return result;
 }
-#endif // UNIX
+#endif // LLVM_ON_UNIX
