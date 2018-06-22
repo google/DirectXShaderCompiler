@@ -78,7 +78,7 @@ You can follow these steps to build DXC on Linux/macOS:
 .. code:: sh
 
   cd <dxc-build-dir>
-  cmake <dxc-src-dir> -GNinja -DCMAKE_BUILD_TYPE=Release $(cat ../utils/cmake-predefined-config-params)
+  cmake <dxc-src-dir> -GNinja -DCMAKE_BUILD_TYPE=Release $(cat <dxc-src-dir>/utils/cmake-predefined-config-params)
   ninja
 
 Note that ``cmake-predefined-config-params`` file contains several cmake
@@ -123,7 +123,7 @@ You can follow these steps to build and run the SPIR-V CodeGen tests:
 
   cd <dxc-build-dir>
   # Use SPIRV_BUILD_TESTS flag to enable building these tests.
-  cmake <dxc-src-dir> -GNinja -DSPIRV_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release $(cat ../utils/cmake-predefined-config-params)
+  cmake <dxc-src-dir> -GNinja -DSPIRV_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release $(cat <dxc-src-dir>/utils/cmake-predefined-config-params)
   # Build all targets. Includes 'dxc' and 'clang-spirv-tests'.
   ninja
   # Run all tests
