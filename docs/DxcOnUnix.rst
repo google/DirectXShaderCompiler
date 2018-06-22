@@ -15,8 +15,9 @@ cross-platform. However, to support HLSL, certain Windows specific techniques
 platform, which also makes DXC not compilable/runnable on non-Windows platforms.
 
 Upon `several <https://github.com/Microsoft/DirectXShaderCompiler/issues/1082>`_
-requests from the community, we have started the effort to enable compilation
-and running of DirectXShaderCompiler on non-Windows platforms (Linux and macOS).
+`requests <https://github.com/Microsoft/DirectXShaderCompiler/issues/1236>`_
+from the community, we have started the effort to enable compilation and running
+of DXC on non-Windows platforms (Linux and macOS).
 
 Current Status
 ==============
@@ -24,8 +25,8 @@ Current Status
 Up and Running
 --------------
 We have currently reached the point where we can successfully build and run DXC
-on Linux and macOS. We are also able to run SPIR-V CodeGen tests on these
-platforms.
+on Linux and macOS. Code generation works for both DXIL and SPIR-V, and we are
+also able to fully run the SPIR-V CodeGen test suite on these platforms.
 
 Known Limitations
 -----------------
@@ -44,7 +45,8 @@ is an area where further contributions can be made:
 Moreover, since the HLSL CodeGen tests were originally written with Windows in
 mind, they require the Windows-specific `TAEF Framework <https://docs.microsoft.com/en-us/windows-hardware/drivers/taef/>`_
 to run. Therefore we are not able to compile/run these tests on non-Windows
-platforms.
+platforms. Note that it is only the testing infrastructure that has this
+limitation, and DXIL CodeGen works as expected by running the DXC executable.
 
 Known Issues
 ------------
@@ -54,21 +56,24 @@ by a process is low, it will cause test failures. We have not seen this as an
 issue on Windows and Linux. On macOS we currently increase the allowed limit to
 get around the problem for the time being.
 
-Build Requirements
+Building and Using
 ==================
+
+Build Requirements
+------------------
 Please make sure you have the following resources before building:
 
 - `Git <https://git-scm.com/downloads>`_
-- Ninja (can be installed from `here <https://github.com/ninja-build/ninja/releases>`_)
+- `Ninja <https://github.com/ninja-build/ninja/releases>`_ (*Optional* CMake generator)
 - Either of gcc/g++ or clang/clang++ compilers. Minimum supported version:
 
   - `GCC <https://gcc.gnu.org/releases.html>`_ version 5.5 or higher.
-  - `clang <http://releases.llvm.org/>`_ version 3.8 or higher.
+  - `Clang <http://releases.llvm.org/>`_ version 3.8 or higher.
 
 
-Building DirectXShaderCompiler
-==============================
-You can follow these steps to build DirectXShaderCompiler on Linux/macOS:
+Building DXC
+------------
+You can follow these steps to build DXC on Linux/macOS:
 
 .. code:: sh
 
@@ -89,7 +94,7 @@ or
 
 ``-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++``
 
-to choose your desired C/CXX compiler.
+to choose your desired C/C++ compiler.
 
 You should now have the dxc executable located at ``<dxc-build-dir>/bin/dxc``.
 And you should be able to successfully run commands as you would on Windows, e.g:
@@ -103,12 +108,12 @@ Note that you cannot use slashes (``/``) for specifying command line options as
 you would on Windows. You should use dashes as per usual Unix style.
 
 Building and Running HLSL CodeGen Tests
-=======================================
+---------------------------------------
 As described in the `Known Limitations`_ section, we can not run these tests on
 non-Windows platforms due to their dependency on TAEF.
 
 Building and Running SPIR-V CodeGen Tests
-=========================================
+-----------------------------------------
 The SPIR-V CodeGen tests were written within the googletest framework, and can
 therefore be built and run on non-Windows platforms.
 
