@@ -28,7 +28,7 @@ before_build:
 
 build_script:
 - cmd: call utils\hct\hctbuild -%PLATFORM% -%CONFIGURATION% -spirvtest
-- sh: cd build && ninja dxc && ninja clang-spirv-tests
+- sh: cd build && ninja
 
 test_script:
 - ps:  utils\appveyor\appveyor_test.ps1
