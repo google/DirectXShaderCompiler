@@ -35,11 +35,7 @@ add_subdirectory(dxl)
 add_subdirectory(dxr)
 add_subdirectory(dxv)
 add_subdirectory(dxlib-sample)
+# UI powered by .NET.
+add_subdirectory(dotnetc)
 endif (WIN32)
-
-# UI powered by .NET. Can only be built on Windows.
-if (WIN32)
-  add_subdirectory(dotnetc)
-endif (WIN32)
-
 # HLSL Change Ends
