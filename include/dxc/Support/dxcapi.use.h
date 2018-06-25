@@ -28,7 +28,7 @@ protected:
   HRESULT InitializeInternal(LPCWSTR dllName, LPCSTR fnName) {
     if (m_dll.isValid()) return S_OK;
     m_dll = DynamicLibrary::getPermanentLibrary(CW2A(dllName));
-    if (!m_dll.isValid()) return HRESULT_FROM_WIN32(ERROR_DLL_INIT_FAILED);
+    if (!m_dll.isValid()) return HRESULT_FROM_WIN32(ERROR_DLL_NOT_FOUND);
     m_createFn = (DxcCreateInstanceProc)m_dll.getAddressOfSymbol(fnName);
 
     if (m_createFn == nullptr) {
