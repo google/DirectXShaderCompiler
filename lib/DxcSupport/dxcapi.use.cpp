@@ -168,14 +168,7 @@ void WriteUtf8ToConsoleSizeT(_In_opt_count_(charCount) const char *pText,
   }
 
   int charCountInt = 0;
-#ifdef _WIN32
   IFT(SizeTToInt(charCount, &charCountInt));
-#else
-  if(charCount <= INT_MAX)
-    charCountInt = (int)charCount;
-  else
-    throw ::hlsl::Exception((HRESULT)0x80070216L);
-#endif
   WriteUtf8ToConsole(pText, charCountInt, streamType);
 }
 

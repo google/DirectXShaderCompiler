@@ -17,15 +17,10 @@
 #include "clang/Parse/ParseDiagnostic.h"
 #include "dxc/Support/Global.h"
 #include "dxc/Support/WinIncludes.h"
+#include "dxc/Support/WinFunctions.h"
 #include "HLSLRootSignature.h"
 
 #include <float.h>
-
-// SPIRV Change Starts
-#ifndef _WIN32
-#include "dxc/Support/WinFunctions.h"
-#endif
-// SPIRV Change Ends
 
 using namespace llvm;
 using namespace hlsl;

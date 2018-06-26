@@ -14,6 +14,7 @@
 #include "dxc/Support/microcom.h"
 #include "dxc/Support/Unicode.h"
 #include "dxc/Support/FileIOHelper.h"
+#include "dxc/Support/WinFunctions.h"
 #include "dxc/dxcapi.h"
 
 #include <algorithm>
@@ -21,14 +22,9 @@
 
 #ifdef _WIN32
 #include <intsafe.h>
-// SPIRV Change Starts
-#else
-#include "dxc/Support/WinFunctions.h"
-// SPIRV Change Ends
 #endif
 
 #define CP_UTF16 1200
-
 
 #ifdef _WIN32
 struct HeapMalloc : public IMalloc {
@@ -279,14 +275,8 @@ public:
     return m_BufferSize;
   }
   virtual HRESULT STDMETHODCALLTYPE GetEncoding(_Out_ BOOL *pKnown, _Out_ UINT32 *pCodePage) override {
-    #ifdef _WIN32
     *pKnown = m_EncodingKnown ? TRUE : FALSE;
     *pCodePage = m_CodePage;
-    #else
-    // Use UTF-8 on Unix
-    *pKnown = true;
-    *pCodePage = CP_UTF8;
-    #endif
     return S_OK;
   }
 

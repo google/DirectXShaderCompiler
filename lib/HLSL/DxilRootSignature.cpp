@@ -14,6 +14,7 @@
 #include "dxc/HLSL/DxilPipelineStateValidation.h"
 #include "dxc/Support/Global.h"
 #include "dxc/Support/WinIncludes.h"
+#include "dxc/Support/WinFunctions.h"
 #include "dxc/Support/FileIOHelper.h"
 #include "dxc/dxcapi.h"
 
@@ -25,10 +26,6 @@
 #include <utility>
 #include <vector>
 #include <set>
-
-#ifndef _WIN32
-#include "dxc/Support/WinFunctions.h"
-#endif
 
 using namespace llvm;
 using std::string;
@@ -726,10 +723,7 @@ void RootSignatureVerifier::VerifyRootSignature(
       // Verify root descriptor flags.
       unsigned Flags = (unsigned)pSlot->Descriptor.Flags;
       if (Flags & ~(unsigned)DxilRootDescriptorFlags::ValidFlags) {
-        // TODO(ehsann): Looks like llvm::DiagnosticPrinter does not play well with std::hex.
-        /*
         EAT(DiagPrinter << "Unsupported bit-flag set (root descriptor flags " << std::hex << Flags << ").\n");
-        */
       }
 
       unsigned NumDataFlags = 0;

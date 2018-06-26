@@ -30,12 +30,7 @@
 #include <algorithm>
 
 #include "dxc/Support/WinIncludes.h"
-
-// SPIRV Change Starts
-#ifndef _WIN32
 #include "dxc/Support/WinFunctions.h"
-#endif
-// SPIRV Change Ends
 
 using namespace llvm;
 using std::string;
