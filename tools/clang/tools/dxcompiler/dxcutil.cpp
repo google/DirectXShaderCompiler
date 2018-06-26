@@ -167,7 +167,6 @@ HRESULT ValidateAndAssembleToContainer(
     IFT(pValidator->Validate(pOutputBlob, DxcValidatorFlags_InPlaceEdit,
                              &pValResult));
   }
-
   IFT(pValResult->GetStatus(&valHR));
   if (FAILED(valHR)) {
     CComPtr<IDxcBlobEncoding> pErrors;
