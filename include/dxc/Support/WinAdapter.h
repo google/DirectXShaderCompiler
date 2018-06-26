@@ -105,9 +105,6 @@
 #define ERROR_IO_DEVICE EIO
 #define ERROR_INVALID_HANDLE EBADF
 
-// Error returned explicitly. Windows value used.
-#define ERROR_DLL_NOT_FOUND ELIBACC
-
 // Used by HRESULT <--> WIN32 error code conversion
 #define SEVERITY_ERROR 1
 #define FACILITY_WIN32 7
