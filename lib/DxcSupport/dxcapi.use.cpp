@@ -40,6 +40,8 @@ static std::string GetWin32ErrorMessage(DWORD err) {
 }
 #else
 static std::string GetWin32ErrorMessage(DWORD err) {
+  // Since we use errno for handling messages, we use strerror to get the error
+  // message.
   return std::string(std::strerror(err));
 }
 #endif // _WIN32

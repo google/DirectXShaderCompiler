@@ -18,29 +18,24 @@
 #include "dxc/Support/WinIncludes.h"
 
 #ifndef _WIN32
-// Since several functions rely on MultiByteToWideChar which is a
-// Windows-specific method, here is a *very* simplistic implementation
-// which completely ignores CodePage and dwFlags.
-int MultiByteToWideChar(
-  uint32_t CodePage,
-  uint32_t dwFlags,
-  const char* lpMultiByteStr,
-  int cbMultiByte,
-  wchar_t* lpWideCharStr,
-  int cchWideChar
-) {
-  (void)CodePage;
-  (void)dwFlags;
-
+// MultiByteToWideChar which is a Windows-specific method.
+// This is a very simplistic implementation for non-Windows platforms. This
+// implementation completely ignores CodePage and dwFlags.
+int MultiByteToWideChar(uint32_t /*CodePage*/, uint32_t /*dwFlags*/,
+                        const char *lpMultiByteStr, int cbMultiByte,
+                        wchar_t *lpWideCharStr, int cchWideChar) {
   // if cbMultiByte is -1, it indicates that lpMultiByteStr is null-terminated
   // and the entire string should be processed.
-  if(cbMultiByte == -1) {
-    for(cbMultiByte = 0; lpMultiByteStr[cbMultiByte] != '\0'; ++cbMultiByte);
+  if (cbMultiByte == -1) {
+    for (cbMultiByte = 0; lpMultiByteStr[cbMultiByte] != '\0'; ++cbMultiByte)
+      ;
+    // Add 1 for the null-terminating character.
+    ++cbMultiByte;
   }
   // if zero is given as the destination size, this function should
   // return the required size (including the null-terminating character).
-  if(cchWideChar == 0) {
-    wchar_t* tempStr = (wchar_t*) malloc(cbMultiByte * sizeof(wchar_t));
+  if (cchWideChar == 0) {
+    wchar_t *tempStr = (wchar_t *)malloc(cbMultiByte * sizeof(wchar_t));
     size_t requiredSize = mbstowcs(tempStr, lpMultiByteStr, cbMultiByte);
     free(tempStr);
     return requiredSize;
@@ -48,35 +43,27 @@ int MultiByteToWideChar(
 
   return mbstowcs(lpWideCharStr, lpMultiByteStr, cbMultiByte);
 }
-// Since several functions rely on WideCharToMultiByte which is a
-// Windows-specific method, here is a *very* simplistic implementation
-// which completely ignores CodePage and dwFlags.
-int WideCharToMultiByte(
-  uint32_t CodePage,
-  uint32_t dwFlags,
-  const wchar_t* lpWideCharStr,
-  int cchWideChar,
-  char* lpMultiByteStr,
-  int cbMultiByte,
-  const char* lpDefaultChar,
-  bool *lpUsedDefaultChar
-) {
-  (void)CodePage;
-  (void)dwFlags;
-  (void)lpDefaultChar;
-  (void)lpUsedDefaultChar;
 
+// WideCharToMultiByte is a Windows-specific method.
+// This is a very simplistic implementation for non-Windows platforms. This
+// implementation completely ignores CodePage and dwFlags.
+int WideCharToMultiByte(uint32_t /*CodePage*/, uint32_t /*dwFlags*/,
+                        const wchar_t *lpWideCharStr, int cchWideChar,
+                        char *lpMultiByteStr, int cbMultiByte,
+                        const char * /*lpDefaultChar*/,
+                        bool * /*lpUsedDefaultChar*/) {
   // if cchWideChar is -1, it indicates that lpWideCharStr is null-terminated
   // and the entire string should be processed.
-  if(cchWideChar == -1) {
-    for(cchWideChar = 0; lpWideCharStr[cchWideChar] != '\0'; ++cchWideChar);
+  if (cchWideChar == -1) {
+    for (cchWideChar = 0; lpWideCharStr[cchWideChar] != '\0'; ++cchWideChar)
+      ;
     // Add 1 for the null-terminating character.
     ++cchWideChar;
   }
   // if zero is given as the destination size, this function should
   // return the required size (including the null-terminating character).
-  if(cbMultiByte == 0) {
-    char* tempStr = (char*) malloc(cchWideChar * sizeof(char));
+  if (cbMultiByte == 0) {
+    char *tempStr = (char *)malloc(cchWideChar * sizeof(char));
     size_t requiredSize = wcstombs(tempStr, lpWideCharStr, cchWideChar);
     free(tempStr);
     return requiredSize;
@@ -84,7 +71,7 @@ int WideCharToMultiByte(
 
   return wcstombs(lpMultiByteStr, lpWideCharStr, cchWideChar);
 }
-#endif
+#endif // _WIN32
 
 namespace Unicode {
 

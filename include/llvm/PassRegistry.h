@@ -41,7 +41,7 @@ struct PassRegistrationListener;
 class PassRegistry {
   #ifndef LLVM_ON_WIN32
   // HLSL Change - no lock needed for Windows, as it will use its own mechanism defined in PassRegistry.cpp.
-  mutable sys::SmartRWMutex<true> Lock; 
+  mutable sys::SmartRWMutex<true> Lock;
   #endif
 
   /// PassInfoMap - Keep track of the PassInfo object for each registered pass.

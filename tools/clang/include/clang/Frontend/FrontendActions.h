@@ -137,7 +137,7 @@ public:
   bool hasCodeCompletionSupport() const override { return true; }
 };
 
-#if 0 // SPIRV change - no support for modules or PCH
+#if 0 // HLSL change - no support for modules or PCH
 /// \brief Dump information about the given module file, to be used for
 /// basic debugging and discovery.
 class DumpModuleInfoAction : public ASTFrontendAction {
@@ -163,7 +163,7 @@ protected:
 public:
   bool hasCodeCompletionSupport() const override { return false; }
 };
-#endif // SPIRV changes
+#endif // HLSL changes
 
 /**
  * \brief Frontend action adaptor that merges ASTs together.

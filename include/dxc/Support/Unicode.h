@@ -13,34 +13,25 @@
 
 #include <string>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <specstrings.h>
 #else
-// Since several functions rely on MultiByteToWideChar which is a
-// Windows-specific method, here is a *very* simplistic implementation
-// which completely ignores CodePage and dwFlags.
-int MultiByteToWideChar(
-  uint32_t CodePage,
-  uint32_t dwFlags,
-  const char* lpMultiByteStr,
-  int cbMultiByte,
-  wchar_t* lpWideCharStr,
-  int cchWideChar
-);
-// Since several functions rely on WideCharToMultiByte which is a
-// Windows-specific method, here is a *very* simplistic implementation
-// which completely ignores CodePage and dwFlags.
-int WideCharToMultiByte(
-  uint32_t CodePage,
-  uint32_t dwFlags,
-  const wchar_t* lpWideCharStr,
-  int cchWideChar,
-  char* lpMultiByteStr,
-  int cbMultiByte,
-  const char* lpDefaultChar = nullptr,
-  bool *lpUsedDefaultChar = nullptr
-);
-#endif
+// MultiByteToWideChar which is a Windows-specific method.
+// This is a very simplistic implementation for non-Windows platforms. This
+// implementation completely ignores CodePage and dwFlags.
+int MultiByteToWideChar(uint32_t CodePage, uint32_t dwFlags,
+                        const char *lpMultiByteStr, int cbMultiByte,
+                        wchar_t *lpWideCharStr, int cchWideChar);
+
+// WideCharToMultiByte is a Windows-specific method.
+// This is a very simplistic implementation for non-Windows platforms. This
+// implementation completely ignores CodePage and dwFlags.
+int WideCharToMultiByte(uint32_t CodePage, uint32_t dwFlags,
+                        const wchar_t *lpWideCharStr, int cchWideChar,
+                        char *lpMultiByteStr, int cbMultiByte,
+                        const char *lpDefaultChar = nullptr,
+                        bool *lpUsedDefaultChar = nullptr);
+#endif // _WIN32
 
 namespace Unicode
 {
