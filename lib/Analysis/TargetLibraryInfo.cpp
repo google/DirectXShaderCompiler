@@ -350,16 +350,12 @@ static void initialize(TargetLibraryInfoImpl &TLI, const Triple &T,
     TLI.setUnavailable(LibFunc::under_IO_getc);
     TLI.setUnavailable(LibFunc::under_IO_putc);
     TLI.setUnavailable(LibFunc::memalign);
-    TLI.setUnavailable(LibFunc::fopen64);
-    TLI.setUnavailable(LibFunc::fseeko64);
     TLI.setUnavailable(LibFunc::fstat64);
     TLI.setUnavailable(LibFunc::fstatvfs64);
-    TLI.setUnavailable(LibFunc::ftello64);
     TLI.setUnavailable(LibFunc::lstat64);
     TLI.setUnavailable(LibFunc::open64);
     TLI.setUnavailable(LibFunc::stat64);
     TLI.setUnavailable(LibFunc::statvfs64);
-    TLI.setUnavailable(LibFunc::tmpfile64);
   }
 
   TLI.addVectorizableFunctionsFromVecLib(ClVectorLibrary);
