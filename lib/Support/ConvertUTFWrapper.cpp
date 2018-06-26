@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-
 namespace llvm {
 
 _Use_decl_annotations_ // HLSL Change

@@ -154,7 +154,6 @@ template<typename TObject>
 HRESULT DoBasicQueryInterface_recurse(TObject* self, REFIID iid, void** ppvObject) {
   return E_NOINTERFACE;
 }
-
 template<typename TObject, typename TInterface, typename... Ts>
 HRESULT DoBasicQueryInterface_recurse(TObject* self, REFIID iid, void** ppvObject) {
   if (ppvObject == nullptr) return E_POINTER;

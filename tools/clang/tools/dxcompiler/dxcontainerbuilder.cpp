@@ -168,7 +168,7 @@ HRESULT STDMETHODCALLTYPE DxcContainerBuilder::SerializeContainer(_Out_ IDxcOper
         CComPtr<IDxcBlob> pErrorResult;
         IFT(CreateMemoryStream(m_pMalloc, &pErrorOutputStream));
         IFT(pErrorOutputStream.QueryInterface(&pErrorResult));
-
+        
         // Combine existing warnings and errors from validation
         CComPtr<IDxcBlobEncoding> pValError;
         IFT(pValidationResult->GetErrorBuffer(&pValError));

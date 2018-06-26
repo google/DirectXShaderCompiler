@@ -22,7 +22,6 @@
 #include "llvm/Support/AlignOf.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
-
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 using namespace clang;

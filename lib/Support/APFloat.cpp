@@ -23,7 +23,6 @@
 #include <cstring>
 #include <limits.h>
 
-
 using namespace llvm;
 
 /// A macro used to combine two fcCategory enums into one key which can be used

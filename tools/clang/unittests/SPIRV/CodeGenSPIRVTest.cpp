@@ -52,6 +52,9 @@ TEST_F(FileTest, MatrixTypesMajornessZpc) {
   runFileTest("type.matrix.majorness.zpc.hlsl");
 }
 TEST_F(FileTest, StructTypes) { runFileTest("type.struct.hlsl"); }
+TEST_F(FileTest, StructTypeUniqueness) {
+  runFileTest("type.struct.uniqueness.hlsl");
+}
 TEST_F(FileTest, ClassTypes) { runFileTest("type.class.hlsl"); }
 TEST_F(FileTest, ArrayTypes) { runFileTest("type.array.hlsl"); }
 TEST_F(FileTest, RuntimeArrayTypes) { runFileTest("type.runtime-array.hlsl"); }
@@ -1339,6 +1342,10 @@ TEST_F(FileTest, VulkanExplicitBinding) {
 TEST_F(FileTest, VulkanImplicitBinding) {
   // Resource binding from neither [[vk::binding()]] or :register()
   runFileTest("vk.binding.implicit.hlsl");
+}
+TEST_F(FileTest, VulkanPrecedenceBinding) {
+  // Bindings from vk::binding and :register competing for dominance
+  runFileTest("vk.binding.precedence.hlsl");
 }
 TEST_F(FileTest, VulkanRegisterBinding) {
   // Resource binding from :register()

@@ -18,6 +18,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace clang {
 namespace spirv {
@@ -95,44 +96,22 @@ public:
                                      DecorationSet decs = {});
   static const Type *getStruct(SPIRVContext &ctx,
                                llvm::ArrayRef<uint32_t> members,
-                               DecorationSet d = {});
-  static const Type *getOpaque(SPIRVContext &ctx, std::string name,
-                               DecorationSet decs = {});
+                               llvm::StringRef name = {}, DecorationSet d = {});
   static const Type *getPointer(SPIRVContext &ctx,
                                 spv::StorageClass storage_class, uint32_t type,
                                 DecorationSet decs = {});
   static const Type *getFunction(SPIRVContext &ctx, uint32_t return_type,
                                  const std::vector<uint32_t> &params,
                                  DecorationSet decs = {});
-  static const Type *getEvent(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getDeviceEvent(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getReserveId(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getQueue(SPIRVContext &ctx, DecorationSet decs = {});
-  static const Type *getPipe(SPIRVContext &ctx, spv::AccessQualifier qualifier,
-                             DecorationSet decs = {});
-  static const Type *getForwardPointer(SPIRVContext &ctx, uint32_t pointer_type,
-                                       spv::StorageClass storage_class,
-                                       DecorationSet decs = {});
-  bool operator==(const Type &other) const {
-    if (opcode == other.opcode && args == other.args &&
-        decorations.size() == other.decorations.size()) {
-      // If two types have the same decorations, but in different order,
-      // they are in fact the same type.
-      for (const Decoration* dec : decorations) {
-        if (other.decorations.count(dec) == 0)
-          return false;
-      }
-      return true;
-    }
-    return false;
-  }
+  bool operator==(const Type &other) const;
 
   // \brief Construct the SPIR-V words for this type with the given <result-id>.
   std::vector<uint32_t> withResultId(uint32_t resultId) const;
 
 private:
   /// \brief Private constructor.
-  Type(spv::Op op, std::vector<uint32_t> arg = {}, DecorationSet dec = {});
+  Type(spv::Op op, std::vector<uint32_t> arg = {}, DecorationSet dec = {},
+       llvm::StringRef name = {});
 
   /// \brief Returns the unique Type pointer within the given context.
   static const Type *getUniqueType(SPIRVContext &, const Type &);
@@ -140,6 +119,7 @@ private:
 private:
   spv::Op opcode;             ///< OpCode of the Type defined in SPIR-V Spec
   std::vector<uint32_t> args; ///< Arguments needed to define the type
+  std::string name;           ///< Source code name of this type
 
   /// The decorations that are applied to a type.
   /// Note: we use a SetVector because:

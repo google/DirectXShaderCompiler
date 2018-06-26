@@ -1304,6 +1304,7 @@ struct GlobalPerThreadSys {
 
   GlobalPerThreadSys() {
     success = ::llvm::sys::fs::SetupPerThreadFileSystem() ? false : true;
+
   }
   ~GlobalPerThreadSys() {
     if (success)
