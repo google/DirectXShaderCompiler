@@ -10,6 +10,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "dxc/Support/WinIncludes.h"
+#include "dxc/Support/WinFunctions.h"
 #include "dxc/dxcapi.h"
 #include "dxc/Support/Global.h"
 
@@ -28,12 +29,6 @@
 #include "dxc/HLSL/DxilContainer.h"
 #include "dxc/HLSL/DxilUtil.h"
 #include "dxcutil.h"
-
-// SPIRV Change Starts
-#ifndef _WIN32
-#include "dxc/Support/WinFunctions.h"
-#endif
-// SPIRV Change Ends
 
 using namespace llvm;
 using namespace hlsl;
