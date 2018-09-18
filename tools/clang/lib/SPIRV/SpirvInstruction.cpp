@@ -16,10 +16,9 @@ namespace clang {
 namespace spirv {
 
 // Image query instructions constructor.
-SpirvImageQueryInstr::SpirvImageQueryInstr(spv::Op op, QualType type,
-                                           uint32_t resultId,
-                                           SourceLocation loc, uint32_t img,
-                                           uint32_t lodId, uint32_t coordId)
+SpirvImageQuery::SpirvImageQuery(spv::Op op, QualType type, uint32_t resultId,
+                                 SourceLocation loc, uint32_t img,
+                                 uint32_t lodId, uint32_t coordId)
     : SpirvInstruction(op, type, resultId, loc), image(img), lod(lodId),
       coordinate(coordId) {
   assert(op == spv::Op::OpImageQueryFormat || spv::Op::OpImageQueryOrder ||
@@ -33,10 +32,9 @@ SpirvImageQueryInstr::SpirvImageQueryInstr(spv::Op op, QualType type,
 }
 
 // Atomic instructions
-SpirvAtomicInstr::SpirvAtomicInstr(spv::Op op, QualType type, uint32_t resultId,
-                                   SourceLocation loc, uint32_t pointerId,
-                                   spv::Scope s, spv::MemorySemanticsMask mask,
-                                   uint32_t valueId)
+SpirvAtomic::SpirvAtomic(spv::Op op, QualType type, uint32_t resultId,
+                         SourceLocation loc, uint32_t pointerId, spv::Scope s,
+                         spv::MemorySemanticsMask mask, uint32_t valueId)
     : SpirvInstruction(op, type, resultId, loc), pointer(pointerId), scope(s),
       memorySemantic(mask),
       memorySemanticUnequal(spv::MemorySemanticsMask::MaskNone), value(valueId),
@@ -51,12 +49,11 @@ SpirvAtomicInstr::SpirvAtomicInstr(spv::Op op, QualType type, uint32_t resultId,
       op == spv::Op::OpAtomicUMin || op == spv::Op::OpAtomicSMax ||
       op == spv::Op::OpAtomicUMax || op == spv::Op::OpAtomicExchange);
 }
-SpirvAtomicInstr::SpirvAtomicInstr(spv::Op op, QualType type, uint32_t resultId,
-                                   SourceLocation loc, uint32_t pointerId,
-                                   spv::Scope s,
-                                   spv::MemorySemanticsMask semanticsEqual,
-                                   spv::MemorySemanticsMask semanticsUnequal,
-                                   uint32_t valueId, uint32_t comparatorId)
+SpirvAtomic::SpirvAtomic(spv::Op op, QualType type, uint32_t resultId,
+                         SourceLocation loc, uint32_t pointerId, spv::Scope s,
+                         spv::MemorySemanticsMask semanticsEqual,
+                         spv::MemorySemanticsMask semanticsUnequal,
+                         uint32_t valueId, uint32_t comparatorId)
     : SpirvInstruction(op, type, resultId, loc), pointer(pointerId), scope(s),
       memorySemantic(semanticsEqual), memorySemanticUnequal(semanticsUnequal),
       value(valueId), comparator(comparatorId) {
@@ -64,7 +61,7 @@ SpirvAtomicInstr::SpirvAtomicInstr(spv::Op op, QualType type, uint32_t resultId,
 }
 
 // OpExecutionMode and OpExecutionModeId instructions
-SpirvExecutionModeInstr::SpirvExecutionModeInstr(
+SpirvExecutionMode::SpirvExecutionMode(
     SourceLocation loc, uint32_t entryId, spv::ExecutionMode em,
     llvm::SmallVector<uint32_t, 4> &paramsVec, bool usesIdParams)
     : SpirvInstruction(usesIdParams ? spv::Op::OpExecutionModeId
@@ -74,9 +71,9 @@ SpirvExecutionModeInstr::SpirvExecutionModeInstr(
       entryPointId(entryId), execMode(em), params(paramsVec) {}
 
 // OpMemoryBarrier and OpControlBarrier instructions.
-SpirvBarrierInstr::SpirvBarrierInstr(SourceLocation loc, spv::Scope memScope,
-                                     spv::MemorySemanticsMask memSemantics,
-                                     spv::Scope execScope)
+SpirvBarrier::SpirvBarrier(SourceLocation loc, spv::Scope memScope,
+                           spv::MemorySemanticsMask memSemantics,
+                           spv::Scope execScope)
     : SpirvInstruction(execScope == spv::Scope::Max ? spv::Op::OpMemoryBarrier
                                                     : spv::Op::OpControlBarrier,
                        /*QualType*/ {},
@@ -85,13 +82,13 @@ SpirvBarrierInstr::SpirvBarrierInstr(SourceLocation loc, spv::Scope memScope,
       executionScope(execScope) {}
 
 // Switch instruction methods.
-uint32_t SpirvSwitchInstr::getTargetLabelForLiteral(uint32_t lit) {
+uint32_t SpirvSwitch::getTargetLabelForLiteral(uint32_t lit) const {
   for (auto pair : targets)
     if (pair.first == lit)
       return pair.second;
   return defaultLabel;
 }
-llvm::SmallVector<uint32_t, 4> SpirvSwitchInstr::getTargetBranches() {
+llvm::SmallVector<uint32_t, 4> SpirvSwitch::getTargetBranches() const {
   llvm::SmallVector<uint32_t, 4> branches;
   for (auto pair : targets)
     branches.push_back(pair.second);
@@ -101,10 +98,10 @@ llvm::SmallVector<uint32_t, 4> SpirvSwitchInstr::getTargetBranches() {
 
 // OpCompositeConstruct, OpConstantComposite, and OpSpecConstantComposite
 // instructions
-SpirvCompositeInstr::SpirvCompositeInstr(
-    QualType type, uint32_t resultId, SourceLocation loc,
-    llvm::SmallVector<uint32_t, 4> &constituentsVec, bool isConstant,
-    bool isSpecConstant)
+SpirvComposite::SpirvComposite(QualType type, uint32_t resultId,
+                               SourceLocation loc,
+                               llvm::SmallVector<uint32_t, 4> &constituentsVec,
+                               bool isConstant, bool isSpecConstant)
     : SpirvInstruction(isSpecConstant
                            ? spv::Op::OpSpecConstantComposite
                            : isConstant ? spv::Op::OpConstantComposite
@@ -113,10 +110,10 @@ SpirvCompositeInstr::SpirvCompositeInstr(
       consituents(constituentsVec) {}
 
 // Non-uniform unary instructions
-SpirvNonUniformUnaryInstr::SpirvNonUniformUnaryInstr(
+SpirvNonUniformUnaryOp::SpirvNonUniformUnaryOp(
     spv::Op op, QualType type, uint32_t resultId, SourceLocation loc,
     spv::Scope scope, llvm::Optional<spv::GroupOperation> group, uint32_t argId)
-    : SpirvGroupNonUniformInstr(op, type, resultId, loc, scope), arg(argId),
+    : SpirvGroupNonUniformOp(op, type, resultId, loc, scope), arg(argId),
       groupOp(group) {
   assert(op == spv::Op::OpGroupNonUniformAll ||
          op == spv::Op::OpGroupNonUniformAny ||
@@ -146,10 +143,10 @@ SpirvNonUniformUnaryInstr::SpirvNonUniformUnaryInstr(
 }
 
 // Non-uniform binary instructions
-SpirvNonUniformBinaryInstr::SpirvNonUniformBinaryInstr(
+SpirvNonUniformBinaryOp::SpirvNonUniformBinaryOp(
     spv::Op op, QualType type, uint32_t resultId, SourceLocation loc,
     spv::Scope scope, uint32_t arg1Id, uint32_t arg2Id)
-    : SpirvGroupNonUniformInstr(op, type, resultId, loc, scope), arg1(arg1Id),
+    : SpirvGroupNonUniformOp(op, type, resultId, loc, scope), arg1(arg1Id),
       arg2(arg2Id) {
   assert(op == spv::Op::OpGroupNonUniformBroadcast ||
          op == spv::Op::OpGroupNonUniformBallotBitExtract ||
@@ -162,13 +159,15 @@ SpirvNonUniformBinaryInstr::SpirvNonUniformBinaryInstr(
 }
 
 // Image instructions
-SpirvImageInstr::SpirvImageInstr(
-    spv::Op op, QualType type, uint32_t resultId, SourceLocation loc,
-    uint32_t imageId, uint32_t coordinateId, spv::ImageOperandsMask mask,
-    uint32_t drefId, uint32_t biasId, uint32_t lodId, uint32_t gradDxId,
-    uint32_t gradDyId, uint32_t constOffsetId, uint32_t offsetId,
-    uint32_t constOffsetsId, uint32_t sampleId, uint32_t minLodId,
-    uint32_t componentId, uint32_t texelToWriteId)
+SpirvImageOp::SpirvImageOp(spv::Op op, QualType type, uint32_t resultId,
+                           SourceLocation loc, uint32_t imageId,
+                           uint32_t coordinateId, spv::ImageOperandsMask mask,
+                           uint32_t drefId, uint32_t biasId, uint32_t lodId,
+                           uint32_t gradDxId, uint32_t gradDyId,
+                           uint32_t constOffsetId, uint32_t offsetId,
+                           uint32_t constOffsetsId, uint32_t sampleId,
+                           uint32_t minLodId, uint32_t componentId,
+                           uint32_t texelToWriteId)
     : SpirvInstruction(op, type, resultId, loc), image(imageId),
       coordinate(coordinateId), dref(drefId), bias(biasId), lod(lodId),
       gradDx(gradDxId), gradDy(gradDyId), constOffset(constOffsetId),
