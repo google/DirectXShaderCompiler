@@ -24,7 +24,7 @@ SpirvImageQuery::SpirvImageQuery(spv::Op op, QualType type, uint32_t resultId,
   assert(op == spv::Op::OpImageQueryFormat || spv::Op::OpImageQueryOrder ||
          spv::Op::OpImageQuerySize || spv::Op::OpImageQueryLevels ||
          spv::Op::OpImageQuerySamples || spv::Op::OpImageQueryLod ||
-         spv::Op::OpImageQuerySizeLod ||);
+         spv::Op::OpImageQuerySizeLod);
   if (lodId)
     assert(op == spv::Op::OpImageQuerySizeLod);
   if (coordId)
@@ -61,14 +61,15 @@ SpirvAtomic::SpirvAtomic(spv::Op op, QualType type, uint32_t resultId,
 }
 
 // OpExecutionMode and OpExecutionModeId instructions
-SpirvExecutionMode::SpirvExecutionMode(
-    SourceLocation loc, uint32_t entryId, spv::ExecutionMode em,
-    llvm::SmallVector<uint32_t, 4> &paramsVec, bool usesIdParams)
+SpirvExecutionMode::SpirvExecutionMode(SourceLocation loc, uint32_t entryId,
+                                       spv::ExecutionMode em,
+                                       llvm::ArrayRef<uint32_t> paramsVec,
+                                       bool usesIdParams)
     : SpirvInstruction(usesIdParams ? spv::Op::OpExecutionModeId
                                     : spv::Op::OpExecutionMode,
-                       /*QualType*/ {},
-                       /*result-id*/ 0, loc),
-      entryPointId(entryId), execMode(em), params(paramsVec) {}
+                       /*QualType*/ {}, /*result-id*/ 0, loc),
+      entryPointId(entryId), execMode(em),
+      params(paramsVec.begin(), paramsVec.end()) {}
 
 // OpMemoryBarrier and OpControlBarrier instructions.
 SpirvBarrier::SpirvBarrier(SourceLocation loc, spv::Scope memScope,
@@ -88,7 +89,7 @@ uint32_t SpirvSwitch::getTargetLabelForLiteral(uint32_t lit) const {
       return pair.second;
   return defaultLabel;
 }
-llvm::SmallVector<uint32_t, 4> SpirvSwitch::getTargetBranches() const {
+llvm::ArrayRef<uint32_t> SpirvSwitch::getTargetBranches() const {
   llvm::SmallVector<uint32_t, 4> branches;
   for (auto pair : targets)
     branches.push_back(pair.second);
@@ -100,14 +101,14 @@ llvm::SmallVector<uint32_t, 4> SpirvSwitch::getTargetBranches() const {
 // instructions
 SpirvComposite::SpirvComposite(QualType type, uint32_t resultId,
                                SourceLocation loc,
-                               llvm::SmallVector<uint32_t, 4> &constituentsVec,
+                               llvm::ArrayRef<uint32_t> constituentsVec,
                                bool isConstant, bool isSpecConstant)
     : SpirvInstruction(isSpecConstant
                            ? spv::Op::OpSpecConstantComposite
                            : isConstant ? spv::Op::OpConstantComposite
                                         : spv::Op::OpCompositeConstruct,
                        type, resultId, loc),
-      consituents(constituentsVec) {}
+      consituents(constituentsVec.begin(), constituentsVec.end()) {}
 
 // Non-uniform unary instructions
 SpirvNonUniformUnaryOp::SpirvNonUniformUnaryOp(

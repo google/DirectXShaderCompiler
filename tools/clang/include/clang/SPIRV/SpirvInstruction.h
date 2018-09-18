@@ -1,4 +1,4 @@
-//===-- SpirvInstruction.h - SPIR-V Instruction Representation --*- C++ -*-===//
+//===-- SpirvInstruction.h - SPIR-V Instruction -----------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -9,6 +9,7 @@
 #include "spirv/unified1/spirv.hpp11"
 #include "clang/AST/Type.h"
 #include "clang/Basic/SourceLocation.h"
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace clang {
@@ -17,14 +18,12 @@ namespace spirv {
 /// \brief The base class for representing SPIR-V instructions.
 class SpirvInstruction {
 public:
-  virtual spv::Op getOpcode() const { return opcode; }
-  virtual QualType getResultType() const { return resultType; }
-  virtual uint32_t getResultId() const { return resultId; }
-  virtual clang::SourceLocation getSourceLocation() const { return srcLoc; }
+  spv::Op getOpcode() const { return opcode; }
+  QualType getResultType() const { return resultType; }
+  uint32_t getResultId() const { return resultId; }
+  clang::SourceLocation getSourceLocation() const { return srcLoc; }
 
-  // virtual SpirvVersion getSpirvVersion() = 0;
-  // virtual SpirvExtension getSpirvExtension() = 0;
-  // virtual llvm::StringRef getDebugName() = 0;
+  virtual ~SpirvInstruction() = default;
 
 protected:
   SpirvInstruction(spv::Op op, QualType type, uint32_t id, SourceLocation loc)
@@ -37,7 +36,7 @@ private:
   SourceLocation srcLoc;
 };
 
-/// \brief Represents SPIR-V Unary operation instructions. Includes:
+/// \brief Represents SPIR-V unary operation instructions. Includes:
 /// ----------------------------------------------------------------------------
 /// opTranspose     // Matrix capability
 /// opDPdx
@@ -49,7 +48,7 @@ private:
 /// opDPdxCoarse   // DerivativeControl capability
 /// opDPdyCoarse   // DerivativeControl capability
 /// opFwidthCoarse // DerivativeControl capability
-/// ------------------------- Conversions --------------------------------------
+/// ------------------------- Conversion operations ----------------------------
 /// OpConvertFToU
 /// OpConvertFToS
 /// OpConvertSToF
@@ -65,7 +64,7 @@ private:
 /// opBitReverse
 /// opBitCount
 /// OpNot
-/// ----------------------------- logical --------------------------------------
+/// ----------------------------- Logical operations ---------------------------
 /// OpLogicalNot
 /// OpAny
 /// OpAll
@@ -107,15 +106,15 @@ private:
 /// OpMatrixTimesMatrix
 /// OpOuterProduct
 /// OpDot
-/// ----------------------------- Shift operations -----------------------------
+/// -------------------------- Shift operations --------------------------------
 /// OpShiftRightLogical
 /// OpShiftRightArithmetic
 /// OpShiftLeftLogical
-/// ------------------------  Bitwise logical operations -----------------------
+/// -------------------------- Bitwise logical operations ----------------------
 /// OpBitwiseOr
 /// OpBitwiseXor
 /// OpBitwiseAnd
-/// ----------------------------  Logical operations ---------------------------
+/// -------------------------- Logical operations ------------------------------
 /// OpLogicalEqual
 /// OpLogicalNotEqual
 /// OpLogicalOr
@@ -142,7 +141,7 @@ private:
 /// OpFUnordLessThanEqual
 /// OpFOrdGreaterThanEqual
 /// OpFUnordGreaterThanEqual
-/// -----------------------------  SpecConstant binary operations --------------
+/// -------------------------- SpecConstant binary operations ------------------
 /// OpSpecConstantOp
 /// ----------------------------------------------------------------------------
 class SpirvBinaryOp : public SpirvInstruction {
@@ -193,10 +192,10 @@ public:
 
   uint32_t getPointer() const { return pointer; }
   uint32_t getObject() const { return object; }
+  bool hasMemoryAccessSemantics() const { return memoryAccess.hasValue(); }
   spv::MemoryAccessMask getMemoryAccess() const {
     return memoryAccess.getValue();
   }
-  bool hasMemoryAccessSemantics() const { return memoryAccess.hasValue(); }
 
 private:
   uint32_t pointer;
@@ -210,15 +209,15 @@ private:
 class SpirvAccessChain : public SpirvInstruction {
 public:
   SpirvAccessChain(QualType type, uint32_t resultId, SourceLocation loc,
-                   uint32_t baseId, llvm::SmallVector<uint32_t, 4> indexVec)
+                   uint32_t baseId, llvm::ArrayRef<uint32_t> indexVec)
       : SpirvInstruction(spv::Op::OpAccessChain, type, resultId, loc),
-        base(baseId), indexes(indexVec) {}
+        base(baseId), indices(indexVec.begin(), indexVec.end()) {}
   uint32_t getBase() const { return base; }
-  llvm::ArrayRef<uint32_t> getIndexes() const { return indexes; }
+  llvm::ArrayRef<uint32_t> getIndexes() const { return indices; }
 
 private:
   uint32_t base;
-  llvm::SmallVector<uint32_t, 4> indexes;
+  llvm::SmallVector<uint32_t, 4> indices;
 };
 
 /// \brief Select operation representation.
@@ -227,15 +226,15 @@ public:
   SpirvSelect(QualType type, uint32_t resultId, SourceLocation loc,
               uint32_t cond, uint32_t trueId, uint32_t falseId)
       : SpirvInstruction(spv::Op::OpSelect, type, resultId, loc),
-        condition(cond), trueObj(trueId), falseObj(falseId) {}
+        condition(cond), trueObject(trueId), falseObject(falseId) {}
   uint32_t getCondition() const { return condition; }
-  uint32_t getTrueObject() const { return trueObj; }
-  uint32_t getFalseObject() const { return falseObj; }
+  uint32_t getTrueObject() const { return trueObject; }
+  uint32_t getFalseObject() const { return falseObject; }
 
 private:
   uint32_t condition;
-  uint32_t trueObj;
-  uint32_t falseObj;
+  uint32_t trueObject;
+  uint32_t falseObject;
 };
 
 /// \brief Extension instruction
@@ -270,9 +269,10 @@ class SpirvExtInst : public SpirvInstruction {
 public:
   SpirvExtInst(QualType type, uint32_t resultId, SourceLocation loc,
                uint32_t setId, uint32_t inst,
-               llvm::SmallVector<uint32_t, 4> &operandsVec)
+               llvm::ArrayRef<uint32_t> operandsVec)
       : SpirvInstruction(spv::Op::OpExtInst, type, resultId, loc),
-        instructionSetId(setId), instruction(inst), operands(operandsVec) {}
+        instructionSetId(setId), instruction(inst),
+        operands(operandsVec.begin(), operandsVec.end()) {}
   uint32_t getInstructionSetId() const { return instructionSetId; }
   uint32_t getInstruction() const { return instruction; }
   llvm::ArrayRef<uint32_t> getOperands() const { return operands; }
@@ -283,7 +283,7 @@ private:
   llvm::SmallVector<uint32_t, 4> operands;
 };
 
-/// \brief Image query instructions. Includes:
+/// \brief Image query instructions:
 /// Covers the following instructions:
 /// OpImageQueryFormat  (image)
 /// OpImageQueryOrder   (image)
@@ -298,10 +298,10 @@ public:
                   SourceLocation loc, uint32_t img, uint32_t lodId = 0,
                   uint32_t coordId = 0);
   uint32_t getImage() const { return image; }
-  uint32_t getLod() const { return lod; }
   uint32_t hasLod() const { return lod != 0; }
-  uint32_t getCoordinate() const { return coordinate; }
+  uint32_t getLod() const { return lod; }
   uint32_t hasCoordinate() const { return coordinate != 0; }
+  uint32_t getCoordinate() const { return coordinate; }
 
 private:
   uint32_t image;
@@ -380,9 +380,10 @@ class SpirvVectorShuffle : public SpirvInstruction {
 public:
   SpirvVectorShuffle(QualType type, uint32_t resultId, SourceLocation loc,
                      uint32_t vec1Id, uint32_t vec2Id,
-                     llvm::SmallVector<uint32_t, 4> &componentsVec)
+                     llvm::ArrayRef<uint32_t> componentsVec)
       : SpirvInstruction(spv::Op::OpVectorShuffle, type, resultId, loc),
-        vec1(vec1Id), vec2(vec2Id), components(componentsVec) {}
+        vec1(vec1Id), vec2(vec2Id),
+        components(componentsVec.begin(), componentsVec.end()) {}
   uint32_t getVec1() const { return vec1; }
   uint32_t getVec2() const { return vec2; }
   llvm::ArrayRef<uint32_t> getComponents() const { return components; }
@@ -397,35 +398,22 @@ private:
 class SpirvSource : public SpirvInstruction {
 public:
   SpirvSource(SourceLocation loc, spv::SourceLanguage language, uint32_t ver,
-              llvm::Optional<uint32_t> fileId, llvm::StringRef src)
+              uint32_t fileId, llvm::StringRef src)
       : SpirvInstruction(spv::Op::OpSource, /*QualType*/ {}, /*result-id*/ 0,
                          loc),
         lang(language), version(ver), file(fileId), source(src) {}
 
   spv::SourceLanguage getSourceLanguage() const { return lang; }
   uint32_t getVersion() const { return version; }
-  bool hasFileId() const { return file.hasValue(); }
-  uint32_t getFileId() const { return file.getValue(); }
+  bool hasFileId() const { return file != 0; }
+  uint32_t getFileId() const { return file; }
   llvm::StringRef getSource() const { return source; }
 
 private:
   spv::SourceLanguage lang;
   uint32_t version;
-  llvm::Optional<uint32_t> file;
+  uint32_t file;
   std::string source;
-};
-
-/// \brief OpSourceExtension instruction
-class SpirvSourceExtension : public SpirvInstruction {
-public:
-  SpirvSourceExtension(SourceLocation loc, llvm::StringRef ext)
-      : SpirvInstruction(spv::Op::OpSourceExtension, /*QualType*/ {},
-                         /*result-id*/ 0, loc),
-        extension(ext) {}
-  llvm::StringRef getExtension() const { return extension; }
-
-private:
-  std::string extension;
 };
 
 /// \brief OpName instruction
@@ -526,11 +514,11 @@ class SpirvEntryPoint : public SpirvInstruction {
 public:
   SpirvEntryPoint(SourceLocation loc, spv::ExecutionModel executionModel,
                   uint32_t entryPointId, llvm::StringRef nameStr,
-                  llvm::SmallVector<uint32_t, 4> &iface)
+                  llvm::ArrayRef<uint32_t> iface)
       : SpirvInstruction(spv::Op::OpMemoryModel, /*QualType*/ {},
                          /*result-id*/ 0, loc),
         execModel(executionModel), entryPoint(entryPointId), name(nameStr),
-        interfaceVec(iface) {}
+        interfaceVec(iface.begin(), iface.end()) {}
   spv::ExecutionModel getExecModel() const { return execModel; }
   uint32_t getEntryPointId() const { return entryPoint; }
   llvm::StringRef getEntryPointName() const { return name; }
@@ -540,14 +528,14 @@ private:
   spv::ExecutionModel execModel;
   uint32_t entryPoint;
   std::string name;
-  llvm::SmallVector<uint32_t, 4> interfaceVec;
+  llvm::SmallVector<uint32_t, 8> interfaceVec;
 };
 
 /// \brief OpExecutionMode and OpExecutionModeId instructions
 class SpirvExecutionMode : public SpirvInstruction {
 public:
   SpirvExecutionMode(SourceLocation loc, uint32_t entryPointId,
-                     spv::ExecutionMode, llvm::SmallVector<uint32_t, 4> &params,
+                     spv::ExecutionMode, llvm::ArrayRef<uint32_t> params,
                      bool usesIdParams);
   uint32_t getEntryPointId() const { return entryPointId; }
   spv::ExecutionMode getExecutionMode() const { return execMode; }
@@ -665,7 +653,7 @@ protected:
 /// \brief Base class for branching instructions
 class SpirvBranching : public SpirvTerminator {
 public:
-  virtual llvm::SmallVector<uint32_t, 4> getTargetBranches() const = 0;
+  virtual llvm::ArrayRef<uint32_t> getTargetBranches() const = 0;
 
 protected:
   SpirvBranching(spv::Op op, SourceLocation loc) : SpirvTerminator(op, loc) {}
@@ -681,9 +669,7 @@ public:
 
   // Returns all possible branches that could be taken by the branching
   // instruction.
-  llvm::SmallVector<uint32_t, 4> getTargetBranches() const {
-    return {targetLabel};
-  }
+  llvm::ArrayRef<uint32_t> getTargetBranches() const { return {targetLabel}; }
 
 private:
   uint32_t targetLabel;
@@ -697,7 +683,7 @@ public:
       : SpirvBranching(spv::Op::OpBranchConditional, loc), condition(cond),
         trueLabel(trueLabelId), falseLabel(falseLabelId) {}
 
-  llvm::SmallVector<uint32_t, 4> getTargetBranches() const {
+  llvm::ArrayRef<uint32_t> getTargetBranches() const {
     return {trueLabel, falseLabel};
   }
   uint32_t getCondition() const { return condition; }
@@ -714,9 +700,10 @@ private:
 class SpirvSwitch : public SpirvBranching {
 public:
   SpirvSwitch(SourceLocation loc, uint32_t selectorId, uint32_t defaultLabelId,
-              llvm::SmallVector<std::pair<uint32_t, uint32_t>, 4> &targetsVec)
+              llvm::ArrayRef<std::pair<uint32_t, uint32_t>> &targetsVec)
       : SpirvBranching(spv::Op::OpSwitch, loc), selector(selectorId),
-        defaultLabel(defaultLabelId), targets(targetsVec) {}
+        defaultLabel(defaultLabelId),
+        targets(targetsVec.begin(), targetsVec.end()) {}
 
   uint32_t getSelector() const { return selector; }
   uint32_t getDefaultLabel() const { return defaultLabel; }
@@ -726,7 +713,7 @@ public:
   // Returns the branch label that will be taken for the given literal.
   uint32_t getTargetLabelForLiteral(uint32_t) const;
   // Returns all possible branches that could be taken by the switch statement.
-  llvm::SmallVector<uint32_t, 4> getTargetBranches() const;
+  llvm::ArrayRef<uint32_t> getTargetBranches() const;
 
 private:
   uint32_t selector;
@@ -766,7 +753,7 @@ private:
 class SpirvComposite : public SpirvInstruction {
 public:
   SpirvComposite(QualType type, uint32_t resultId, SourceLocation loc,
-                 llvm::SmallVector<uint32_t, 4> &constituentsVec,
+                 llvm::ArrayRef<uint32_t> constituentsVec,
                  bool isConstant = false, bool isSpecConstant = false);
 
   bool isConstantComposite() const {
@@ -785,15 +772,15 @@ private:
 class SpirvExtract : public SpirvInstruction {
 public:
   SpirvExtract(QualType type, uint32_t resultId, SourceLocation loc,
-               uint32_t compositeId, llvm::SmallVector<uint32_t, 4> &indexesVec)
+               uint32_t compositeId, llvm::ArrayRef<uint32_t> indexVec)
       : SpirvInstruction(spv::Op::OpCompositeExtract, type, resultId, loc),
-        composite(compositeId), indexes(indexesVec) {}
+        composite(compositeId), indices(indexVec.begin(), indexVec.end()) {}
   uint32_t getComposite() const { return composite; }
-  llvm::ArrayRef<uint32_t> getIndexes() const { return indexes; }
+  llvm::ArrayRef<uint32_t> getIndexes() const { return indices; }
 
 private:
   uint32_t composite;
-  llvm::SmallVector<uint32_t, 4> indexes;
+  llvm::SmallVector<uint32_t, 4> indices;
 };
 
 /// \brief BitField instructions include: OpBitFieldInsert, OpBitFieldSExtract,
@@ -846,9 +833,9 @@ public:
 class SpirvFunctionCall : public SpirvInstruction {
 public:
   SpirvFunctionCall(QualType type, uint32_t resultId, SourceLocation loc,
-                    uint32_t fnId, llvm::SmallVector<uint32_t, 4> &argsVec)
+                    uint32_t fnId, llvm::ArrayRef<uint32_t> argsVec)
       : SpirvInstruction(spv::Op::OpFunctionCall, type, resultId, loc),
-        function(fnId), args(argsVec) {}
+        function(fnId), args(argsVec.begin(), argsVec.end()) {}
   uint32_t getFunction() const { return function; }
   llvm::ArrayRef<uint32_t> getArgs() const { return args; }
 
