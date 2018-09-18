@@ -6,6 +6,7 @@
 // License. See LICENSE.TXT for details.
 //===----------------------------------------------------------------------===//
 
+#include "spirv/unified1/GLSL.std.450.h"
 #include "spirv/unified1/spirv.hpp11"
 #include "clang/AST/Type.h"
 #include "clang/Basic/SourceLocation.h"
@@ -254,7 +255,7 @@ private:
 class SpirvExtInstImport : public SpirvInstruction {
 public:
   SpirvExtInstImport(uint32_t resultId, SourceLocation loc,
-                     llvm::StringRef extensionName)
+                     llvm::StringRef extensionName = "GLSL.std.450")
       : SpirvInstruction(spv::Op::OpExtInstImport, /* QualType */ {}, resultId,
                          loc),
         extName(extensionName) {}
@@ -268,18 +269,18 @@ private:
 class SpirvExtInst : public SpirvInstruction {
 public:
   SpirvExtInst(QualType type, uint32_t resultId, SourceLocation loc,
-               uint32_t setId, uint32_t inst,
+               uint32_t setId, GLSLstd450 inst,
                llvm::ArrayRef<uint32_t> operandsVec)
       : SpirvInstruction(spv::Op::OpExtInst, type, resultId, loc),
         instructionSetId(setId), instruction(inst),
         operands(operandsVec.begin(), operandsVec.end()) {}
   uint32_t getInstructionSetId() const { return instructionSetId; }
-  uint32_t getInstruction() const { return instruction; }
+  GLSLstd450 getInstruction() const { return instruction; }
   llvm::ArrayRef<uint32_t> getOperands() const { return operands; }
 
 private:
   uint32_t instructionSetId;
-  uint32_t instruction;
+  GLSLstd450 instruction;
   llvm::SmallVector<uint32_t, 4> operands;
 };
 
@@ -557,22 +558,6 @@ public:
 
 private:
   spv::Capability capability;
-};
-
-/// \brief OpFunction instruction
-class SpirvFunction : public SpirvInstruction {
-public:
-  SpirvFunction(QualType type, uint32_t resultId, SourceLocation loc,
-                spv::FunctionControlMask controlMask, uint32_t functionType)
-      : SpirvInstruction(spv::Op::OpFunction, type, resultId, loc),
-        mask(controlMask), fnType(functionType) {}
-
-  spv::FunctionControlMask getFnControlMask() const { return mask; }
-  uint32_t getFnType() const { return fnType; }
-
-private:
-  spv::FunctionControlMask mask;
-  uint32_t fnType;
 };
 
 /// \brief OpMemoryBarrier and OpControlBarrier instructions
