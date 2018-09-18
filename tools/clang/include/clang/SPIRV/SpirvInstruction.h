@@ -84,6 +84,21 @@ private:
   uint32_t operand;
 };
 
+/// \brief OpSpecConstantOp instruction where the operation is unary.
+class SpirvSpecConstantUnaryOp : public SpirvUnaryOp {
+public:
+  SpirvSpecConstantUnaryOp(spv::Op specConstantOp, QualType type,
+                           uint32_t resultId, SourceLocation loc,
+                           uint32_t operand)
+      : SpirvUnaryOp(spv::Op::OpSpecConstantOp, type, resultId, loc, operand),
+        specOp(specConstantOp) {}
+
+  spv::Op getSpecOpcode() const { return specOp; }
+
+private:
+  spv::Op specOp;
+};
+
 /// \brief Represents SPIR-V binary operation instructions. Includes:
 /// -------------------------- Arithmetic operations ---------------------------
 /// OpIAdd
@@ -142,8 +157,6 @@ private:
 /// OpFUnordLessThanEqual
 /// OpFOrdGreaterThanEqual
 /// OpFUnordGreaterThanEqual
-/// -------------------------- SpecConstant binary operations ------------------
-/// OpSpecConstantOp
 /// ----------------------------------------------------------------------------
 class SpirvBinaryOp : public SpirvInstruction {
 public:
@@ -161,6 +174,22 @@ public:
 private:
   uint32_t operand1;
   uint32_t operand2;
+};
+
+/// \brief OpSpecConstantOp instruction where the operation is binary.
+class SpirvSpecConstantBinaryOp : public SpirvBinaryOp {
+public:
+  SpirvSpecConstantBinaryOp(spv::Op specConstantOp, QualType type,
+                            uint32_t resultId, SourceLocation loc,
+                            uint32_t operand1, uint32_t operand2)
+      : SpirvBinaryOp(spv::Op::OpSpecConstantOp, type, resultId, loc, operand1,
+                      operand2),
+        specOp(specConstantOp) {}
+
+  spv::Op getSpecOpcode() const { return specOp; }
+
+private:
+  spv::Op specOp;
 };
 
 /// \brief Load instruction representation
