@@ -18,6 +18,9 @@
 namespace clang {
 namespace spirv {
 
+// TODO: flesh this out
+class SpirvTypeConstant;
+
 /// The class representing a SPIR-V module in memory.
 ///
 /// A SPIR-V module contains two main parts: instructions for "metadata" (e.g.,
@@ -49,9 +52,9 @@ private:
   uint32_t bound; ///< The <result-id> bound: the next unused one
 
   // "Metadata" instructions
-  llvm::SmallVector<spirvCapability *, 8> capabilities;
+  llvm::SmallVector<SpirvCapability *, 8> capabilities;
   llvm::SmallVector<SpirvExtension *, 4> extensions;
-  llvm::SmallVector<SpirvExtInstSet *, 1> extInstSets;
+  llvm::SmallVector<SpirvExtInstImport *, 1> extInstSets;
   SpirvMemoryModel *memoryModel;
   llvm::SmallVector<SpirvEntryPoint *, 1> entryPoints;
   llvm::SmallVector<SpirvExecutionMode *, 4> executionModes;
@@ -62,7 +65,7 @@ private:
   std::vector<SpirvVariable *> variables;
 
   // Shader logic instructions
-  std::vector<SpirvFuction *> functions;
+  std::vector<SpirvFunction *> functions;
 };
 
 } // end namespace spirv

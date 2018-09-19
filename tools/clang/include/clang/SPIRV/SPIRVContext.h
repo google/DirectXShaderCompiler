@@ -156,7 +156,7 @@ private:
 
 /// Placement new for using the SpirvContext's allocator.
 inline void *operator new(size_t bytes, const clang::spirv::SpirvContext &c,
-                          size_t align) {
+                          size_t align = 8) {
   return c.allocate(bytes, align);
 }
 

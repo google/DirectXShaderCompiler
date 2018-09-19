@@ -13,8 +13,7 @@ namespace clang {
 namespace spirv {
 
 SpirvBuilder::SpirvBuilder(SpirvContext &ctx)
-    : context(ctx), nextId(1), module(nullptr), function(nullptr),
-      basicBlock(nullptr) {
+    : context(ctx), module(nullptr), function(nullptr) {
   module = new (context) SpirvModule;
 }
 
