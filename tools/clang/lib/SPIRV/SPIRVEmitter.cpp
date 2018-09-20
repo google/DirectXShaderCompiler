@@ -204,14 +204,16 @@ bool spirvToolsLegalize(spv_target_env env, std::vector<uint32_t> *module,
                  const spv_position_t & /*position*/,
                  const char *message) { *messages += message; });
 
+  spvtools::OptimizerOptions options;
+  options.set_run_validator(false);
+
   optimizer.RegisterLegalizationPasses();
 
   optimizer.RegisterPass(spvtools::CreateReplaceInvalidOpcodePass());
 
   optimizer.RegisterPass(spvtools::CreateCompactIdsPass());
 
-  return optimizer.Run(module->data(), module->size(), module, {},
-                       /*skip_validation=*/true);
+  return optimizer.Run(module->data(), module->size(), module, options);
 }
 
 bool spirvToolsOptimize(spv_target_env env, std::vector<uint32_t> *module,
@@ -223,6 +225,9 @@ bool spirvToolsOptimize(spv_target_env env, std::vector<uint32_t> *module,
       [messages](spv_message_level_t /*level*/, const char * /*source*/,
                  const spv_position_t & /*position*/,
                  const char *message) { *messages += message; });
+
+  spvtools::OptimizerOptions options;
+  options.set_run_validator(false);
 
   if (flags.empty()) {
     optimizer.RegisterPerformancePasses();
@@ -237,8 +242,7 @@ bool spirvToolsOptimize(spv_target_env env, std::vector<uint32_t> *module,
       return false;
   }
 
-  return optimizer.Run(module->data(), module->size(), module, {},
-                       /*skip_validation=*/true);
+  return optimizer.Run(module->data(), module->size(), module, options);
 }
 
 bool spirvToolsValidate(spv_target_env env, std::vector<uint32_t> *module,
@@ -599,7 +603,7 @@ SPIRVEmitter::SPIRVEmitter(CompilerInstance &ci)
       theContext(), featureManager(diags, spirvOptions),
       theBuilder(&theContext, &featureManager, spirvOptions),
       typeTranslator(astContext, theBuilder, diags, spirvOptions),
-      declIdMapper(shaderModel, astContext, theBuilder, typeTranslator,
+      declIdMapper(shaderModel, astContext, theBuilder, *this, typeTranslator,
                    featureManager, spirvOptions),
       entryFunctionId(0), curFunction(nullptr), curThis(0),
       seenPushConstantAt(), isSpecConstantMode(false),
