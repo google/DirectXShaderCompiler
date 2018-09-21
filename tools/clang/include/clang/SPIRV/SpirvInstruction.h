@@ -45,9 +45,13 @@ public:
 
     IK_FunctionParameter, // OpFunctionParameter
 
+    // The following section is for merge instructions.
+    // Used by LLVM-style RTTI; order matters.
     IK_LoopMerge,      // OpLoopMerge
     IK_SelectionMerge, // OpSelectionMerge
 
+    // The following section is for termination instructions.
+    // Used by LLVM-style RTTI; order matters.
     IK_Branch,            // OpBranch
     IK_BranchConditional, // OpBranchConditional
     IK_Kill,              // OpKill
@@ -58,19 +62,23 @@ public:
     // Normal instruction kinds
     // In alphabetical order
 
-    IK_AccessChain,               // OpAccessChain
-    IK_Atomic,                    // OpAtomic*
-    IK_Barrier,                   // Op*Barrier
-    IK_BinaryOp,                  // Binary operations
-    IK_BitFieldExtract,           // OpBitFieldExtract
-    IK_BitFieldInsert,            // OpBitFieldInsert
-    IK_Composite,                 // Op*Composite
-    IK_CompositeExtract,          // OpCompositeExtract
-    IK_ExtInst,                   // OpExtInst
-    IK_FunctionCall,              // OpFunctionCall
-    IK_GroupNonUniformBinaryOp,   // Group NonUniform binary operations
-    IK_GroupNonUniformElect,      // OpGroupNonUniformElect
-    IK_GroupNonUniformUnaryOp,    // Group NonUniform unary operations
+    IK_AccessChain,      // OpAccessChain
+    IK_Atomic,           // OpAtomic*
+    IK_Barrier,          // Op*Barrier
+    IK_BinaryOp,         // Binary operations
+    IK_BitFieldExtract,  // OpBitFieldExtract
+    IK_BitFieldInsert,   // OpBitFieldInsert
+    IK_Composite,        // Op*Composite
+    IK_CompositeExtract, // OpCompositeExtract
+    IK_ExtInst,          // OpExtInst
+    IK_FunctionCall,     // OpFunctionCall
+
+    // The following section is for group non-uniform instructions.
+    // Used by LLVM-style RTTI; order matters.
+    IK_GroupNonUniformBinaryOp, // Group non-uniform binary operations
+    IK_GroupNonUniformElect,    // OpGroupNonUniformElect
+    IK_GroupNonUniformUnaryOp,  // Group non-uniform unary operations
+
     IK_ImageOp,                   // OpImage*
     IK_ImageQuery,                // OpImageQuery*
     IK_ImageSparseTexelsResident, // OpImageSparseTexelsResident
