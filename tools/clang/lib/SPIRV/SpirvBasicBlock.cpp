@@ -20,5 +20,19 @@ bool SpirvBasicBlock::hasTerminator() const {
   return !instructions.empty() && isa<SpirvTerminator>(instructions.back());
 }
 
+bool SpirvBasicBlock::invokeVisitor(Visitor *visitor) {
+  if (!visitor->visit(this, Visitor::Phase::Init))
+    return false;
+
+  for (auto inst : instructions)
+    if (!inst->invokeVisitor(visitor))
+      return false;
+
+  if (!visitor->visit(this, Visitor::Phase::Done))
+    return false;
+
+  return true;
+}
+
 } // end namespace spirv
 } // end namespace clang

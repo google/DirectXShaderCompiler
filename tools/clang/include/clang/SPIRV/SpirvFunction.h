@@ -13,6 +13,7 @@
 
 #include "clang/SPIRV/SpirvBasicBlock.h"
 #include "clang/SPIRV/SpirvInstruction.h"
+#include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/SmallVector.h"
 
 namespace clang {
@@ -31,6 +32,25 @@ public:
   // Forbid move construction and assignment
   SpirvFunction(SpirvFunction &&) = delete;
   SpirvFunction &operator=(SpirvFunction &&) = delete;
+
+  // Return the function parameters.
+  llvm::ArrayRef<SpirvFunctionParameter *> getParams() const {
+    return parameters;
+  }
+
+  // Handle SPIR-V function visitors.
+  bool invokeVisitor(Visitor *);
+
+  // TODO: The responsibility of assigning the result-id of a function shouldn't
+  // be on the function itself.
+  uint32_t getResultId() const { return functionId; }
+  // TODO: There should be a pass for lowering QualType to SPIR-V type,
+  // and this method should be able to return the result-id of the SPIR-V type.
+  // Both the return type of the function as well as the SPIR-V "function type"
+  // are needed. SPIR-V function type (obtained by OpFunctionType) includes both
+  // the return type as well as argument types.
+  uint32_t getReturnTypeId() const { return 0; }
+  uint32_t getFunctionTypeId() const { return 0; }
 
 private:
   QualType functionType;                    ///< This function's type

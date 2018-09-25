@@ -16,5 +16,19 @@ SpirvFunction::SpirvFunction(QualType type, uint32_t id,
                              spv::FunctionControlMask control)
     : functionType(type), functionId(id), functionControl(control) {}
 
+bool SpirvFunction::invokeVisitor(Visitor *visitor) {
+  if (!visitor->visit(this, Visitor::Phase::Init))
+    return false;
+
+  for (auto bb : basicBlocks)
+    if (!bb->invokeVisitor(visitor))
+      return false;
+
+  if (!visitor->visit(this, Visitor::Phase::Done))
+    return false;
+
+  return true;
+}
+
 } // end namespace spirv
 } // end namespace clang

@@ -13,6 +13,7 @@
 
 #include "clang/SPIRV/SpirvFunction.h"
 #include "clang/SPIRV/SpirvInstruction.h"
+#include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/SmallVector.h"
 
 namespace clang {
@@ -48,8 +49,11 @@ public:
   SpirvModule(SpirvModule &&) = delete;
   SpirvModule &operator=(SpirvModule &&) = delete;
 
+  // Handle SPIR-V module visitors.
+  bool visit(Visitor *);
+
 private:
-  uint32_t bound; ///< The <result-id> bound: the next unused one
+  uint32_t bound; //< The <result-id> bound: the next unused one
 
   // "Metadata" instructions
   llvm::SmallVector<SpirvCapability *, 8> capabilities;

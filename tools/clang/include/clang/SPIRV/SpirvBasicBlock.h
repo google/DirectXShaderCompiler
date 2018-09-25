@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "clang/SPIRV/SpirvInstruction.h"
+#include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 
@@ -60,6 +61,9 @@ public:
   /// Returns true if the last instruction in this basic block is a termination
   /// instruction.
   bool hasTerminator() const;
+
+  /// Handle SPIR-V basic block visitors.
+  bool invokeVisitor(Visitor *);
 
 private:
   uint32_t labelId;      ///< The label's <result-id>
