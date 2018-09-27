@@ -205,6 +205,10 @@ private:
                                 DxilParamInputQual paramQual,
                                 llvm::StringRef semFullName,
                                 bool isPatchConstantFunction);
+
+  void RemapObsoleteSemantic(DxilParameterAnnotation &paramInfo,
+                             bool isPatchConstantFunction);
+
   void SetEntryFunction();
   SourceLocation SetSemantic(const NamedDecl *decl,
                              DxilParameterAnnotation &paramInfo);
@@ -381,6 +385,8 @@ CGMSHLSLRuntime::CGMSHLSLRuntime(CodeGenModule &CGM)
   opts.PackingStrategy = CGM.getCodeGenOpts().HLSLSignaturePackingStrategy;
 
   opts.bUseMinPrecision = CGM.getLangOpts().UseMinPrecision;
+  opts.bDX9CompatMode = CGM.getLangOpts().EnableDX9CompatMode;
+  opts.bFXCCompatMode = CGM.getLangOpts().EnableFXCCompatMode;
 
   m_pHLModule->SetHLOptions(opts);
   m_pHLModule->SetAutoBindingSpace(CGM.getCodeGenOpts().HLSLDefaultSpace);
@@ -477,10 +483,9 @@ void CGMSHLSLRuntime::CheckParameterAnnotation(
       Semantic::GetByName(semName, sigPoint, SM->GetMajor(), SM->GetMinor());
   if (pSemantic->IsInvalid()) {
     DiagnosticsEngine &Diags = CGM.getDiags();
-    const ShaderModel *shader = m_pHLModule->GetShaderModel();
     unsigned DiagID =
-        Diags.getCustomDiagID(DiagnosticsEngine::Error, "invalid semantic '%0' for %1 %2.%3");
-    Diags.Report(SLoc, DiagID) << semName << shader->GetKindName() << shader->GetMajor() << shader->GetMinor();
+      Diags.getCustomDiagID(DiagnosticsEngine::Error, "invalid semantic '%0' for %1 %2.%3");
+    Diags.Report(SLoc, DiagID) << semName << SM->GetKindName() << SM->GetMajor() << SM->GetMinor();
   }
 }
 
@@ -1290,6 +1295,15 @@ void CGMSHLSLRuntime::AddHLSLFunctionInfo(Function *F, const FunctionDecl *FD) {
             GetHLSLInputPatchCount(parmDecl->getType());
       }
     }
+
+    // Mark patch constant functions that cannot be linked as exports
+    // InternalLinkage.  Patch constant functions that are actually used
+    // will be set back to ExternalLinkage in FinishCodeGen.
+    if (funcProps->ShaderProps.HS.outputControlPoints ||
+        funcProps->ShaderProps.HS.inputControlPoints) {
+      PCI.Func->setLinkage(GlobalValue::InternalLinkage);
+    }
+
     funcProps->shaderKind = DXIL::ShaderKind::Hull;
   }
 
@@ -1546,6 +1560,9 @@ void CGMSHLSLRuntime::AddHLSLFunctionInfo(Function *F, const FunctionDecl *FD) {
   SourceLocation retTySemanticLoc = SetSemantic(FD, retTyAnnotation);
   retTyAnnotation.SetParamInputQual(DxilParamInputQual::Out);
   if (isEntry) {
+    if (CGM.getLangOpts().EnableDX9CompatMode && retTyAnnotation.HasSemanticString()) {
+      RemapObsoleteSemantic(retTyAnnotation, /*isPatchConstantFunction*/ false);
+    }
     CheckParameterAnnotation(retTySemanticLoc, retTyAnnotation,
                              /*isPatchConstantFunction*/ false);
   }
@@ -1824,6 +1841,9 @@ void CGMSHLSLRuntime::AddHLSLFunctionInfo(Function *F, const FunctionDecl *FD) {
 
     paramAnnotation.SetParamInputQual(dxilInputQ);
     if (isEntry) {
+      if (CGM.getLangOpts().EnableDX9CompatMode && paramAnnotation.HasSemanticString()) {
+        RemapObsoleteSemantic(paramAnnotation, /*isPatchConstantFunction*/ false);
+      }
       CheckParameterAnnotation(paramSemanticLoc, paramAnnotation,
                                /*isPatchConstantFunction*/ false);
     }
@@ -1921,6 +1941,15 @@ void CGMSHLSLRuntime::AddHLSLFunctionInfo(Function *F, const FunctionDecl *FD) {
   }
 }
 
+void CGMSHLSLRuntime::RemapObsoleteSemantic(DxilParameterAnnotation &paramInfo, bool isPatchConstantFunction) {
+  DXASSERT(CGM.getLangOpts().EnableDX9CompatMode, "should be used only in back-compat mode");
+
+  const ShaderModel *SM = m_pHLModule->GetShaderModel();
+  DXIL::SigPointKind sigPointKind = SigPointFromInputQual(paramInfo.GetParamInputQual(), SM->GetKind(), isPatchConstantFunction);
+
+  hlsl::RemapObsoleteSemantic(paramInfo, sigPointKind, CGM.getLLVMContext());
+}
+
 void CGMSHLSLRuntime::EmitHLSLFunctionProlog(Function *F, const FunctionDecl *FD) {
   // Support clip plane need debug info which not available when create function attribute.
   if (const HLSLClipPlanesAttr *Attr = FD->getAttr<HLSLClipPlanesAttr>()) {
@@ -1970,7 +1999,8 @@ void CGMSHLSLRuntime::EmitHLSLFunctionProlog(Function *F, const FunctionDecl *FD
   }
 
   // Update function linkage based on DefaultLinkage
-  if (!m_pHLModule->HasDxilFunctionProps(F) && !IsPatchConstantFunction(F)) {
+  // We will take care of patch constant functions later, once identified for certain.
+  if (!m_pHLModule->HasDxilFunctionProps(F)) {
     if (F->getLinkage() == GlobalValue::LinkageTypes::ExternalLinkage) {
       if (!FD->hasAttr<HLSLExportAttr>()) {
         switch (CGM.getCodeGenOpts().DefaultLinkage) {
@@ -4548,7 +4578,7 @@ void CGMSHLSLRuntime::FinishCodeGen() {
     // In back-compat mode (with /Gec flag) create a static global for each const global
     // to allow writing to it.
     // TODO: Verfiy the behavior of static globals in hull shader
-    if(CGM.getLangOpts().EnableBackCompatMode && CGM.getLangOpts().HLSLVersion <= 2016)
+    if(CGM.getLangOpts().EnableDX9CompatMode && CGM.getLangOpts().HLSLVersion <= 2016)
       CreateWriteEnabledStaticGlobals(m_pHLModule->GetModule(), m_pHLModule->GetEntryFunction());
     if (m_pHLModule->GetShaderModel()->IsHS()) {
       SetPatchConstantFunction(Entry);
@@ -4721,6 +4751,22 @@ void CGMSHLSLRuntime::FinishCodeGen() {
       // Mark non-shader user functions as InternalLinkage
       f.setLinkage(GlobalValue::LinkageTypes::InternalLinkage);
     }
+  }
+
+  // Now iterate hull shaders and make sure their corresponding patch constant
+  // functions are marked ExternalLinkage:
+  for (Function &f : m_pHLModule->GetModule()->functions()) {
+    if (f.isDeclaration() || f.isIntrinsic() ||
+        GetHLOpcodeGroup(&f) != HLOpcodeGroup::NotHL ||
+        f.getLinkage() != GlobalValue::LinkageTypes::ExternalLinkage ||
+        !m_pHLModule->HasDxilFunctionProps(&f))
+      continue;
+    DxilFunctionProps &props = m_pHLModule->GetDxilFunctionProps(&f);
+    if (!props.IsHS())
+      continue;
+    Function *PCFunc = props.ShaderProps.HS.patchConstantFunc;
+    if (PCFunc->getLinkage() != GlobalValue::LinkageTypes::ExternalLinkage)
+      PCFunc->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
   }
 
   // Disallow resource arguments in (non-entry) function exports
