@@ -8,7 +8,6 @@
 #ifndef LLVM_CLANG_SPIRV_EMITVISITOR_H
 #define LLVM_CLANG_SPIRV_EMITVISITOR_H
 
-#include "clang/SPIRV/SpirvInstruction.h"
 #include "clang/SPIRV/SpirvVisitor.h"
 
 namespace clang {
