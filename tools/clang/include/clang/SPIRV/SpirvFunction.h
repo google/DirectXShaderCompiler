@@ -13,11 +13,13 @@
 
 #include "clang/SPIRV/SpirvBasicBlock.h"
 #include "clang/SPIRV/SpirvInstruction.h"
-#include "clang/SPIRV/SpirvVisitor.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 
 namespace clang {
 namespace spirv {
+
+class SpirvVisitor;
 
 /// The class representing a SPIR-V function in memory.
 class SpirvFunction {
@@ -32,11 +34,6 @@ public:
   // Forbid move construction and assignment
   SpirvFunction(SpirvFunction &&) = delete;
   SpirvFunction &operator=(SpirvFunction &&) = delete;
-
-  // Return the function parameters.
-  llvm::ArrayRef<SpirvFunctionParameter *> getParams() const {
-    return parameters;
-  }
 
   // Handle SPIR-V function visitors.
   bool invokeVisitor(Visitor *);

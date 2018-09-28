@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/SPIRV/SpirvModule.h"
+#include "clang/SPIRV/SpirvVisitor.h"
 
 namespace clang {
 namespace spirv {
@@ -19,7 +20,7 @@ bool SpirvModule::visit(Visitor *visitor) {
   if (!visitor->visit(this, Visitor::Phase::Init))
     return false;
 
-  for (auto cap : capabilities)
+  for (auto *cap : capabilities)
     if (!cap->invokeVisitor(visitor))
       return false;
 

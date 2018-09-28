@@ -13,12 +13,13 @@
 #include <vector>
 
 #include "clang/SPIRV/SpirvInstruction.h"
-#include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace clang {
 namespace spirv {
+
+class SpirvVisitor;
 
 /// The class representing a SPIR-V basic block in memory.
 class SpirvBasicBlock {

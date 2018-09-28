@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/SPIRV/SpirvFunction.h"
+#include "clang/SPIRV/SpirvVisitor.h"
 
 namespace clang {
 namespace spirv {
@@ -20,7 +21,10 @@ bool SpirvFunction::invokeVisitor(Visitor *visitor) {
   if (!visitor->visit(this, Visitor::Phase::Init))
     return false;
 
-  for (auto bb : basicBlocks)
+  for (auto *param : parameters)
+    visitor->visit(param);
+
+  for (auto *bb : basicBlocks)
     if (!bb->invokeVisitor(visitor))
       return false;
 
