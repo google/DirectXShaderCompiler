@@ -5570,11 +5570,13 @@ SpirvEvalInfo
 SPIRVEmitter::tryToGenFloatVectorScale(const BinaryOperator *expr) {
   const QualType type = expr->getType();
   const SourceRange range = expr->getSourceRange();
+  QualType elemType = {};
 
   // We can only translate floatN * float into OpVectorTimesScalar.
-  // So the result type must be floatN.
-  if (!hlsl::IsHLSLVecType(type) ||
-      !hlsl::GetHLSLVecElementType(type)->isFloatingType())
+  // So the result type must be floatN. Note that float1 is not a valid vector
+  // in SPIR-V.
+  if (!(TypeTranslator::isVectorType(type, &elemType) &&
+        elemType->isFloatingType()))
     return 0;
 
   const Expr *lhs = expr->getLHS();
@@ -5627,10 +5629,13 @@ SPIRVEmitter::tryToGenFloatMatrixScale(const BinaryOperator *expr) {
   const QualType type = expr->getType();
   const SourceRange range = expr->getSourceRange();
 
-  // We can only translate floatMxN * float into OpMatrixTimesScalar.
-  // So the result type must be floatMxN.
+  // We translate 'floatMxN * float' into OpMatrixTimesScalar.
+  // We translate 'floatMx1 * float' and 'float1xN * float' using
+  // OpVectorTimesScalar.
+  // So the result type can be floatMxN, floatMx1, or float1xN.
   if (!hlsl::IsHLSLMatType(type) ||
-      !hlsl::GetHLSLMatElementType(type)->isFloatingType())
+      !hlsl::GetHLSLMatElementType(type)->isFloatingType() ||
+      TypeTranslator::is1x1Matrix(type))
     return 0;
 
   const Expr *lhs = expr->getLHS();
@@ -6859,8 +6864,17 @@ SPIRVEmitter::processIntrinsicInterlockedMethod(const CallExpr *expr,
       }
     }
   }
-  if (!ptr)
-    ptr = doExpr(dest);
+  if (!ptr) {
+    const auto ptrInfo = doExpr(dest);
+    const auto sc = ptrInfo.getStorageClass();
+    if (sc == spv::StorageClass::Private || sc == spv::StorageClass::Function) {
+      emitError("using static variable or function scope variable in "
+                "interlocked operation is not allowed",
+                dest->getExprLoc());
+      return 0;
+    }
+    ptr = ptrInfo;
+  }
 
   const bool isCompareExchange =
       opcode == hlsl::IntrinsicOp::IOP_InterlockedCompareExchange;
@@ -7097,7 +7111,8 @@ uint32_t SPIRVEmitter::processWaveQuery(const CallExpr *callExpr,
   featureManager.requestTargetEnv(SPV_ENV_VULKAN_1_1, "Wave Operation",
                                   callExpr->getExprLoc());
   theBuilder.requireCapability(getCapabilityForGroupNonUniform(opcode));
-  const uint32_t subgroupScope = theBuilder.getConstantInt32(3);
+  const uint32_t subgroupScope =
+      theBuilder.getConstantInt32(static_cast<int32_t>(spv::Scope::Subgroup));
   const uint32_t retType =
       typeTranslator.translateType(callExpr->getCallReturnType(astContext));
   return theBuilder.createGroupNonUniformOp(opcode, retType, subgroupScope);
@@ -7114,7 +7129,8 @@ uint32_t SPIRVEmitter::processWaveVote(const CallExpr *callExpr,
                                   callExpr->getExprLoc());
   theBuilder.requireCapability(getCapabilityForGroupNonUniform(opcode));
   const uint32_t predicate = doExpr(callExpr->getArg(0));
-  const uint32_t subgroupScope = theBuilder.getConstantInt32(3);
+  const uint32_t subgroupScope =
+      theBuilder.getConstantInt32(static_cast<int32_t>(spv::Scope::Subgroup));
   const uint32_t retType =
       typeTranslator.translateType(callExpr->getCallReturnType(astContext));
   return theBuilder.createGroupNonUniformUnaryOp(opcode, retType, subgroupScope,
@@ -7203,7 +7219,8 @@ uint32_t SPIRVEmitter::processWaveCountBits(const CallExpr *callExpr,
       spv::Op::OpGroupNonUniformBallotBitCount));
 
   const uint32_t predicate = doExpr(callExpr->getArg(0));
-  const uint32_t subgroupScope = theBuilder.getConstantInt32(3);
+  const uint32_t subgroupScope =
+      theBuilder.getConstantInt32(static_cast<int32_t>(spv::Scope::Subgroup));
 
   const uint32_t u32Type = theBuilder.getUint32Type();
   const uint32_t v4u32Type = theBuilder.getVecType(u32Type, 4);
@@ -7237,7 +7254,8 @@ uint32_t SPIRVEmitter::processWaveReductionOrPrefix(
                                   callExpr->getExprLoc());
   theBuilder.requireCapability(getCapabilityForGroupNonUniform(opcode));
   const uint32_t predicate = doExpr(callExpr->getArg(0));
-  const uint32_t subgroupScope = theBuilder.getConstantInt32(3);
+  const uint32_t subgroupScope =
+      theBuilder.getConstantInt32(static_cast<int32_t>(spv::Scope::Subgroup));
   const uint32_t retType =
       typeTranslator.translateType(callExpr->getCallReturnType(astContext));
   return theBuilder.createGroupNonUniformUnaryOp(
@@ -7255,7 +7273,8 @@ uint32_t SPIRVEmitter::processWaveBroadcast(const CallExpr *callExpr) {
                                   callExpr->getExprLoc());
   theBuilder.requireCapability(spv::Capability::GroupNonUniformBallot);
   const uint32_t value = doExpr(callExpr->getArg(0));
-  const uint32_t subgroupScope = theBuilder.getConstantInt32(3);
+  const uint32_t subgroupScope =
+      theBuilder.getConstantInt32(static_cast<int32_t>(spv::Scope::Subgroup));
   const uint32_t retType =
       typeTranslator.translateType(callExpr->getCallReturnType(astContext));
   if (numArgs == 2)
@@ -7281,7 +7300,8 @@ uint32_t SPIRVEmitter::processWaveQuadWideShuffle(const CallExpr *callExpr,
   theBuilder.requireCapability(spv::Capability::GroupNonUniformQuad);
 
   const uint32_t value = doExpr(callExpr->getArg(0));
-  const uint32_t subgroupScope = theBuilder.getConstantInt32(3);
+  const uint32_t subgroupScope =
+      theBuilder.getConstantInt32(static_cast<int32_t>(spv::Scope::Subgroup));
   const uint32_t retType =
       typeTranslator.translateType(callExpr->getCallReturnType(astContext));
 
