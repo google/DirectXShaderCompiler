@@ -183,7 +183,7 @@ public:
   const SampledImageType *getSampledImageType(const ImageType *image);
 
   const ArrayType *getArrayType(const SpirvType *elemType, uint32_t elemCount);
-  const RuntimeArrayType *getRunTimeArrayType(const SpirvType *elemType);
+  const RuntimeArrayType *getRuntimeArrayType(const SpirvType *elemType);
 
   const StructType *getStructType(llvm::ArrayRef<const SpirvType *> fieldTypes,
                                   llvm::StringRef name,

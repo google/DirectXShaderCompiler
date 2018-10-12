@@ -200,7 +200,7 @@ const ArrayType *SpirvContext::getArrayType(const SpirvType *elemType,
 }
 
 const RuntimeArrayType *
-SpirvContext::getRunTimeArrayType(const SpirvType *elemType) {
+SpirvContext::getRuntimeArrayType(const SpirvType *elemType) {
   auto found = runtimeArrayTypes.find(elemType);
 
   if (found != runtimeArrayTypes.end())
