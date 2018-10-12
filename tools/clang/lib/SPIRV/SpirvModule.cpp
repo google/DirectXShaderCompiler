@@ -69,5 +69,15 @@ bool SpirvModule::invokeVisitor(Visitor *visitor) {
   return true;
 }
 
+void SpirvModule::addFunction(SpirvFunction *fn) {
+  assert(fn && "cannot add null function to the module");
+  functions.push_back(fn);
+}
+
+void SpirvModule::addDebugName(SpirvName* debugName) {
+  assert(debugName && "cannot add null debug name to the module");
+  debugNames.push_back(debugName);
+}
+
 } // end namespace spirv
 } // end namespace clang

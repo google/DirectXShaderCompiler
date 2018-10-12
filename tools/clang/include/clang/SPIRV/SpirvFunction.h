@@ -24,7 +24,8 @@ class SpirvVisitor;
 /// The class representing a SPIR-V function in memory.
 class SpirvFunction {
 public:
-  SpirvFunction(QualType type, uint32_t id, spv::FunctionControlMask);
+  SpirvFunction(QualType type, uint32_t id, spv::FunctionControlMask,
+                SourceLocation);
   ~SpirvFunction() = default;
 
   // Forbid copy construction and assignment
@@ -49,10 +50,15 @@ public:
   uint32_t getReturnTypeId() const { return 0; }
   uint32_t getFunctionTypeId() const { return 0; }
 
+  void addParameter(SpirvFunctionParameter *);
+  void addVariable(SpirvVariable *);
+  void addBasicBlock(SpirvBasicBlock *);
+
 private:
   QualType functionType;                    ///< This function's type
   uint32_t functionId;                      ///< This function's <result-id>
   spv::FunctionControlMask functionControl; ///< SPIR-V function control
+  SourceLocation functionLoc;               ///< Location in source code
 
   /// Parameters to this function.
   llvm::SmallVector<SpirvFunctionParameter *, 8> parameters;

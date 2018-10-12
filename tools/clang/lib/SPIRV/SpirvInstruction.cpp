@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/SPIRV/SpirvBasicBlock.h"
+#include "clang/SPIRV/SpirvFunction.h"
 #include "clang/SPIRV/SpirvInstruction.h"
 #include "clang/SPIRV/SpirvVisitor.h"
 
@@ -133,12 +134,40 @@ SpirvSource::SpirvSource(SourceLocation loc, spv::SourceLanguage language,
                        /*resultId=*/0, loc),
       lang(language), version(ver), file(fileString), source(src) {}
 
-SpirvName::SpirvName(SourceLocation loc, SpirvInstruction *targetInst,
+SpirvName::SpirvName(SourceLocation loc, SpirvInstruction *target,
                      llvm::StringRef nameStr,
                      llvm::Optional<uint32_t> memberIndex)
     : SpirvInstruction(IK_Name, spv::Op::OpMemberName, QualType(),
                        /*resultId=*/0, loc),
-      target(targetInst), member(memberIndex), name(nameStr) {}
+      instTarget(target), fnTarget(nullptr), bbTarget(nullptr),
+      member(memberIndex), name(nameStr) {}
+
+SpirvName::SpirvName(SourceLocation loc, SpirvFunction *target,
+                     llvm::StringRef nameStr,
+                     llvm::Optional<uint32_t> memberIndex)
+    : SpirvInstruction(IK_Name, spv::Op::OpMemberName, QualType(),
+                       /*resultId=*/0, loc),
+      instTarget(nullptr), fnTarget(target), bbTarget(nullptr),
+      member(memberIndex), name(nameStr) {}
+
+SpirvName::SpirvName(SourceLocation loc, SpirvBasicBlock *target,
+                     llvm::StringRef nameStr,
+                     llvm::Optional<uint32_t> memberIndex)
+    : SpirvInstruction(IK_Name, spv::Op::OpMemberName, QualType(),
+                       /*resultId=*/0, loc),
+      instTarget(nullptr), fnTarget(nullptr), bbTarget(target),
+      member(memberIndex), name(nameStr) {}
+
+uint32_t SpirvName::getTargetResultId() {
+  if (instTarget)
+    return instTarget->getResultId();
+  if (fnTarget)
+    return fnTarget->getResultId();
+  if (bbTarget)
+    return bbTarget->getLabelId();
+
+  llvm_unreachable("unknown target type for debug name");
+}
 
 SpirvModuleProcessed::SpirvModuleProcessed(SourceLocation loc,
                                            llvm::StringRef processStr)

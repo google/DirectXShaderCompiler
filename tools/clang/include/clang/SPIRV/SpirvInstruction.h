@@ -310,7 +310,14 @@ private:
 class SpirvName : public SpirvInstruction {
 public:
   SpirvName(SourceLocation loc, SpirvInstruction *targetInst,
-            llvm::StringRef nameStr, llvm::Optional<uint32_t> memberIndex);
+            llvm::StringRef nameStr,
+            llvm::Optional<uint32_t> memberIndex = llvm::None);
+  SpirvName(SourceLocation loc, SpirvFunction *targetFn,
+            llvm::StringRef nameStr,
+            llvm::Optional<uint32_t> memberIndex = llvm::None);
+  SpirvName(SourceLocation loc, SpirvBasicBlock *targetBB,
+            llvm::StringRef nameStr,
+            llvm::Optional<uint32_t> memberIndex = llvm::None);
 
   // For LLVM-style RTTI
   static bool classof(const SpirvInstruction *inst) {
@@ -319,13 +326,15 @@ public:
 
   DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvName)
 
-  SpirvInstruction *getTarget() const { return target; }
+  uint32_t getTargetResultId();
   bool isForMember() const { return member.hasValue(); }
   uint32_t getMember() const { return member.getValue(); }
   llvm::StringRef getName() const { return name; }
 
 private:
-  SpirvInstruction *target;
+  SpirvInstruction *instTarget;
+  SpirvFunction *fnTarget;
+  SpirvBasicBlock *bbTarget;
   llvm::Optional<uint32_t> member;
   std::string name;
 };

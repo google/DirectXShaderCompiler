@@ -157,7 +157,7 @@ bool EmitVisitor::visit(SpirvSource *inst) {
 
 bool EmitVisitor::visit(SpirvName *inst) {
   initInstruction(inst->getopcode());
-  curInst.push_back(inst->getTarget()->getResultId());
+  curInst.push_back(inst->getTargetResultId());
   if (inst->isForMember())
     curInst.push_back(inst->getMember());
   encodeString(inst->getName());

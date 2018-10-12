@@ -53,6 +53,12 @@ public:
   // Handle SPIR-V module visitors.
   bool invokeVisitor(Visitor *);
 
+  // Add a function to the list of module functions.
+  void addFunction(SpirvFunction *);
+
+  // Add debug names
+  void addDebugName(SpirvName *);
+
 private:
   uint32_t bound; ///< The <result-id> bound: the next unused one
 
