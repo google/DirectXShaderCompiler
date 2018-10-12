@@ -22,6 +22,7 @@ add_clang_library(clangSPIRV
   SpirvInstruction.cpp
   SpirvFunction.cpp
   SpirvModule.cpp
+  SpirvType.cpp
   String.cpp
   Structure.cpp
   Type.cpp
