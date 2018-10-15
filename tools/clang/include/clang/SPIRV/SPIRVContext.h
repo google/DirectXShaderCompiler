@@ -173,10 +173,11 @@ public:
   const IntegerType *getUIntType(uint32_t bitwidth);
   const FloatType *getFloatType(uint32_t bitwidth);
 
-  const VectorType *getVectorType(const ScalarType *elemType, uint32_t count);
-  const MatrixType *getMatrixType(const VectorType *vecType, uint32_t vecCount);
+  const VectorType *getVectorType(const SpirvType *elemType, uint32_t count);
+  const MatrixType *getMatrixType(const SpirvType *vecType, uint32_t vecCount,
+                                  bool isRowMajor);
 
-  const ImageType *getImageType(const NumericalType *, spv::Dim, bool arrayed,
+  const ImageType *getImageType(const SpirvType *, spv::Dim, bool arrayed,
                                 bool ms, ImageType::WithSampler sampled,
                                 spv::ImageFormat);
   const SamplerType *getSamplerType() const { return samplerType; }
@@ -185,15 +186,17 @@ public:
   const ArrayType *getArrayType(const SpirvType *elemType, uint32_t elemCount);
   const RuntimeArrayType *getRuntimeArrayType(const SpirvType *elemType);
 
-  const StructType *getStructType(llvm::ArrayRef<const SpirvType *> fieldTypes,
-                                  llvm::StringRef name,
-                                  llvm::ArrayRef<llvm::StringRef> fieldNames);
+  const StructType *getStructType(
+      llvm::ArrayRef<const SpirvType *> fieldTypes, llvm::StringRef name,
+      llvm::ArrayRef<llvm::StringRef> fieldNames = {}, bool isReadOnly = false);
 
   const SpirvPointerType *getPointerType(const SpirvType *pointee,
                                          spv::StorageClass);
 
   const FunctionType *getFunctionType(const SpirvType *ret,
                                       llvm::ArrayRef<const SpirvType *> param);
+
+  const StructType *getByteAddressBufferType(bool isWritable);
 
 private:
   /// \brief The allocator used to create SPIR-V entity objects.
@@ -211,6 +214,10 @@ private:
   const VoidType *voidType;
   const BoolType *boolType;
 
+  // TODO: the following scalar/vector/matrix type fields are not factoring in
+  // relaxed precision when doing unification. It should be fixed when adding
+  // support for relaxed precision.
+
   // The type at index i is for bitwidth 2^i. So max bitwidth supported
   // is 2^6 = 64. Index 0/1/2/3 is not used right now.
   std::array<const IntegerType *, 7> sintTypes;
@@ -218,7 +225,7 @@ private:
   std::array<const FloatType *, 7> floatTypes;
 
   using VectorTypeArray = std::array<const VectorType *, 5>;
-  using MatrixTypeArray = std::array<const MatrixType *, 5>;
+  using MatrixTypeVector = std::vector<const MatrixType *>;
   using CountToArrayMap = llvm::DenseMap<uint32_t, const ArrayType *>;
   using SCToPtrTyMap =
       llvm::DenseMap<spv::StorageClass, const SpirvPointerType *,
@@ -228,7 +235,7 @@ private:
   // Type at index is for vector of index components. Index 0/1 is unused.
 
   llvm::DenseMap<const ScalarType *, VectorTypeArray> vecTypes;
-  llvm::DenseMap<const VectorType *, MatrixTypeArray> matTypes;
+  llvm::DenseMap<const VectorType *, MatrixTypeVector> matTypes;
 
   llvm::SmallVector<const ImageType *, 8> imageTypes;
   const SamplerType *samplerType;

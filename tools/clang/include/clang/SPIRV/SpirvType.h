@@ -120,14 +120,16 @@ private:
 
 class MatrixType : public SpirvType {
 public:
-  MatrixType(const VectorType *vecType, uint32_t vecCount)
-      : SpirvType(TK_Matrix), vectorType(vecType), vectorCount(vecCount) {}
+  MatrixType(const VectorType *vecType, uint32_t vecCount, bool rowMajor);
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Matrix; }
+
+  bool operator==(const MatrixType &that) const;
 
 private:
   const VectorType *vectorType;
   uint32_t vectorCount;
+  bool isRowMajor;
 };
 
 class ImageType : public SpirvType {
@@ -202,9 +204,12 @@ private:
 class StructType : public SpirvType {
 public:
   StructType(llvm::ArrayRef<const SpirvType *> memberTypes,
-             llvm::StringRef name, llvm::ArrayRef<llvm::StringRef> memberNames);
+             llvm::StringRef name, llvm::ArrayRef<llvm::StringRef> memberNames,
+             bool isReadOnly);
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Struct; }
+
+  bool isReadOnly() const { return readOnly; }
 
   bool operator==(const StructType &that) const;
 
@@ -212,6 +217,7 @@ private:
   std::string structName;
   llvm::SmallVector<const SpirvType *, 8> fieldTypes;
   llvm::SmallVector<std::string, 8> fieldNames;
+  bool readOnly;
 };
 
 class SpirvPointerType : public SpirvType {
