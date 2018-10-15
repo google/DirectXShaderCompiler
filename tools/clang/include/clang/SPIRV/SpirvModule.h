@@ -56,9 +56,6 @@ public:
   // Add a function to the list of module functions.
   void addFunction(SpirvFunction *);
 
-  // Add debug names
-  void addDebugName(SpirvName *);
-
 private:
   uint32_t bound; ///< The <result-id> bound: the next unused one
 
@@ -70,7 +67,6 @@ private:
   llvm::SmallVector<SpirvEntryPoint *, 1> entryPoints;
   llvm::SmallVector<SpirvExecutionMode *, 4> executionModes;
   SpirvSource *debugSource;
-  std::vector<SpirvName *> debugNames;
   std::vector<SpirvDecoration *> decorations;
   std::vector<SpirvTypeConstant *> typeConstants;
   std::vector<SpirvVariable *> variables;

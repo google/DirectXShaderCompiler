@@ -22,15 +22,8 @@ SpirvFunction *SpirvBuilder::beginFunction(QualType returnType,
                                            SourceLocation loc,
                                            llvm::StringRef funcName) {
   assert(!function && "found nested function");
-
-  // Create the function
   function = new (context) SpirvFunction(
-      returnType, /*id*/ 0, spv::FunctionControlMask::MaskNone, loc);
-
-  // Add a debug name for the function
-  auto *debugName = new (context) SpirvName(loc, function, funcName);
-  module->addDebugName(debugName);
-
+      returnType, /*id*/ 0, spv::FunctionControlMask::MaskNone, loc, funcName);
   return function;
 }
 
@@ -38,15 +31,9 @@ SpirvFunctionParameter *SpirvBuilder::addFnParam(QualType ptrType,
                                                  SourceLocation loc,
                                                  llvm::StringRef name) {
   assert(function && "found detached parameter");
-
-  // Create the function parameter
   auto *param = new (context) SpirvFunctionParameter(ptrType, /*id*/ 0, loc);
+  param->setDebugName(name);
   function->addParameter(param);
-
-  // Add a debug name for the parameter
-  auto *debugName = new (context) SpirvName(loc, param, name);
-  module->addDebugName(debugName);
-
   return param;
 }
 
@@ -54,16 +41,10 @@ SpirvVariable *SpirvBuilder::addFnVar(QualType valueType, SourceLocation loc,
                                       llvm::StringRef name,
                                       SpirvInstruction *init) {
   assert(function && "found detached local variable");
-
-  // Create the variable
   auto *var = new (context) SpirvVariable(valueType, /*id*/ 0, loc,
                                           spv::StorageClass::Function, init);
+  var->setDebugName(name);
   function->addVariable(var);
-
-  // Add a debug name for the variable
-  auto *debugName = new (context) SpirvName(loc, var, name);
-  module->addDebugName(debugName);
-
   return var;
 }
 
@@ -85,16 +66,8 @@ void SpirvBuilder::endFunction() {
 
 SpirvBasicBlock *SpirvBuilder::createBasicBlock(llvm::StringRef name) {
   assert(function && "found detached basic block");
-
-  // Create the basic block
   auto *bb = new (context) SpirvBasicBlock(/*id*/ 0, name);
   basicBlocks.push_back(bb);
-
-  // Add a debug name for the basic block
-  // A basic block may not necessarily correspond to a specific source location.
-  auto *debugName = new (context) SpirvName(/*Source Location */{}, bb, name);
-  module->addDebugName(debugName);
-
   return bb;
 }
 

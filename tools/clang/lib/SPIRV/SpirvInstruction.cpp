@@ -29,7 +29,6 @@ DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvEntryPoint)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvExecutionMode)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvString)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvSource)
-DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvName)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvModuleProcessed)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDecoration)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvVariable)
@@ -133,41 +132,6 @@ SpirvSource::SpirvSource(SourceLocation loc, spv::SourceLanguage language,
     : SpirvInstruction(IK_Source, spv::Op::OpSource, QualType(),
                        /*resultId=*/0, loc),
       lang(language), version(ver), file(fileString), source(src) {}
-
-SpirvName::SpirvName(SourceLocation loc, SpirvInstruction *target,
-                     llvm::StringRef nameStr,
-                     llvm::Optional<uint32_t> memberIndex)
-    : SpirvInstruction(IK_Name, spv::Op::OpMemberName, QualType(),
-                       /*resultId=*/0, loc),
-      instTarget(target), fnTarget(nullptr), bbTarget(nullptr),
-      member(memberIndex), name(nameStr) {}
-
-SpirvName::SpirvName(SourceLocation loc, SpirvFunction *target,
-                     llvm::StringRef nameStr,
-                     llvm::Optional<uint32_t> memberIndex)
-    : SpirvInstruction(IK_Name, spv::Op::OpMemberName, QualType(),
-                       /*resultId=*/0, loc),
-      instTarget(nullptr), fnTarget(target), bbTarget(nullptr),
-      member(memberIndex), name(nameStr) {}
-
-SpirvName::SpirvName(SourceLocation loc, SpirvBasicBlock *target,
-                     llvm::StringRef nameStr,
-                     llvm::Optional<uint32_t> memberIndex)
-    : SpirvInstruction(IK_Name, spv::Op::OpMemberName, QualType(),
-                       /*resultId=*/0, loc),
-      instTarget(nullptr), fnTarget(nullptr), bbTarget(target),
-      member(memberIndex), name(nameStr) {}
-
-uint32_t SpirvName::getTargetResultId() {
-  if (instTarget)
-    return instTarget->getResultId();
-  if (fnTarget)
-    return fnTarget->getResultId();
-  if (bbTarget)
-    return bbTarget->getLabelId();
-
-  llvm_unreachable("unknown target type for debug name");
-}
 
 SpirvModuleProcessed::SpirvModuleProcessed(SourceLocation loc,
                                            llvm::StringRef processStr)

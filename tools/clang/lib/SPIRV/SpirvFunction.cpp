@@ -15,9 +15,9 @@ namespace spirv {
 
 SpirvFunction::SpirvFunction(QualType type, uint32_t id,
                              spv::FunctionControlMask control,
-                             SourceLocation loc)
+                             SourceLocation loc, llvm::StringRef name)
     : functionType(type), functionId(id), functionControl(control),
-      functionLoc(loc) {}
+      functionLoc(loc), functionName(name) {}
 
 bool SpirvFunction::invokeVisitor(Visitor *visitor) {
   if (!visitor->visit(this, Visitor::Phase::Init))

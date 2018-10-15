@@ -45,9 +45,6 @@ bool SpirvModule::invokeVisitor(Visitor *visitor) {
 
   if (!debugSource->invokeVisitor(visitor))
     return false;
-  for (auto debugName : debugNames)
-    if (!debugName->invokeVisitor(visitor))
-      return false;
 
   for (auto decoration : decorations)
     if (!decoration->invokeVisitor(visitor))
@@ -72,11 +69,6 @@ bool SpirvModule::invokeVisitor(Visitor *visitor) {
 void SpirvModule::addFunction(SpirvFunction *fn) {
   assert(fn && "cannot add null function to the module");
   functions.push_back(fn);
-}
-
-void SpirvModule::addDebugName(SpirvName* debugName) {
-  assert(debugName && "cannot add null debug name to the module");
-  debugNames.push_back(debugName);
 }
 
 } // end namespace spirv
