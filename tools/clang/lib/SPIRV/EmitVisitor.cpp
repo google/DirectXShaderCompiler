@@ -48,6 +48,7 @@ void EmitVisitor::finalizeInstruction() {
   case spv::Op::OpExecutionMode:
   case spv::Op::OpExecutionModeId:
     preambleBinary.insert(preambleBinary.end(), curInst.begin(), curInst.end());
+    break;
   case spv::Op::OpString:
   case spv::Op::OpSource:
   case spv::Op::OpSourceExtension:
@@ -56,6 +57,7 @@ void EmitVisitor::finalizeInstruction() {
   case spv::Op::OpMemberName:
   case spv::Op::OpModuleProcessed:
     debugBinary.insert(debugBinary.end(), curInst.begin(), curInst.end());
+    break;
   case spv::Op::OpDecorate:
   case spv::Op::OpDecorateId:
   case spv::Op::OpMemberDecorate:
@@ -65,10 +67,10 @@ void EmitVisitor::finalizeInstruction() {
   case spv::Op::OpDecorateStringGOOGLE:
   case spv::Op::OpMemberDecorateStringGOOGLE:
     annotationsBinary.insert(annotationsBinary.end(), curInst.begin(), curInst.end());
-  case spv::Op::OpLine:
-    lineInfoBinary.insert(lineInfoBinary.end(), curInst.begin(), curInst.end());
+    break;
   default:
     mainBinary.insert(mainBinary.end(), curInst.begin(), curInst.end());
+    break;
   }
 }
 

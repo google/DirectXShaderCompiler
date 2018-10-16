@@ -111,7 +111,7 @@ private:
   // OpGroupMemberDecorate, and OpDecorationGroup.
   std::vector<uint32_t> annotationsBinary;
   // All OpLine instructions
-  std::vector<uint32_t> lineInfoBinary;
+  std::vector<uint32_t> typeConstantBinary;
   // All other instructions
   std::vector<uint32_t> mainBinary;
 };

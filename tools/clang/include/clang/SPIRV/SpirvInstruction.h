@@ -121,7 +121,7 @@ public:
   clang::SourceLocation getSourceLocation() const { return srcLoc; }
 
   void setDebugName(llvm::StringRef name) { debugName = name; }
-  llvm::StringRef getDebugName() { return debugName; }
+  llvm::StringRef getDebugName() const { return debugName; }
 
 protected:
   // Forbid creating SpirvInstruction directly

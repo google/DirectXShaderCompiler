@@ -51,7 +51,7 @@ public:
   uint32_t getFunctionTypeId() const { return 0; }
 
   void setFunctionName(llvm::StringRef name) { functionName = name; }
-  llvm::StringRef getFunctionName() { return functionName; }
+  llvm::StringRef getFunctionName() const { return functionName; }
 
   void addParameter(SpirvFunctionParameter *);
   void addVariable(SpirvVariable *);
