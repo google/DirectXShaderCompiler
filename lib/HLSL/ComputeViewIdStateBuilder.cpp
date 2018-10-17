@@ -9,9 +9,9 @@
 
 #include "dxc/HLSL/ComputeViewIdState.h"
 #include "dxc/Support/Global.h"
-#include "dxc/HLSL/DxilModule.h"
-#include "dxc/HLSL/DxilOperations.h"
-#include "dxc/HLSL/DxilInstructions.h"
+#include "dxc/DXIL/DxilModule.h"
+#include "dxc/DXIL/DxilOperations.h"
+#include "dxc/DXIL/DxilInstructions.h"
 
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -60,7 +60,6 @@ public:
                                       DxilViewIdStateData::kNumStreams),
         m_InputsContributingToPCOutputs(state.m_InputsContributingToPCOutputs),
         m_PCInputsContributingToOutputs(state.m_PCInputsContributingToOutputs),
-        m_SerializedState(state.m_SerializedState),
         m_bUsesViewId(state.m_bUsesViewId) {}
 
   void Compute();
@@ -82,9 +81,6 @@ private:
   MutableArrayRef<InputsContributingToOutputType> m_InputsContributingToOutputs;
   InputsContributingToOutputType &m_InputsContributingToPCOutputs; // HS PC only.
   InputsContributingToOutputType &m_PCInputsContributingToOutputs; // DS only.
-
-  // Serialized form.
-  std::vector<unsigned> &m_SerializedState;
 
   bool &m_bUsesViewId;
 
@@ -248,7 +244,6 @@ void DxilViewIdStateBuilder::Clear() {
   m_PCEntry.Clear();
   m_FuncInfo.clear();
   m_ReachingDeclsCache.clear();
-  m_SerializedState.clear();
 }
 
 void DxilViewIdStateBuilder::EntryInfo::Clear() {
@@ -860,9 +855,17 @@ bool ComputeViewIdState::runOnModule(Module &M) {
   DxilModule &DxilModule = M.GetOrCreateDxilModule();
   const ShaderModel *pSM = DxilModule.GetShaderModel();
   if (!pSM->IsCS() && !pSM->IsLib()) {
-    DxilViewIdState &ViewIdState = DxilModule.GetViewIdState();
+    DxilViewIdState ViewIdState(&DxilModule);
     DxilViewIdStateBuilder Builder(ViewIdState, &DxilModule);
     Builder.Compute();
+    // Serialize viewidstate.
+    ViewIdState.Serialize();
+    auto &TmpSerialized = ViewIdState.GetSerialized();
+    // Copy serilized viewidstate.
+    auto &SerializedViewIdState = DxilModule.GetSerializedViewIdState();
+    SerializedViewIdState.clear();
+    SerializedViewIdState.resize(TmpSerialized.size());
+    SerializedViewIdState.assign(TmpSerialized.begin(), TmpSerialized.end());
     return true;
   }
   return false;
