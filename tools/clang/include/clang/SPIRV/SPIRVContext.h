@@ -214,10 +214,6 @@ private:
   const VoidType *voidType;
   const BoolType *boolType;
 
-  // TODO: the following scalar/vector/matrix type fields are not factoring in
-  // relaxed precision when doing unification. It should be fixed when adding
-  // support for relaxed precision.
-
   // The type at index i is for bitwidth 2^i. So max bitwidth supported
   // is 2^6 = 64. Index 0/1/2/3 is not used right now.
   std::array<const IntegerType *, 7> sintTypes;

@@ -129,6 +129,11 @@ public:
 private:
   const VectorType *vectorType;
   uint32_t vectorCount;
+  // It's debatable whether we should put majorness as a field in the type
+  // itself. Majorness only matters at the time of emitting SPIR-V words since
+  // we need the layout decoration then. However, if we don't put it here,
+  // we will need to rediscover the majorness information from QualType at
+  // the time of emitting SPIR-V words.
   bool isRowMajor;
 };
 
@@ -214,6 +219,10 @@ public:
   bool operator==(const StructType &that) const;
 
 private:
+  // Reflection is heavily used in graphics pipelines. Reflection relies on
+  // struct names and field names. That basically means we cannot ignore these
+  // names when considering unification. Otherwise, reflection will be confused.
+
   std::string structName;
   llvm::SmallVector<const SpirvType *, 8> fieldTypes;
   llvm::SmallVector<std::string, 8> fieldNames;
