@@ -44,8 +44,14 @@ public:
     IK_ModuleProcessed, // OpModuleProcessed (debug)
     IK_Decoration,      // Op*Decorate
     IK_Type,            // OpType*
-    IK_Constant,        // OpConstant*
     IK_Variable,        // OpVariable
+
+    // Different kind of constants. Order matters.
+    IK_ConstantBoolean,
+    IK_ConstantInteger,
+    IK_ConstantFloat,
+    IK_ConstantComposite,
+    IK_ConstantNull,
 
     // Function structure kinds
 
@@ -893,6 +899,142 @@ public:
 
 private:
   SpirvInstruction *insert;
+};
+
+class SpirvConstant : public SpirvInstruction {
+public:
+  // For LLVM-style RTTI
+  static bool classof(const SpirvInstruction *inst) {
+    return inst->getKind() >= IK_ConstantBoolean &&
+           inst->getKind() <= IK_ConstantNull;
+  }
+
+protected:
+  SpirvConstant(Kind, spv::Op, QualType resultType, uint32_t resultId,
+                SourceLocation);
+};
+
+class SpirvConstantBoolean : public SpirvConstant {
+public:
+  SpirvConstantBoolean(bool value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+
+  // For LLVM-style RTTI
+  static bool classof(const SpirvInstruction *inst) {
+    return inst->getKind() == IK_ConstantBoolean;
+  }
+
+  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantBoolean)
+
+  bool getValue() const { return value; }
+
+private:
+  bool value;
+};
+
+/// \brief Represent OpConstant for integer values.
+class SpirvConstantInteger : public SpirvConstant {
+public:
+  SpirvConstantInteger(uint16_t value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+  SpirvConstantInteger(int16_t value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+  SpirvConstantInteger(uint32_t value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+  SpirvConstantInteger(int32_t value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+  SpirvConstantInteger(uint64_t value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+  SpirvConstantInteger(int64_t value, QualType resultType, uint32_t resultId,
+                       SourceLocation loc);
+
+  // For LLVM-style RTTI
+  static bool classof(const SpirvInstruction *inst) {
+    return inst->getKind() == IK_ConstantInteger;
+  }
+
+  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantInteger)
+
+  uint16_t getUnsignedInt16Value() const { return uVal16; }
+  int16_t getSignedInt16Value() const { return sVal16; }
+  uint32_t getUnsignedInt32Value() const { return uVal32; }
+  int32_t getSignedInt32Value() const { return sVal32; }
+  uint64_t getUnsignedInt64Value() const { return uVal64; }
+  int64_t getSignedInt64Value() const { return sVal64; }
+
+  uint32_t getBitwidth() const { return bitwidth; }
+  void setBitwidth(uint32_t width) { bitwidth = width; }
+
+private:
+  uint32_t bitwidth;
+  uint16_t uVal16;
+  int16_t sVal16;
+  uint32_t uVal32;
+  int32_t sVal32;
+  uint64_t uVal64;
+  int64_t sVal64;
+};
+
+class SpirvConstantFloat : public SpirvConstant {
+public:
+  SpirvConstantFloat(int16_t value, QualType resultType, uint32_t resultId,
+                     SourceLocation loc);
+  SpirvConstantFloat(float value, QualType resultType, uint32_t resultId,
+                     SourceLocation loc);
+  SpirvConstantFloat(double value, QualType resultType, uint32_t resultId,
+                     SourceLocation loc);
+
+  // For LLVM-style RTTI
+  static bool classof(const SpirvInstruction *inst) {
+    return inst->getKind() == IK_ConstantFloat;
+  }
+
+  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantFloat)
+
+  int16_t getValue16() const { return val16; }
+  float getValue32() const { return val32; }
+  double getValue64() const { return val64; }
+  uint32_t getBitwidth() const { return bitwidth; }
+  void setBitwidth(uint32_t width) { bitwidth = width; }
+
+private:
+  uint32_t bitwidth;
+  int16_t val16;
+  float val32;
+  double val64;
+};
+
+class SpirvConstantComposite : public SpirvConstant {
+public:
+  SpirvConstantComposite(llvm::ArrayRef<SpirvConstant *> constituents,
+                         QualType resultType, uint32_t resultId,
+                         SourceLocation loc);
+
+  // For LLVM-style RTTI
+  static bool classof(const SpirvInstruction *inst) {
+    return inst->getKind() == IK_ConstantComposite;
+  }
+
+  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantComposite)
+
+  llvm::ArrayRef<SpirvConstant *> getConstituents() const {
+    return constituents;
+  }
+
+private:
+  std::vector<SpirvConstant *> constituents;
+};
+
+class SpirvConstantNull : public SpirvConstant {
+public:
+  SpirvConstantNull(QualType resultType, uint32_t resultId, SourceLocation loc);
+
+  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantNull)
+
+  // For LLVM-style RTTI
+  static bool classof(const SpirvInstruction *inst) {
+    return inst->getKind() == IK_ConstantNull;
+  }
 };
 
 /// \brief Composition instructions
