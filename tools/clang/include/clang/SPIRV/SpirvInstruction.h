@@ -964,7 +964,7 @@ public:
 
   uint32_t getBitwidth() const { return bitwidth; }
   void setBitwidth(uint32_t width) { bitwidth = width; }
-  bool isSigned() const { return getResultType()->isUnsignedIntegerType(); }
+  bool isSigned() const { return getResultType()->isSignedIntegerType(); }
 
 private:
   uint32_t bitwidth;
