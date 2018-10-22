@@ -420,8 +420,6 @@ protected:
            inst->getKind() == IK_SelectionMerge;
   }
 
-  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvMerge)
-
 private:
   SpirvBasicBlock *mergeBlock;
 };
@@ -482,8 +480,6 @@ public:
     return inst->getKind() >= IK_Branch && inst->getKind() <= IK_Unreachable;
   }
 
-  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvTerminator)
-
 protected:
   SpirvTerminator(Kind kind, spv::Op opcode, SourceLocation loc);
 };
@@ -496,8 +492,6 @@ public:
     return inst->getKind() >= IK_Branch &&
            inst->getKind() <= IK_BranchConditional;
   }
-
-  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvBranching)
 
   virtual llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const = 0;
 
@@ -845,8 +839,6 @@ public:
            inst->getKind() == IK_BitFieldInsert;
   }
 
-  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvBitField)
-
   virtual SpirvInstruction *getBase() const { return base; }
   virtual SpirvInstruction *getOffset() const { return offset; }
   virtual SpirvInstruction *getCount() const { return count; }
@@ -1189,8 +1181,6 @@ public:
     return inst->getKind() >= IK_GroupNonUniformBinaryOp &&
            inst->getKind() <= IK_GroupNonUniformUnaryOp;
   }
-
-  DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvGroupNonUniformOp)
 
   spv::Scope getExecutionScope() const { return execScope; }
 

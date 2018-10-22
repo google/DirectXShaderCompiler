@@ -457,13 +457,14 @@ SpirvConstantFloat::SpirvConstantFloat(uint16_t val, QualType resultType,
                                        uint32_t resultId, SourceLocation loc)
     : SpirvConstant(IK_ConstantFloat, spv::Op::OpConstant, resultType, resultId,
                     loc),
-      bitwidth(16), value(cast::BitwiseCast<uint64_t, uint16_t>(val)) {}
+      bitwidth(16), value(static_cast<uint64_t>(val)) {}
 
 SpirvConstantFloat::SpirvConstantFloat(float val, QualType resultType,
                                        uint32_t resultId, SourceLocation loc)
     : SpirvConstant(IK_ConstantFloat, spv::Op::OpConstant, resultType, resultId,
                     loc),
-      bitwidth(32), value(cast::BitwiseCast<uint64_t, float>(val)) {}
+      bitwidth(32),
+      value(static_cast<uint64_t>(cast::BitwiseCast<uint32_t, float>(val))) {}
 
 SpirvConstantFloat::SpirvConstantFloat(double val, QualType resultType,
                                        uint32_t resultId, SourceLocation loc)
@@ -473,12 +474,12 @@ SpirvConstantFloat::SpirvConstantFloat(double val, QualType resultType,
 
 uint16_t SpirvConstantFloat::getValue16() const {
   assert(bitwidth == 16);
-  return cast::BitwiseCast<uint16_t, uint64_t>(value);
+  return static_cast<uint16_t>(value);
 }
 
 float SpirvConstantFloat::getValue32() const {
   assert(bitwidth == 32);
-  return cast::BitwiseCast<float, uint64_t>(value);
+  return cast::BitwiseCast<float, uint32_t>(static_cast<uint32_t>(value));
 }
 
 double SpirvConstantFloat::getValue64() const {
