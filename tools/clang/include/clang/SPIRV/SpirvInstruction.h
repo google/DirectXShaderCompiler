@@ -955,29 +955,25 @@ public:
 
   DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantInteger)
 
-  uint16_t getUnsignedInt16Value() const { return uVal16; }
-  int16_t getSignedInt16Value() const { return sVal16; }
-  uint32_t getUnsignedInt32Value() const { return uVal32; }
-  int32_t getSignedInt32Value() const { return sVal32; }
-  uint64_t getUnsignedInt64Value() const { return uVal64; }
-  int64_t getSignedInt64Value() const { return sVal64; }
+  uint16_t getUnsignedInt16Value() const;
+  int16_t getSignedInt16Value() const;
+  uint32_t getUnsignedInt32Value() const;
+  int32_t getSignedInt32Value() const;
+  uint64_t getUnsignedInt64Value() const;
+  int64_t getSignedInt64Value() const;
 
   uint32_t getBitwidth() const { return bitwidth; }
   void setBitwidth(uint32_t width) { bitwidth = width; }
+  bool isSigned() const { return getResultType()->isUnsignedIntegerType(); }
 
 private:
   uint32_t bitwidth;
-  uint16_t uVal16;
-  int16_t sVal16;
-  uint32_t uVal32;
-  int32_t sVal32;
-  uint64_t uVal64;
-  int64_t sVal64;
+  uint64_t value;
 };
 
 class SpirvConstantFloat : public SpirvConstant {
 public:
-  SpirvConstantFloat(int16_t value, QualType resultType, uint32_t resultId,
+  SpirvConstantFloat(uint16_t value, QualType resultType, uint32_t resultId,
                      SourceLocation loc);
   SpirvConstantFloat(float value, QualType resultType, uint32_t resultId,
                      SourceLocation loc);
@@ -991,17 +987,15 @@ public:
 
   DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvConstantFloat)
 
-  int16_t getValue16() const { return val16; }
-  float getValue32() const { return val32; }
-  double getValue64() const { return val64; }
+  uint16_t getValue16() const;
+  float getValue32() const;
+  double getValue64() const;
   uint32_t getBitwidth() const { return bitwidth; }
   void setBitwidth(uint32_t width) { bitwidth = width; }
 
 private:
   uint32_t bitwidth;
-  int16_t val16;
-  float val32;
-  double val64;
+  uint64_t value;
 };
 
 class SpirvConstantComposite : public SpirvConstant {
@@ -1127,7 +1121,6 @@ public:
 
   DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvEmitVertex)
 };
-
 
 /// \brief EndPrimitive instruction
 class SpirvEndPrimitive : public SpirvInstruction {

@@ -444,7 +444,7 @@ bool EmitVisitor::visit(SpirvConstantInteger *inst) {
   curInst.push_back(inst->getResultId());
   // 16-bit cases
   if (inst->getBitwidth() == 16) {
-    if (inst->getResultType()->isSignedIntegerType()) {
+    if (inst->isSigned()) {
       curInst.push_back(signExtendTo32Bits(inst->getSignedInt16Value()));
     } else {
       curInst.push_back(zeroExtendTo32Bits(inst->getUnsignedInt16Value()));
@@ -452,7 +452,7 @@ bool EmitVisitor::visit(SpirvConstantInteger *inst) {
   }
   // 32-bit cases
   else if (inst->getBitwidth() == 32) {
-    if (inst->getResultType()->isSignedIntegerType()) {
+    if (inst->isSigned()) {
       curInst.push_back(
           cast::BitwiseCast<uint32_t, int32_t>(inst->getSignedInt32Value()));
     } else {
@@ -466,7 +466,7 @@ bool EmitVisitor::visit(SpirvConstantInteger *inst) {
       uint32_t word1;
     };
     wideInt words;
-    if (inst->getResultType()->isSignedIntegerType()) {
+    if (inst->isSigned()) {
       words = cast::BitwiseCast<wideInt, int64_t>(inst->getSignedInt64Value());
     } else {
       words =
