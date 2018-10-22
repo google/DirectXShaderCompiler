@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "clang/SPIRV/BitwiseCast.h"
 #include "clang/SPIRV/SpirvBasicBlock.h"
 #include "clang/SPIRV/SpirvFunction.h"
 #include "clang/SPIRV/SpirvInstruction.h"
@@ -456,33 +457,33 @@ SpirvConstantFloat::SpirvConstantFloat(uint16_t val, QualType resultType,
                                        uint32_t resultId, SourceLocation loc)
     : SpirvConstant(IK_ConstantFloat, spv::Op::OpConstant, resultType, resultId,
                     loc),
-      bitwidth(16), value(static_cast<uint64_t>(val)) {}
+      bitwidth(16), value(cast::BitwiseCast<uint64_t, uint16_t>(val)) {}
 
 SpirvConstantFloat::SpirvConstantFloat(float val, QualType resultType,
                                        uint32_t resultId, SourceLocation loc)
     : SpirvConstant(IK_ConstantFloat, spv::Op::OpConstant, resultType, resultId,
                     loc),
-      bitwidth(32), value(static_cast<uint64_t>(val)) {}
+      bitwidth(32), value(cast::BitwiseCast<uint64_t, float>(val)) {}
 
 SpirvConstantFloat::SpirvConstantFloat(double val, QualType resultType,
                                        uint32_t resultId, SourceLocation loc)
     : SpirvConstant(IK_ConstantFloat, spv::Op::OpConstant, resultType, resultId,
                     loc),
-      bitwidth(64), value(static_cast<uint64_t>(val)) {}
+      bitwidth(64), value(cast::BitwiseCast<uint64_t, double>(val)) {}
 
 uint16_t SpirvConstantFloat::getValue16() const {
   assert(bitwidth == 16);
-  return static_cast<uint16_t>(value);
+  return cast::BitwiseCast<uint16_t, uint64_t>(value);
 }
 
 float SpirvConstantFloat::getValue32() const {
   assert(bitwidth == 32);
-  return static_cast<float>(value);
+  return cast::BitwiseCast<float, uint64_t>(value);
 }
 
 double SpirvConstantFloat::getValue64() const {
   assert(bitwidth == 64);
-  return static_cast<double>(value);
+  return cast::BitwiseCast<double, uint64_t>(value);
 }
 
 SpirvConstantComposite::SpirvConstantComposite(
