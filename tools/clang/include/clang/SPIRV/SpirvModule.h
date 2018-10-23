@@ -88,6 +88,9 @@ public:
   void setSourceFileName(llvm::StringRef name) { sourceFileName = name; }
   void setSourceFileContent(llvm::StringRef c) { sourceFileContent = c; }
 
+  uint32_t getNextId() const { return bound; }
+  uint32_t takeNextId() { return bound++; }
+
 private:
   uint32_t bound; ///< The <result-id> bound: the next unused one
   uint32_t shaderModelVersion;

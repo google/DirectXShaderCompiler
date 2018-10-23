@@ -91,6 +91,9 @@ public:
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Integer; }
 
+  uint32_t getBitwidth() const { return bitwidth; }
+  bool isSignedInt() const { return isSigned; }
+
 private:
   uint32_t bitwidth;
   bool isSigned;
@@ -102,6 +105,8 @@ public:
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Float; }
 
+  uint32_t getBitwidth() const { return bitwidth; }
+
 private:
   uint32_t bitwidth;
 };
@@ -112,6 +117,11 @@ public:
       : SpirvType(TK_Vector), elementType(elemType), elementCount(elemCount) {}
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Vector; }
+
+  const SpirvType *getElementType() const {
+    return llvm::cast<SpirvType>(elementType);
+  }
+  uint32_t getElementCount() const { return elementCount; }
 
 private:
   const ScalarType *elementType;
@@ -125,6 +135,12 @@ public:
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Matrix; }
 
   bool operator==(const MatrixType &that) const;
+
+  const SpirvType *getVecType() const {
+    return llvm::cast<SpirvType>(vectorType);
+  }
+  uint32_t getVecCount() const { return vectorCount; }
+  bool isRowMajorMat() const { return isRowMajor; }
 
 private:
   const VectorType *vectorType;
@@ -144,17 +160,34 @@ public:
     Yes = 1,
     No = 2,
   };
+  enum class WithDepth : uint32_t {
+    No = 0,
+    Yes = 1,
+    Unknown = 2,
+  };
 
-  ImageType(const NumericalType *sampledType, spv::Dim, bool isArrayed,
-            bool isMultiSampled, WithSampler sampled, spv::ImageFormat);
+  ImageType(const NumericalType *sampledType, spv::Dim, WithDepth depth,
+            bool isArrayed, bool isMultiSampled, WithSampler sampled,
+            spv::ImageFormat);
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Image; }
 
   bool operator==(const ImageType &that) const;
 
+  const SpirvType *getSampledType() const {
+    return llvm::cast<SpirvType>(sampledType);
+  }
+  spv::Dim getDimension() const { return dimension; }
+  WithDepth getDepth() const { return imageDepth; }
+  bool isArrayedImage() const { return isArrayed; }
+  bool isMSImage() const { return isMultiSampled; }
+  WithSampler withSampler() const { return isSampled; }
+  spv::ImageFormat getImageFormat() const { return imageFormat; }
+
 private:
   const NumericalType *sampledType;
   spv::Dim dimension;
+  WithDepth imageDepth;
   bool isArrayed;
   bool isMultiSampled;
   WithSampler isSampled;
@@ -177,6 +210,10 @@ public:
     return t->getKind() == TK_SampledImage;
   }
 
+  const SpirvType *getImageType() const {
+    return llvm::cast<SpirvType>(imageType);
+  }
+
 private:
   const ImageType *imageType;
 };
@@ -185,6 +222,9 @@ class ArrayType : public SpirvType {
 public:
   ArrayType(const SpirvType *elemType, uint32_t elemCount)
       : SpirvType(TK_Array), elementType(elemType), elementCount(elemCount) {}
+
+  const SpirvType *getElementType() const { return elementType; }
+  uint32_t getElementCount() const { return elementCount; }
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Array; }
 
@@ -202,6 +242,10 @@ public:
     return t->getKind() == TK_RuntimeArray;
   }
 
+  const SpirvType *getElementType() const {
+    return llvm::cast<SpirvType>(elementType);
+  }
+
 private:
   const SpirvType *elementType;
 };
@@ -215,6 +259,9 @@ public:
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Struct; }
 
   bool isReadOnly() const { return readOnly; }
+  std::string getStructName() const { return structName; }
+  llvm::ArrayRef<const SpirvType *> getFieldTypes() const { return fieldTypes; }
+  llvm::ArrayRef<std::string> getFieldNames() const { return fieldNames; }
 
   bool operator==(const StructType &that) const;
 
@@ -236,6 +283,11 @@ public:
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Pointer; }
 
+  const SpirvType *getPointeeType() const {
+    return llvm::cast<SpirvType>(pointeeType);
+  }
+  spv::StorageClass getStorageClass() const { return storageClass; }
+
 private:
   const SpirvType *pointeeType;
   spv::StorageClass storageClass;
@@ -254,6 +306,11 @@ public:
   bool operator==(const FunctionType &that) const {
     return returnType == that.returnType && paramTypes == that.paramTypes;
   }
+
+  const SpirvType *getReturnType() const {
+    return llvm::cast<SpirvType>(returnType);
+  }
+  llvm::ArrayRef<const SpirvType *> getParamTypes() const { return paramTypes; }
 
 private:
   const SpirvType *returnType;

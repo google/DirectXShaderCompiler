@@ -24,6 +24,7 @@ class Visitor;
 class SpirvBasicBlock;
 class SpirvFunction;
 class SpirvVariable;
+class SpirvType;
 
 /// \brief The base class for representing SPIR-V instructions.
 class SpirvInstruction {
@@ -118,20 +119,24 @@ public:
   spv::Op getopcode() const { return opcode; }
   QualType getResultType() const { return resultType; }
 
-  // TODO: The QualType should be lowered to a SPIR-V type and the result-id of
-  // the SPIR-V type should be stored somewhere (either in SpirvInstruction or
-  // in a map in SpirvModule). The id of the result type should be retreived and
-  // returned by this method.
-  uint32_t getResultTypeId() const { return 0; }
+  uint32_t getResultTypeId() const { return resultTypeId; }
+  void setResultTypeId(uint32_t id) { resultTypeId = id; }
+
+  bool hasSpirvResultType() const { return spirvType != nullptr; }
+  SpirvType *getSpirvResultType() const { return spirvType; }
 
   // TODO: The responsibility of assigning the result-id of an instruction
   // shouldn't be on the instruction itself.
   uint32_t getResultId() const { return resultId; }
+  void setResultId(uint32_t id) { resultId = id; }
 
   clang::SourceLocation getSourceLocation() const { return srcLoc; }
 
   void setDebugName(llvm::StringRef name) { debugName = name; }
   llvm::StringRef getDebugName() const { return debugName; }
+
+  SpirvLayoutRule getLayoutRule() const { return layoutRule; }
+  void setLayoutRule(SpirvLayoutRule rule) { layoutRule = rule; }
 
 protected:
   // Forbid creating SpirvInstruction directly
@@ -146,6 +151,9 @@ private:
   uint32_t resultId;
   SourceLocation srcLoc;
   std::string debugName;
+  SpirvType *spirvType;
+  uint32_t resultTypeId;
+  SpirvLayoutRule layoutRule;
 };
 
 #define DECLARE_INVOKE_VISITOR_FOR_CLASS(cls)                                  \
@@ -515,7 +523,7 @@ public:
 
   // Returns all possible basic blocks that could be taken by the branching
   // instruction.
-  llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const {
+  llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const override {
     return {targetLabel};
   }
 
@@ -537,7 +545,7 @@ public:
 
   DECLARE_INVOKE_VISITOR_FOR_CLASS(SpirvBranchConditional)
 
-  llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const {
+  llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const override {
     return {trueLabel, falseLabel};
   }
 
@@ -606,7 +614,7 @@ public:
   // Returns the branch label that will be taken for the given literal.
   SpirvBasicBlock *getTargetLabelForLiteral(uint32_t) const;
   // Returns all possible branches that could be taken by the switch statement.
-  llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const;
+  llvm::ArrayRef<SpirvBasicBlock *> getTargetBranches() const override;
 
 private:
   SpirvInstruction *selector;
