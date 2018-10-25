@@ -65,9 +65,9 @@ void EmitVisitor::emitDebugNameForInstruction(uint32_t resultId,
 }
 
 void EmitVisitor::initInstruction(SpirvInstruction *inst) {
-  if (inst->hasSpirvResultType()) {
-    const uint32_t resultTypeId = typeHandler->emitType(
-        inst->getSpirvResultType(), inst->getLayoutRule());
+  if (inst->hasResultType()) {
+    const uint32_t resultTypeId =
+        typeHandler.emitType(inst->getResultType(), inst->getLayoutRule());
     inst->setResultTypeId(resultTypeId);
   }
   curInst.clear();
@@ -124,7 +124,11 @@ void EmitVisitor::encodeString(llvm::StringRef value) {
 }
 
 bool EmitVisitor::visit(SpirvModule *m, Phase phase) {
-  // No pre or post ops for SpirvModule.
+  // No pre-visit operations needed for SpirvModule.
+
+  if (phase == Visitor::Phase::Done)
+    m->setBound(takeNextId());
+
   return true;
 }
 
@@ -134,9 +138,9 @@ bool EmitVisitor::visit(SpirvFunction *fn, Phase phase) {
   // Before emitting the function
   if (phase == Visitor::Phase::Init) {
     const uint32_t returnTypeId =
-        typeHandler->emitType(fn->getReturnType(), SpirvLayoutRule::Void);
+        typeHandler.emitType(fn->getReturnType(), SpirvLayoutRule::Void);
     const uint32_t functionTypeId =
-        typeHandler->emitType(fn->getFunctionType(), SpirvLayoutRule::Void);
+        typeHandler.emitType(fn->getFunctionType(), SpirvLayoutRule::Void);
     fn->setReturnTypeId(returnTypeId);
     fn->setFunctionTypeId(functionTypeId);
 
@@ -842,6 +846,7 @@ void EmitTypeHandler::finalizeTypeInstruction() {
 uint32_t EmitTypeHandler::getResultIdForType(const SpirvType *type,
                                              SpirvLayoutRule rule,
                                              bool *alreadyExists) {
+  assert(alreadyExists);
   // Check if the type has already been emitted.
   auto foundType = emittedTypes.find(type);
   if (foundType != emittedTypes.end()) {
@@ -853,7 +858,7 @@ uint32_t EmitTypeHandler::getResultIdForType(const SpirvType *type,
   }
 
   *alreadyExists = false;
-  const uint32_t id = module.takeNextId();
+  const uint32_t id = takeNextIdFunction();
   emittedTypes[type][rule] = id;
   return id;
 }
@@ -877,25 +882,29 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     curTypeInst.push_back(id);
     finalizeTypeInstruction();
   }
-  if (isa<BoolType>(type)) {
+  // Boolean types
+  else if (isa<BoolType>(type)) {
     initTypeInstruction(spv::Op::OpTypeBool);
     curTypeInst.push_back(id);
     finalizeTypeInstruction();
   }
-  if (const auto *intType = dyn_cast<IntegerType>(type)) {
+  // Integer types
+  else if (const auto *intType = dyn_cast<IntegerType>(type)) {
     initTypeInstruction(spv::Op::OpTypeInt);
     curTypeInst.push_back(id);
     curTypeInst.push_back(intType->getBitwidth());
     curTypeInst.push_back(intType->isSignedInt() ? 1 : 0);
     finalizeTypeInstruction();
   }
-  if (const auto *floatType = dyn_cast<FloatType>(type)) {
+  // Float types
+  else if (const auto *floatType = dyn_cast<FloatType>(type)) {
     initTypeInstruction(spv::Op::OpTypeFloat);
     curTypeInst.push_back(id);
     curTypeInst.push_back(floatType->getBitwidth());
     finalizeTypeInstruction();
   }
-  if (const auto *vecType = dyn_cast<VectorType>(type)) {
+  // Vector types
+  else if (const auto *vecType = dyn_cast<VectorType>(type)) {
     const uint32_t elementTypeId = emitType(vecType->getElementType(), rule);
     initTypeInstruction(spv::Op::OpTypeVector);
     curTypeInst.push_back(id);
@@ -903,7 +912,8 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     curTypeInst.push_back(vecType->getElementCount());
     finalizeTypeInstruction();
   }
-  if (const auto *matType = dyn_cast<MatrixType>(type)) {
+  // Matrix types
+  else if (const auto *matType = dyn_cast<MatrixType>(type)) {
     const uint32_t vecTypeId = emitType(matType->getVecType(), rule);
     initTypeInstruction(spv::Op::OpTypeMatrix);
     curTypeInst.push_back(id);
@@ -913,7 +923,8 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     // Note that RowMajor and ColMajor decorations only apply to structure
     // members, and should not be handled here.
   }
-  if (const auto *imageType = dyn_cast<ImageType>(type)) {
+  // Image types
+  else if (const auto *imageType = dyn_cast<ImageType>(type)) {
     const uint32_t sampledTypeId = emitType(imageType->getSampledType(), rule);
     initTypeInstruction(spv::Op::OpTypeImage);
     curTypeInst.push_back(id);
@@ -926,12 +937,14 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     curTypeInst.push_back(static_cast<uint32_t>(imageType->getImageFormat()));
     finalizeTypeInstruction();
   }
-  if (const auto *samplerType = dyn_cast<SamplerType>(type)) {
+  // Sampler types
+  else if (const auto *samplerType = dyn_cast<SamplerType>(type)) {
     initTypeInstruction(spv::Op::OpTypeSampler);
     curTypeInst.push_back(id);
     finalizeTypeInstruction();
   }
-  if (const auto *sampledImageType = dyn_cast<SampledImageType>(type)) {
+  // SampledImage types
+  else if (const auto *sampledImageType = dyn_cast<SampledImageType>(type)) {
     const uint32_t imageTypeId =
         emitType(sampledImageType->getImageType(), rule);
     initTypeInstruction(spv::Op::OpTypeSampledImage);
@@ -939,14 +952,14 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     curTypeInst.push_back(imageTypeId);
     finalizeTypeInstruction();
   }
-
-  if (const auto *arrayType = dyn_cast<ArrayType>(type)) {
+  // Array types
+  else if (const auto *arrayType = dyn_cast<ArrayType>(type)) {
     // Emit the OpConstant instruction that is needed to get the result-id for
     // the array length.
     SpirvConstant *constant =
         context.getConstantUint32(arrayType->getElementCount());
     if (constant->getResultId() == 0) {
-      constant->setResultId(module.takeNextId());
+      constant->setResultId(takeNextIdFunction());
     }
     IntegerType constantIntType(32, 0);
     const uint32_t uint32TypeId = emitType(&constantIntType, rule);
@@ -964,16 +977,16 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     curTypeInst.push_back(constant->getResultId());
     finalizeTypeInstruction();
   }
-
-  if (const auto *raType = dyn_cast<RuntimeArrayType>(type)) {
+  // RuntimeArray types
+  else if (const auto *raType = dyn_cast<RuntimeArrayType>(type)) {
     const uint32_t elemTypeId = emitType(raType->getElementType(), rule);
     initTypeInstruction(spv::Op::OpTypeRuntimeArray);
     curTypeInst.push_back(id);
     curTypeInst.push_back(elemTypeId);
     finalizeTypeInstruction();
   }
-
-  if (const auto *structType = dyn_cast<StructType>(type)) {
+  // Structure types
+  else if (const auto *structType = dyn_cast<StructType>(type)) {
     llvm::SmallVector<uint32_t, 4> fieldTypeIds;
     for (auto *fieldType : structType->getFieldTypes())
       fieldTypeIds.push_back(emitType(fieldType, rule));
@@ -983,8 +996,8 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
       curTypeInst.push_back(fieldTypeId);
     finalizeTypeInstruction();
   }
-
-  if (const auto *ptrType = dyn_cast<SpirvPointerType>(type)) {
+  // Pointer types
+  else if (const auto *ptrType = dyn_cast<SpirvPointerType>(type)) {
     const uint32_t pointeeType = emitType(ptrType->getPointeeType(), rule);
     initTypeInstruction(spv::Op::OpTypePointer);
     curTypeInst.push_back(id);
@@ -992,7 +1005,8 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
     curTypeInst.push_back(pointeeType);
     finalizeTypeInstruction();
   }
-  if (const auto *fnType = dyn_cast<FunctionType>(type)) {
+  // Function types
+  else if (const auto *fnType = dyn_cast<FunctionType>(type)) {
     const uint32_t retTypeId = emitType(fnType->getReturnType(), rule);
     llvm::SmallVector<uint32_t, 4> paramTypeIds;
     for (auto *paramType : fnType->getParamTypes())
@@ -1005,8 +1019,12 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
       curTypeInst.push_back(paramTypeId);
     finalizeTypeInstruction();
   }
+  // Unhandled types
+  else {
+    llvm_unreachable("unhandled type in emitType");
+  }
 
-  llvm_unreachable("unhandled type in emitType");
+  return id;
 }
 
 } // end namespace spirv

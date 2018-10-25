@@ -210,9 +210,7 @@ public:
     return t->getKind() == TK_SampledImage;
   }
 
-  const SpirvType *getImageType() const {
-    return llvm::cast<SpirvType>(imageType);
-  }
+  const ImageType *getImageType() const { return imageType; }
 
 private:
   const ImageType *imageType;
@@ -242,9 +240,7 @@ public:
     return t->getKind() == TK_RuntimeArray;
   }
 
-  const SpirvType *getElementType() const {
-    return llvm::cast<SpirvType>(elementType);
-  }
+  const SpirvType *getElementType() const { return elementType; }
 
 private:
   const SpirvType *elementType;
@@ -283,9 +279,7 @@ public:
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Pointer; }
 
-  const SpirvType *getPointeeType() const {
-    return llvm::cast<SpirvType>(pointeeType);
-  }
+  const SpirvType *getPointeeType() const { return pointeeType; }
   spv::StorageClass getStorageClass() const { return storageClass; }
 
 private:
@@ -307,9 +301,7 @@ public:
     return returnType == that.returnType && paramTypes == that.paramTypes;
   }
 
-  const SpirvType *getReturnType() const {
-    return llvm::cast<SpirvType>(returnType);
-  }
+  const SpirvType *getReturnType() const { return returnType; }
   llvm::ArrayRef<const SpirvType *> getParamTypes() const { return paramTypes; }
 
 private:

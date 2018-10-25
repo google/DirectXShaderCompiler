@@ -117,13 +117,13 @@ public:
 
   Kind getKind() const { return kind; }
   spv::Op getopcode() const { return opcode; }
-  QualType getResultType() const { return resultType; }
+  QualType getAstResultType() const { return astResultType; }
 
   uint32_t getResultTypeId() const { return resultTypeId; }
   void setResultTypeId(uint32_t id) { resultTypeId = id; }
 
-  bool hasSpirvResultType() const { return spirvType != nullptr; }
-  SpirvType *getSpirvResultType() const { return spirvType; }
+  bool hasResultType() const { return resultType != nullptr; }
+  SpirvType *getResultType() const { return resultType; }
 
   // TODO: The responsibility of assigning the result-id of an instruction
   // shouldn't be on the instruction itself.
@@ -147,11 +147,11 @@ private:
   const Kind kind;
 
   spv::Op opcode;
-  QualType resultType;
+  QualType astResultType;
   uint32_t resultId;
   SourceLocation srcLoc;
   std::string debugName;
-  SpirvType *spirvType;
+  SpirvType *resultType;
   uint32_t resultTypeId;
   SpirvLayoutRule layoutRule;
 };
@@ -964,7 +964,7 @@ public:
 
   uint32_t getBitwidth() const { return bitwidth; }
   void setBitwidth(uint32_t width) { bitwidth = width; }
-  bool isSigned() const { return getResultType()->isSignedIntegerType(); }
+  bool isSigned() const { return getAstResultType()->isSignedIntegerType(); }
 
 private:
   uint32_t bitwidth;

@@ -52,9 +52,9 @@ public:
   void setReturnTypeId(uint32_t id) { returnTypeId = id; }
 
   // Sets the lowered (SPIR-V) function type.
-  void setReturnType(SpirvType *type) { spirvReturnType = type; }
+  void setReturnType(SpirvType *type) { returnType = type; }
   // Returns the lowered (SPIR-V) function type.
-  SpirvType *getReturnType() const { return spirvReturnType; }
+  const SpirvType *getReturnType() const { return returnType; }
 
   // Sets the SPIR-V type of the function
   void setFunctionType(FunctionType *type) { fnType = type; }
@@ -76,9 +76,9 @@ public:
 private:
   uint32_t functionId; ///< This function's <result-id>
 
-  QualType returnType;        ///< The return type
-  SpirvType *spirvReturnType; ///< The lowered return type
-  uint32_t returnTypeId;      ///< result-id for the return type
+  QualType astReturnType; ///< The return type
+  SpirvType *returnType;  ///< The lowered return type
+  uint32_t returnTypeId;  ///< result-id for the return type
 
   FunctionType *fnType; ///< The SPIR-V function type
   uint32_t fnTypeId;    ///< result-id for the SPIR-V function type

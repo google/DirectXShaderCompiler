@@ -12,10 +12,11 @@
 #include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/DenseMap.h"
 
+#include <functional>
+
 namespace clang {
 namespace spirv {
 
-class SpirvModule;
 class SpirvFunction;
 class SpirvBasicBlock;
 class SpirvType;
@@ -39,11 +40,11 @@ struct SpirvLayoutRuleDenseMapInfo {
 
 class EmitTypeHandler {
 public:
-  EmitTypeHandler(SpirvContext &c, SpirvModule &m,
-                  std::vector<uint32_t> *decVec,
-                  std::vector<uint32_t> *typesVec)
-      : context(c), module(m), annotationsBinary(decVec),
-        typeConstantBinary(typesVec) {
+  EmitTypeHandler(SpirvContext &c, std::vector<uint32_t> *decVec,
+                  std::vector<uint32_t> *typesVec,
+                  std::function<uint32_t()> takeNextIdFn)
+      : context(c), annotationsBinary(decVec), typeConstantBinary(typesVec),
+        takeNextIdFunction(takeNextIdFn) {
     assert(decVec);
     assert(typesVec);
   }
@@ -65,10 +66,10 @@ private:
 
 private:
   SpirvContext &context;
-  SpirvModule &module;
   std::vector<uint32_t> curTypeInst;
   std::vector<uint32_t> *annotationsBinary;
   std::vector<uint32_t> *typeConstantBinary;
+  std::function<uint32_t()> takeNextIdFunction;
 
   // emittedTypes is a map that caches the <result-id> of types in order to
   // avoid translating a type multiple times.
@@ -81,12 +82,10 @@ private:
 /// representation.
 class EmitVisitor : public Visitor {
 public:
-  EmitVisitor(const SpirvCodeGenOptions &opts, SpirvContext &ctx,
-              SpirvModule &mod)
-      : Visitor(opts, ctx, mod) {
-    typeHandler = new (ctx)
-        EmitTypeHandler(ctx, mod, &annotationsBinary, &typeConstantBinary);
-  }
+  EmitVisitor(const SpirvCodeGenOptions &opts, SpirvContext &ctx)
+      : Visitor(opts, ctx), id(0),
+        typeHandler(ctx, &annotationsBinary, &typeConstantBinary,
+                    [this]() -> uint32_t { return takeNextId(); }) {}
 
   // Visit different SPIR-V constructs for emitting.
   bool visit(SpirvModule *, Phase phase);
@@ -149,6 +148,9 @@ public:
   bool visit(SpirvVectorShuffle *);
 
 private:
+  // Returns the next available result-id.
+  uint32_t takeNextId() { return ++id; }
+
   // Initiates the creation of a new instruction with the given Opcode.
   void initInstruction(spv::Op);
   // Initiates the creation of the given SPIR-V instruction.
@@ -171,8 +173,10 @@ private:
   // using the type information.
 
 private:
+  // The next available result-id to be assigned.
+  uint32_t id;
   // Handler for emitting types and their related instructions.
-  EmitTypeHandler *typeHandler;
+  EmitTypeHandler typeHandler;
   // Current instruction being built
   SmallVector<uint32_t, 16> curInst;
   // All preamble instructions in the following order:

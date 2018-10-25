@@ -83,8 +83,8 @@ DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvVectorShuffle)
 
 SpirvInstruction::SpirvInstruction(Kind k, spv::Op op, QualType type,
                                    uint32_t id, SourceLocation loc)
-    : kind(k), opcode(op), resultType(type), resultId(id), srcLoc(loc),
-      debugName(), spirvType(nullptr), resultTypeId(0),
+    : kind(k), opcode(op), astResultType(type), resultId(id), srcLoc(loc),
+      debugName(), resultType(nullptr), resultTypeId(0),
       layoutRule(SpirvLayoutRule::Void) {}
 
 SpirvCapability::SpirvCapability(SourceLocation loc, spv::Capability cap)

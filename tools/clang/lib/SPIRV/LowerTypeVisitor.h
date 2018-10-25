@@ -22,8 +22,8 @@ namespace spirv {
 class LowerTypeVisitor : public Visitor {
 public:
   LowerTypeVisitor(ASTContext &astCtx, SpirvContext &spvCtx,
-                   const SpirvCodeGenOptions &opts, SpirvModule &module)
-      : Visitor(opts, spvCtx, module), astContext(astCtx), spvContext(spvCtx) {}
+                   const SpirvCodeGenOptions &opts)
+      : Visitor(opts, spvCtx), astContext(astCtx), spvContext(spvCtx) {}
 
 private:
   /// Emits error to the diagnostic engine associated with this visitor.

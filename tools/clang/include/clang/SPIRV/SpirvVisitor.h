@@ -115,16 +115,14 @@ public:
 #undef DEFINE_VISIT_METHOD
 
 protected:
-  explicit Visitor(const SpirvCodeGenOptions &opts, SpirvContext &ctx,
-                   SpirvModule &mod)
-      : spvOptions(opts), context(ctx), module(mod) {}
+  explicit Visitor(const SpirvCodeGenOptions &opts, SpirvContext &ctx)
+      : spvOptions(opts), context(ctx) {}
 
   const SpirvCodeGenOptions &getCodeGenOptions() const { return spvOptions; }
 
 protected:
   const SpirvCodeGenOptions &spvOptions;
   SpirvContext &context;
-  SpirvModule &module;
 };
 
 } // namespace spirv
