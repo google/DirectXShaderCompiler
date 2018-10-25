@@ -42,7 +42,7 @@ class EmitTypeHandler {
 public:
   EmitTypeHandler(SpirvContext &c, std::vector<uint32_t> *decVec,
                   std::vector<uint32_t> *typesVec,
-                  std::function<uint32_t()> takeNextIdFn)
+                  const std::function<uint32_t()> &takeNextIdFn)
       : context(c), annotationsBinary(decVec), typeConstantBinary(typesVec),
         takeNextIdFunction(takeNextIdFn) {
     assert(decVec);
@@ -173,7 +173,7 @@ private:
   // using the type information.
 
 private:
-  // The next available result-id to be assigned.
+  // The last result-id that's been used so far.
   uint32_t id;
   // Handler for emitting types and their related instructions.
   EmitTypeHandler typeHandler;
