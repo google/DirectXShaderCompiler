@@ -20,14 +20,14 @@
 namespace clang {
 namespace spirv {
 
-class Visitor;
+class BoolType;
+class FloatType;
+class IntegerType;
 class SpirvBasicBlock;
 class SpirvFunction;
-class SpirvVariable;
 class SpirvType;
-class BoolType;
-class IntegerType;
-class FloatType;
+class SpirvVariable;
+class Visitor;
 
 /// \brief The base class for representing SPIR-V instructions.
 class SpirvInstruction {
