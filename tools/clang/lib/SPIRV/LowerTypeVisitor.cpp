@@ -126,6 +126,13 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
     if (isMxNMatrix(type, &elemType, &rowCount, &colCount)) {
       const auto *vecType =
           spvContext.getVectorType(lowerType(elemType, rule, srcLoc), colCount);
+
+      // Non-float matrices are represented as an array of vectors.
+      if (!elemType->isFloatingType()) {
+        // This return type is ArrayType
+        return spvContext.getArrayType(vecType, rowCount);
+      }
+
       // HLSL matrices are conceptually row major, while SPIR-V matrices are
       // conceptually column major. We are mapping what HLSL semantically mean
       // a row into a column here.

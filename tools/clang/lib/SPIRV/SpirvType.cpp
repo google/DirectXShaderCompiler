@@ -50,18 +50,41 @@ bool ImageType::operator==(const ImageType &that) const {
          isSampled == that.isSampled && imageFormat == that.imageFormat;
 }
 
-StructType::StructType(llvm::ArrayRef<const SpirvType *> memberTypes,
-                       llvm::StringRef name,
-                       llvm::ArrayRef<llvm::StringRef> memberNames,
-                       bool isReadOnly)
+StructType::StructType(
+    llvm::ArrayRef<const SpirvType *> memberTypes, llvm::StringRef name,
+    llvm::ArrayRef<llvm::StringRef> memberNames, bool isReadOnly,
+    StructType::InterfaceType iface,
+    llvm::ArrayRef<const clang::VKOffsetAttr *> offsetAttrs,
+    llvm::ArrayRef<const hlsl::ConstantPacking *> packOffsetAttrs)
     : SpirvType(TK_Struct), structName(name),
       fieldTypes(memberTypes.begin(), memberTypes.end()),
-      fieldNames(memberNames.begin(), memberNames.end()), readOnly(isReadOnly) {
+      fieldNames(memberNames.begin(), memberNames.end()), readOnly(isReadOnly),
+      interfaceType(iface), vkOffsets(offsetAttrs.begin(), offsetAttrs.end()),
+      packOffsets(packOffsetAttrs.begin(), packOffsetAttrs.end()) {
+  assert(memberTypes.size() == memberNames.size());
+  assert(offsetAttrs.empty() || offsetAttrs.size() == memberTypes.size());
+  assert(packOffsetAttrs.empty() ||
+         packOffsetAttrs.size() == memberTypes.size());
 }
 
 bool StructType::operator==(const StructType &that) const {
   return structName == that.structName && fieldTypes == that.fieldTypes &&
          fieldNames == that.fieldNames && readOnly == that.readOnly;
+}
+
+const clang::VKOffsetAttr *StructType::getVkOffsetForField(size_t index) const {
+  if (index < vkOffsets.size())
+    return vkOffsets[index];
+
+  return nullptr;
+}
+
+const hlsl::ConstantPacking *
+StructType::getPackOffsetForField(size_t index) const {
+  if (index < packOffsets.size())
+    return packOffsets[index];
+
+  return nullptr;
 }
 
 } // namespace spirv

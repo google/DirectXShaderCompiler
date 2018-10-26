@@ -40,11 +40,12 @@ struct SpirvLayoutRuleDenseMapInfo {
 
 class EmitTypeHandler {
 public:
-  EmitTypeHandler(SpirvContext &c, std::vector<uint32_t> *decVec,
+  EmitTypeHandler(ASTContext &astCtx, SpirvContext &spvCtx,
+                  std::vector<uint32_t> *decVec,
                   std::vector<uint32_t> *typesVec,
                   const std::function<uint32_t()> &takeNextIdFn)
-      : context(c), annotationsBinary(decVec), typeConstantBinary(typesVec),
-        takeNextIdFunction(takeNextIdFn) {
+      : astContext(astCtx), spirvContext(spvCtx), annotationsBinary(decVec),
+        typeConstantBinary(typesVec), takeNextIdFunction(takeNextIdFn) {
     assert(decVec);
     assert(typesVec);
   }
@@ -53,6 +54,13 @@ public:
   EmitTypeHandler(const EmitTypeHandler &) = delete;
   EmitTypeHandler &operator=(const EmitTypeHandler &) = delete;
 
+  // Emits OpDecorate (or OpMemberDecorate if memberIndex is non-zero)
+  // targetting the given type. Uses the given decoration kind and its
+  // parameters.
+  void emitDecoration(uint32_t typeResultId, spv::Decoration,
+                      llvm::ArrayRef<uint32_t> decorationParams,
+                      uint32_t memberIndex = 0);
+
   // Emits the instruction for the given type into the typeConstantBinary and
   // returns the result-id for the type.
   uint32_t emitType(const SpirvType *, SpirvLayoutRule);
@@ -60,13 +68,37 @@ public:
   uint32_t getResultIdForType(const SpirvType *, SpirvLayoutRule,
                               bool *alreadyExists);
 
+  // Methods associated with layout calculations ----
+
+  std::pair<uint32_t, uint32_t> getAlignmentAndSize(const SpirvType *type,
+                                                    SpirvLayoutRule rule,
+                                                    uint32_t *stride);
+
+  void alignUsingHLSLRelaxedLayout(const SpirvType *fieldType,
+                                   uint32_t fieldSize, uint32_t fieldAlignment,
+                                   uint32_t *currentOffset);
+
+  void emitLayoutDecorations(const StructType *, SpirvLayoutRule);
+
 private:
   void initTypeInstruction(spv::Op op);
   void finalizeTypeInstruction();
 
 private:
-  SpirvContext &context;
+  /// Emits error to the diagnostic engine associated with this visitor.
+  template <unsigned N>
+  DiagnosticBuilder emitError(const char (&message)[N],
+                              SourceLocation loc = {}) {
+    const auto diagId = astContext.getDiagnostics().getCustomDiagID(
+        clang::DiagnosticsEngine::Error, message);
+    return astContext.getDiagnostics().Report(loc, diagId);
+  }
+
+private:
+  ASTContext &astContext;
+  SpirvContext &spirvContext;
   std::vector<uint32_t> curTypeInst;
+  std::vector<uint32_t> curDecorationInst;
   std::vector<uint32_t> *annotationsBinary;
   std::vector<uint32_t> *typeConstantBinary;
   std::function<uint32_t()> takeNextIdFunction;
@@ -82,9 +114,10 @@ private:
 /// representation.
 class EmitVisitor : public Visitor {
 public:
-  EmitVisitor(const SpirvCodeGenOptions &opts, SpirvContext &ctx)
-      : Visitor(opts, ctx), id(0),
-        typeHandler(ctx, &annotationsBinary, &typeConstantBinary,
+  EmitVisitor(ASTContext &astCtx, SpirvContext &spvCtx,
+              const SpirvCodeGenOptions &opts)
+      : Visitor(opts, spvCtx), id(0),
+        typeHandler(astCtx, spvCtx, &annotationsBinary, &typeConstantBinary,
                     [this]() -> uint32_t { return takeNextId(); }) {}
 
   // Visit different SPIR-V constructs for emitting.
