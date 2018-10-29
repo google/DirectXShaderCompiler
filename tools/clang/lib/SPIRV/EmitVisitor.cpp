@@ -42,9 +42,9 @@ bool isAKindOfStructuredOrByteBuffer(const clang::spirv::SpirvType *type) {
 
   // They are structures with the first member that is of RuntimeArray type.
   if (auto *structType = llvm::dyn_cast<clang::spirv::StructType>(type))
-    return structType->getNumFields() > 0 &&
+    return structType->getFields().size() == 1 &&
            llvm::isa<clang::spirv::RuntimeArrayType>(
-               structType->getFieldTypes()[0]);
+               structType->getFields()[0].type);
 
   return false;
 }
@@ -1037,8 +1037,8 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
   // Structure types
   else if (const auto *structType = dyn_cast<StructType>(type)) {
     llvm::SmallVector<uint32_t, 4> fieldTypeIds;
-    for (auto *fieldType : structType->getFieldTypes())
-      fieldTypeIds.push_back(emitType(fieldType, rule));
+    for (auto &field : structType->getFields())
+      fieldTypeIds.push_back(emitType(field.type, rule));
     initTypeInstruction(spv::Op::OpTypeStruct);
     curTypeInst.push_back(id);
     for (auto fieldTypeId : fieldTypeIds)
@@ -1050,14 +1050,14 @@ uint32_t EmitTypeHandler::emitType(const SpirvType *type,
 
     // Emit NonWritable decorations
     if (structType->isReadOnly())
-      for (size_t i = 0; i < structType->getNumFields(); ++i)
+      for (size_t i = 0; i < structType->getFields().size(); ++i)
         emitDecoration(id, spv::Decoration::NonWritable, {}, i);
 
     // Emit Block or BufferBlock decorations if necessary.
     auto interfaceType = structType->getInterfaceType();
-    if (interfaceType == StructType::InterfaceType::Ssbo)
+    if (interfaceType == StructType::InterfaceType::StorageBuffer)
       emitDecoration(id, spv::Decoration::BufferBlock, {});
-    else if (interfaceType == StructType::InterfaceType::NonSsbo)
+    else if (interfaceType == StructType::InterfaceType::UniformBuffer)
       emitDecoration(id, spv::Decoration::Block, {});
   }
   // Pointer types
@@ -1236,27 +1236,23 @@ EmitTypeHandler::getAlignmentAndSize(const SpirvType *type,
 
   // Rule 9
   if (auto *structType = dyn_cast<StructType>(type)) {
-    size_t numFields = structType->getNumFields();
-
     // Special case for handling empty structs, whose size is 0 and has no
     // requirement over alignment (thus 1).
-    if (numFields == 0)
+    if (structType->getFields().size() == 0)
       return {1, 0};
 
     uint32_t maxAlignment = 0;
     uint32_t structSize = 0;
 
-    for (size_t i = 0; i < numFields; ++i) {
-      const auto *fieldType = structType->getFieldTypes()[i];
-      const auto *fieldOffsetAttr = structType->getVkOffsetForField(i);
+    for (auto &field : structType->getFields()) {
       uint32_t memberAlignment = 0, memberSize = 0;
       std::tie(memberAlignment, memberSize) =
-          getAlignmentAndSize(fieldType, rule, stride);
+          getAlignmentAndSize(field.type, rule, stride);
 
       if (rule == SpirvLayoutRule::RelaxedGLSLStd140 ||
           rule == SpirvLayoutRule::RelaxedGLSLStd430 ||
           rule == SpirvLayoutRule::FxcCTBuffer) {
-        alignUsingHLSLRelaxedLayout(fieldType, memberSize, memberAlignment,
+        alignUsingHLSLRelaxedLayout(field.type, memberSize, memberAlignment,
                                     &structSize);
       } else {
         structSize = roundToPow2(structSize, memberAlignment);
@@ -1266,8 +1262,8 @@ EmitTypeHandler::getAlignmentAndSize(const SpirvType *type,
       // if exists. It's debatable whether we should do sanity check here.
       // If the developers want manually control the layout, we leave
       // everything to them.
-      if (fieldOffsetAttr) {
-        structSize = fieldOffsetAttr->getOffset();
+      if (field.vkOffsetAttr) {
+        structSize = field.vkOffsetAttr->getOffset();
       }
 
       // The base alignment of the structure is N, where N is the largest
@@ -1375,18 +1371,9 @@ void EmitTypeHandler::emitLayoutDecorations(const StructType *structType,
   const uint32_t typeResultId = getResultIdForType(structType, rule, &visited);
   assert(visited);
 
-  auto fieldTypes = structType->getFieldTypes();
-  size_t numFields = fieldTypes.size();
-
   uint32_t offset = 0, index = 0;
-
-  for (size_t i = 0; i < numFields; ++i) {
-    const SpirvType *fieldType = fieldTypes[i];
-    const clang::VKOffsetAttr *vkOffsetAttr =
-        structType->getVkOffsetForField(i);
-    const hlsl::ConstantPacking *packOffsetAttr =
-        structType->getPackOffsetForField(i);
-
+  for (auto &field : structType->getFields()) {
+    const SpirvType *fieldType = field.type;
     uint32_t memberAlignment = 0, memberSize = 0, stride = 0;
     std::tie(memberAlignment, memberSize) =
         getAlignmentAndSize(fieldType, rule, &stride);
@@ -1404,19 +1391,19 @@ void EmitTypeHandler::emitLayoutDecorations(const StructType *structType,
     }
 
     // The vk::offset attribute takes precedence over all.
-    if (vkOffsetAttr) {
-      offset = vkOffsetAttr->getOffset();
+    if (field.vkOffsetAttr) {
+      offset = field.vkOffsetAttr->getOffset();
     }
     // The :packoffset() annotation takes precedence over normal layout
     // calculation.
-    else if (packOffsetAttr) {
-      const uint32_t packOffset = packOffsetAttr->Subcomponent * 16 +
-                                  packOffsetAttr->ComponentOffset * 4;
+    else if (field.packOffsetAttr) {
+      const uint32_t packOffset = field.packOffsetAttr->Subcomponent * 16 +
+                                  field.packOffsetAttr->ComponentOffset * 4;
       // Do minimal check to make sure the offset specified by packoffset does
       // not cause overlap.
       if (packOffset < nextLoc) {
         emitError("packoffset caused overlap with previous members",
-                  packOffsetAttr->Loc);
+                  field.packOffsetAttr->Loc);
       } else {
         offset = packOffset;
       }
@@ -1472,7 +1459,7 @@ void EmitTypeHandler::emitDecoration(uint32_t typeResultId,
                                      uint32_t memberIndex) {
 
   spv::Op op = memberIndex ? spv::Op::OpMemberDecorate : spv::Op::OpDecorate;
-  curDecorationInst.clear();
+  assert(curDecorationInst.empty());
   curDecorationInst.push_back(static_cast<uint32_t>(op));
   curDecorationInst.push_back(typeResultId);
   if (memberIndex)
@@ -1485,6 +1472,7 @@ void EmitTypeHandler::emitDecoration(uint32_t typeResultId,
   // Add to the full annotations list
   annotationsBinary->insert(annotationsBinary->end(), curDecorationInst.begin(),
                             curDecorationInst.end());
+  curDecorationInst.clear();
 }
 
 } // end namespace spirv

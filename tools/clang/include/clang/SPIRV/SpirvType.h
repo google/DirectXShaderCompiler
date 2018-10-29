@@ -18,7 +18,6 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Casting.h"
 
 namespace clang {
 namespace spirv {
@@ -116,9 +115,7 @@ public:
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Vector; }
 
-  const SpirvType *getElementType() const {
-    return llvm::cast<SpirvType>(elementType);
-  }
+  const SpirvType *getElementType() const { return elementType; }
   uint32_t getElementCount() const { return elementCount; }
 
 private:
@@ -134,17 +131,15 @@ public:
 
   bool operator==(const MatrixType &that) const;
 
-  const SpirvType *getVecType() const {
-    return llvm::cast<SpirvType>(vectorType);
-  }
+  const SpirvType *getVecType() const { return vectorType; }
   const SpirvType *getElementType() const {
     return vectorType->getElementType();
   }
   uint32_t getVecCount() const { return vectorCount; }
   bool isRowMajorMat() const { return isRowMajor; }
 
-  uint32_t numRows() const { return vectorCount; }
-  uint32_t numCols() const { return vectorType->getElementCount(); }
+  uint32_t numCols() const { return vectorCount; }
+  uint32_t numRows() const { return vectorType->getElementCount(); }
 
 private:
   const VectorType *vectorType;
@@ -178,9 +173,7 @@ public:
 
   bool operator==(const ImageType &that) const;
 
-  const SpirvType *getSampledType() const {
-    return llvm::cast<SpirvType>(sampledType);
-  }
+  const SpirvType *getSampledType() const { return sampledType; }
   spv::Dim getDimension() const { return dimension; }
   WithDepth getDepth() const { return imageDepth; }
   bool isArrayedImage() const { return isArrayed; }
@@ -214,9 +207,7 @@ public:
     return t->getKind() == TK_SampledImage;
   }
 
-  const SpirvType *getImageType() const {
-    return llvm::cast<SpirvType>(imageType);
-  }
+  const SpirvType *getImageType() const { return imageType; }
 
 private:
   const ImageType *imageType;
@@ -246,9 +237,7 @@ public:
     return t->getKind() == TK_RuntimeArray;
   }
 
-  const SpirvType *getElementType() const {
-    return llvm::cast<SpirvType>(elementType);
-  }
+  const SpirvType *getElementType() const { return elementType; }
 
 private:
   const SpirvType *elementType;
@@ -257,36 +246,40 @@ private:
 class StructType : public SpirvType {
 public:
   enum class InterfaceType : uint32_t {
-    NonInterface = 0,
-    Ssbo = 1,
-    NonSsbo = 2,
+    InternalStorage = 0,
+    StorageBuffer = 1,
+    UniformBuffer = 2,
   };
 
-  StructType(
-      llvm::ArrayRef<const SpirvType *> memberTypes, llvm::StringRef name,
-      llvm::ArrayRef<llvm::StringRef> memberNames, bool isReadOnly,
-      InterfaceType interfaceType = InterfaceType::NonInterface,
-      llvm::ArrayRef<const clang::VKOffsetAttr *> offsetAttrs = {},
-      llvm::ArrayRef<const hlsl::ConstantPacking *> packOffsetAttrs = {});
+  struct FieldInfo {
+  public:
+    FieldInfo(const SpirvType *type_, llvm::StringRef name_ = "",
+              clang::VKOffsetAttr *offset = nullptr,
+              hlsl::ConstantPacking *packOffset = nullptr)
+        : type(type_), name(name_), vkOffsetAttr(offset),
+          packOffsetAttr(packOffset) {}
+
+    bool operator==(const FieldInfo &that) const;
+
+    // The field's type.
+    const SpirvType *type;
+    // The field's name.
+    std::string name;
+    // vk::offset attributes associated with this field.
+    clang::VKOffsetAttr *vkOffsetAttr;
+    // :packoffset() annotations associated with this field.
+    hlsl::ConstantPacking *packOffsetAttr;
+  };
+
+  StructType(llvm::ArrayRef<FieldInfo> fields, llvm::StringRef name,
+             bool isReadOnly,
+             InterfaceType interfaceType = InterfaceType::InternalStorage);
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Struct; }
 
+  llvm::ArrayRef<FieldInfo> getFields() const { return fields; }
   bool isReadOnly() const { return readOnly; }
   std::string getStructName() const { return structName; }
-  llvm::ArrayRef<const SpirvType *> getFieldTypes() const { return fieldTypes; }
-  llvm::ArrayRef<std::string> getFieldNames() const { return fieldNames; }
-
-  size_t getNumFields() const { return fieldTypes.size(); }
-
-  // Returns the VkOffset attribute for the field at the given index (index
-  // starts at 0). Returns nullptr if the field does not have such attribute.
-  const clang::VKOffsetAttr *getVkOffsetForField(size_t index) const;
-
-  // Returns the packoffset annotation of the field at the given index (index
-  // starts at 0). Returns nullptr if the field does not have such annotation.
-  const hlsl::ConstantPacking *getPackOffsetForField(size_t index) const;
-
-  // Returns the interface type of this structure.
   InterfaceType getInterfaceType() const { return interfaceType; }
 
   bool operator==(const StructType &that) const;
@@ -296,21 +289,14 @@ private:
   // struct names and field names. That basically means we cannot ignore these
   // names when considering unification. Otherwise, reflection will be confused.
 
+  llvm::SmallVector<FieldInfo, 8> fields;
   std::string structName;
-  llvm::SmallVector<const SpirvType *, 8> fieldTypes;
-  llvm::SmallVector<std::string, 8> fieldNames;
   bool readOnly;
-  // Indicates the interface type of this structure. If this structure is an
-  // SSBO-like shader-interface block, it will be decorated with 'BufferBlock'.
-  // If this structure is a non-SSBO-like shader-interface, it will be decorated
-  // with 'Block'.
+  // Indicates the interface type of this structure. If this structure is a
+  // storage buffer shader-interface, it will be decorated with 'BufferBlock'.
+  // If this structure is a uniform buffer shader-interface, it will be
+  // decorated with 'Block'.
   InterfaceType interfaceType;
-
-  // vk::offset attributes associated with each field in the struct.
-  llvm::SmallVector<const clang::VKOffsetAttr *, 8> vkOffsets;
-
-  // :packoffset() annotations associated with each field in the struct.
-  llvm::SmallVector<const hlsl::ConstantPacking *, 8> packOffsets;
 };
 
 class SpirvPointerType : public SpirvType {
@@ -320,9 +306,7 @@ public:
 
   static bool classof(const SpirvType *t) { return t->getKind() == TK_Pointer; }
 
-  const SpirvType *getPointeeType() const {
-    return llvm::cast<SpirvType>(pointeeType);
-  }
+  const SpirvType *getPointeeType() const { return pointeeType; }
   spv::StorageClass getStorageClass() const { return storageClass; }
 
 private:
@@ -344,9 +328,7 @@ public:
     return returnType == that.returnType && paramTypes == that.paramTypes;
   }
 
-  const SpirvType *getReturnType() const {
-    return llvm::cast<SpirvType>(returnType);
-  }
+  const SpirvType *getReturnType() const { return returnType; }
   llvm::ArrayRef<const SpirvType *> getParamTypes() const { return paramTypes; }
 
 private:

@@ -153,25 +153,24 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
     if (const auto *spvType = lowerResourceType(type, rule, srcLoc))
       return spvType;
 
-    // Collect all fields' types and names.
-    llvm::SmallVector<const SpirvType *, 8> fieldTypes;
-    llvm::SmallVector<llvm::StringRef, 8> fieldNames;
+    // Collect all fields' information.
+    llvm::SmallVector<StructType::FieldInfo, 8> fields;
 
     // If this struct is derived from some other struct, place an implicit
     // field at the very beginning for the base struct.
     if (const auto *cxxDecl = dyn_cast<CXXRecordDecl>(decl))
       for (const auto base : cxxDecl->bases()) {
-        fieldTypes.push_back(lowerType(base.getType(), rule, srcLoc));
-        fieldNames.push_back("");
+        fields.push_back(
+            StructType::FieldInfo(lowerType(base.getType(), rule, srcLoc)));
       }
 
     // Create fields for all members of this struct
     for (const auto *field : decl->fields()) {
-      fieldTypes.push_back(lowerType(field->getType(), rule, srcLoc));
-      fieldNames.push_back(field->getName());
+      const SpirvType *fieldType = lowerType(field->getType(), rule, srcLoc);
+      fields.push_back(StructType::FieldInfo(fieldType, field->getName()));
     }
 
-    return spvContext.getStructType(fieldTypes, decl->getName(), fieldNames);
+    return spvContext.getStructType(fields, decl->getName());
   }
 
   // Array type
@@ -295,7 +294,8 @@ const SpirvType *LowerTypeVisitor::lowerResourceType(QualType type,
     const auto *raType = spvContext.getRuntimeArrayType(structType);
 
     const std::string typeName = "type." + name.str() + "." + structName;
-    const auto *valType = spvContext.getStructType(raType, typeName);
+    const auto *valType =
+        spvContext.getStructType({StructType::FieldInfo(raType)}, typeName);
 
     if (asAlias) {
       // All structured buffers are in the Uniform storage class.

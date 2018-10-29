@@ -68,8 +68,13 @@ public:
   uint32_t getResultIdForType(const SpirvType *, SpirvLayoutRule,
                               bool *alreadyExists);
 
+private:
+  void initTypeInstruction(spv::Op op);
+  void finalizeTypeInstruction();
+
   // Methods associated with layout calculations ----
 
+  // TODO: This function should be merged into the Type class hierarchy.
   std::pair<uint32_t, uint32_t> getAlignmentAndSize(const SpirvType *type,
                                                     SpirvLayoutRule rule,
                                                     uint32_t *stride);
@@ -79,10 +84,6 @@ public:
                                    uint32_t *currentOffset);
 
   void emitLayoutDecorations(const StructType *, SpirvLayoutRule);
-
-private:
-  void initTypeInstruction(spv::Op op);
-  void finalizeTypeInstruction();
 
 private:
   /// Emits error to the diagnostic engine associated with this visitor.
