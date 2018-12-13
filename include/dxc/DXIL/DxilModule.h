@@ -11,13 +11,14 @@
 
 #pragma once
 
+#include "dxc/DXIL/DxilConstants.h"
 #include "dxc/DXIL/DxilMetadataHelper.h"
 #include "dxc/DXIL/DxilCBuffer.h"
 #include "dxc/DXIL/DxilResource.h"
 #include "dxc/DXIL/DxilSampler.h"
 #include "dxc/DXIL/DxilShaderFlags.h"
 #include "dxc/DXIL/DxilSignature.h"
-#include "dxc/DXIL/DxilConstants.h"
+#include "dxc/DXIL/DxilSubobject.h"
 #include "dxc/DXIL/DxilTypeSystem.h"
 
 #include <memory>
@@ -40,7 +41,6 @@ namespace hlsl {
 
 class ShaderModel;
 class OP;
-class RootSignatureHandle;
 struct DxilFunctionProps;
 
 class DxilEntryProps;
@@ -110,7 +110,7 @@ public:
   void LoadDxilSamplerFromMDNode(llvm::MDNode *MD, DxilSampler &S);
 
   void RemoveUnusedResources();
-  void RemoveUnusedResourceSymbols();
+  void RemoveResourcesWithUnusedSymbols();
   void RemoveFunction(llvm::Function *F);
 
   // Signatures.
@@ -120,7 +120,7 @@ public:
   const DxilSignature &GetOutputSignature() const;
   DxilSignature &GetPatchConstantSignature();
   const DxilSignature &GetPatchConstantSignature() const;
-  const RootSignatureHandle &GetRootSignature() const;
+  const std::vector<uint8_t> &GetSerializedRootSignature() const;
 
   bool HasDxilEntrySignature(const llvm::Function *F) const;
   DxilEntrySignature &GetDxilEntrySignature(const llvm::Function *F);
@@ -130,6 +130,7 @@ public:
   void CloneDxilEntryProps(llvm::Function *F, llvm::Function *NewF);
   bool HasDxilEntryProps(const llvm::Function *F) const;
   DxilEntryProps &GetDxilEntryProps(const llvm::Function *F);
+  const DxilEntryProps &GetDxilEntryProps(const llvm::Function *F) const;
 
   // DxilFunctionProps.
   bool HasDxilFunctionProps(const llvm::Function *F) const;
@@ -146,8 +147,10 @@ public:
   // Includes: vs/hs/ds/gs/ps/cs as well as the patch constant function.
   bool IsEntryThatUsesSignatures(const llvm::Function *F) const ;
 
-  // Remove Root Signature from module metadata
-  void StripRootSignatureFromMetadata();
+  // Remove Root Signature from module metadata, return true if changed
+  bool StripRootSignatureFromMetadata();
+  // Remove Subobjects from module metadata, return true if changed
+  bool StripSubobjectsFromMetadata();
   // Update validator version metadata to current setting
   void UpdateValidatorVersionMetadata();
 
@@ -178,7 +181,7 @@ public:
 
   // Reset functions used to transfer ownership.
   void ResetEntrySignature(DxilEntrySignature *pValue);
-  void ResetRootSignature(RootSignatureHandle *pValue);
+  void ResetSerializedRootSignature(std::vector<uint8_t> &Value);
   void ResetTypeSystem(DxilTypeSystem *pValue);
   void ResetOP(hlsl::OP *hlslOP);
   void ResetEntryPropsMap(DxilEntryPropsMap &&PropMap);
@@ -246,6 +249,11 @@ public:
   void SetAllResourcesBound(bool resourcesBound);
   bool GetAllResourcesBound() const;
 
+  // Intermediate options that do not make it to DXIL
+  void SetLegacyResourceReservation(bool legacyResourceReservation);
+  bool GetLegacyResourceReservation() const;
+  void ClearIntermediateOptions();
+
   // Hull and Domain shaders.
   unsigned GetInputControlPointCount() const;
   void SetInputControlPointCount(unsigned NumICPs);
@@ -269,9 +277,14 @@ public:
 
   void SetShaderProperties(DxilFunctionProps *props);
 
+  DxilSubobjects *GetSubobjects();
+  const DxilSubobjects *GetSubobjects() const;
+  DxilSubobjects *ReleaseSubobjects();
+  void ResetSubobjects(DxilSubobjects *subobjects);
+
 private:
   // Signatures.
-  std::unique_ptr<RootSignatureHandle> m_RootSignature;
+  std::vector<uint8_t> m_SerializedRootSignature;
 
   // Shader resources.
   std::vector<std::unique_ptr<DxilResource> > m_SRVs;
@@ -282,6 +295,11 @@ private:
   // Geometry shader.
   DXIL::PrimitiveTopology m_StreamPrimitiveTopology;
   unsigned m_ActiveStreamMask;
+
+private:
+  enum IntermediateFlags : uint32_t {
+    LegacyResourceReservation = 1 << 0,
+  };
 
 private:
   llvm::LLVMContext &m_Ctx;
@@ -322,11 +340,16 @@ private:
   template<typename T> unsigned AddResource(std::vector<std::unique_ptr<T> > &Vec, std::unique_ptr<T> pRes);
   void LoadDxilSignature(const llvm::MDTuple *pSigTuple, DxilSignature &Sig, bool bInput);
 
-  // properties from HLModule
+  // properties from HLModule preserved as ShaderFlags
   bool m_bDisableOptimizations;
   bool m_bUseMinPrecision;
   bool m_bAllResourcesBound;
+
+  // properties from HLModule that should not make it to the final DXIL
+  uint32_t m_IntermediateFlags;
   uint32_t m_AutoBindingSpace;
+
+  std::unique_ptr<DxilSubobjects> m_pSubobjects;
 };
 
 } // namespace hlsl

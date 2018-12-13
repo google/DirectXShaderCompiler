@@ -39,31 +39,6 @@ bool improperStraddle(QualType type, int size, int offset) {
                     : offset % 16 != 0;
 }
 
-// From https://github.com/Microsoft/DirectXShaderCompiler/pull/1032.
-// TODO: use that after it is landed.
-bool hasHLSLMatOrientation(QualType type, bool *pIsRowMajor) {
-  const AttributedType *AT = type->getAs<AttributedType>();
-  while (AT) {
-    AttributedType::Kind kind = AT->getAttrKind();
-    switch (kind) {
-    case AttributedType::attr_hlsl_row_major:
-      if (pIsRowMajor)
-        *pIsRowMajor = true;
-      return true;
-    case AttributedType::attr_hlsl_column_major:
-      if (pIsRowMajor)
-        *pIsRowMajor = false;
-      return true;
-    default:
-      // Only oriented matrices return true.
-      break;
-    }
-    AT = AT->getLocallyUnqualifiedSingleStepDesugaredType()
-             ->getAs<AttributedType>();
-  }
-  return false;
-}
-
 /// Returns the :packoffset() annotation on the given decl. Returns nullptr if
 /// the decl does not have one.
 const hlsl::ConstantPacking *getPackOffset(const NamedDecl *decl) {
@@ -1003,7 +978,7 @@ bool TypeTranslator::isResourceType(const ValueDecl *decl) {
 bool TypeTranslator::isRowMajorMatrix(QualType type) const {
   // The type passed in may not be desugared. Check attributes on itself first.
   bool attrRowMajor = false;
-  if (hasHLSLMatOrientation(type, &attrRowMajor))
+  if (hlsl::HasHLSLMatOrientation(type, &attrRowMajor))
     return attrRowMajor;
 
   // Use the majorness info we recorded before.
@@ -1214,6 +1189,7 @@ llvm::SmallVector<const Decoration *, 4> TypeTranslator::getLayoutDecorations(
     } else {
       offset = roundToPow2(offset, memberAlignment);
     }
+
 
     // The vk::offset attribute takes precedence over all.
     if (const auto *offsetAttr = decl->getAttr<VKOffsetAttr>()) {
@@ -1515,6 +1491,7 @@ TypeTranslator::translateSampledTypeToImageFormat(QualType sampledType) {
                               : elemCount == 2 ? spv::ImageFormat::Rg32ui
                                                : spv::ImageFormat::Rgba32ui;
       case BuiltinType::Float:
+      case BuiltinType::HalfFloat:
         return elemCount == 1 ? spv::ImageFormat::R32f
                               : elemCount == 2 ? spv::ImageFormat::Rg32f
                                                : spv::ImageFormat::Rgba32f;
@@ -1737,9 +1714,10 @@ TypeTranslator::getAlignmentAndSize(QualType type, SpirvLayoutRule rule,
     if (isVectorType(type, &elemType, &elemCount)) {
       uint32_t alignment = 0, size = 0;
       std::tie(alignment, size) = getAlignmentAndSize(elemType, rule, stride);
-      // Use element alignment for fxc rules
+      // Use element alignment for fxc rules and VK_EXT_scalar_block_layout
       if (rule != SpirvLayoutRule::FxcCTBuffer &&
-          rule != SpirvLayoutRule::FxcSBuffer)
+          rule != SpirvLayoutRule::FxcSBuffer &&
+          rule != SpirvLayoutRule::Scalar)
         alignment = (elemCount == 3 ? 4 : elemCount) * size;
 
       return {alignment, elemCount * size};
@@ -1761,9 +1739,11 @@ TypeTranslator::getAlignmentAndSize(QualType type, SpirvLayoutRule rule,
 
       const uint32_t vecStorageSize = isRowMajor ? colCount : rowCount;
 
-      if (rule == SpirvLayoutRule::FxcSBuffer) {
+      if (rule == SpirvLayoutRule::FxcSBuffer ||
+          rule == SpirvLayoutRule::Scalar) {
         *stride = vecStorageSize * size;
-        // Use element alignment for fxc structured buffers
+        // Use element alignment for fxc structured buffers and
+        // VK_EXT_scalar_block_layout
         return {alignment, rowCount * colCount * size};
       }
 
@@ -1818,6 +1798,12 @@ TypeTranslator::getAlignmentAndSize(QualType type, SpirvLayoutRule rule,
       structSize += memberSize;
     }
 
+    if (rule == SpirvLayoutRule::Scalar) {
+      // A structure has a scalar alignment equal to the largest scalar
+      // alignment of any of its members in VK_EXT_scalar_block_layout.
+      return {maxAlignment, structSize};
+    }
+
     if (rule == SpirvLayoutRule::GLSLStd140 ||
         rule == SpirvLayoutRule::RelaxedGLSLStd140 ||
         rule == SpirvLayoutRule::FxcCTBuffer) {
@@ -1841,9 +1827,11 @@ TypeTranslator::getAlignmentAndSize(QualType type, SpirvLayoutRule rule,
     std::tie(alignment, size) =
         getAlignmentAndSize(arrayType->getElementType(), rule, stride);
 
-    if (rule == SpirvLayoutRule::FxcSBuffer) {
+    if (rule == SpirvLayoutRule::FxcSBuffer ||
+        rule == SpirvLayoutRule::Scalar) {
       *stride = size;
-      // Use element alignment for fxc structured buffers
+      // Use element alignment for fxc structured buffers and
+      // VK_EXT_scalar_block_layout
       return {alignment, size * elemCount};
     }
 

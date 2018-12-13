@@ -19,13 +19,14 @@ class FunctionPass;
 class Instruction;
 class PassRegistry;
 class StringRef;
+struct PostDominatorTree;
 }
 
 namespace hlsl {
 class DxilResourceBase;
 class WaveSensitivityAnalysis {
 public:
-  static WaveSensitivityAnalysis* create();
+  static WaveSensitivityAnalysis* create(llvm::PostDominatorTree &PDT);
   virtual ~WaveSensitivityAnalysis() { }
   virtual void Analyze(llvm::Function *F) = 0;
   virtual bool IsWaveSensitive(llvm::Instruction *op) = 0;
@@ -55,7 +56,6 @@ ModulePass *createDxilEmitMetadataPass();
 FunctionPass *createDxilExpandTrigIntrinsicsPass();
 ModulePass *createDxilConvergentMarkPass();
 ModulePass *createDxilConvergentClearPass();
-ModulePass *createDxilLoadMetadataPass();
 ModulePass *createDxilDeadFunctionEliminationPass();
 ModulePass *createHLDeadFunctionEliminationPass();
 ModulePass *createHLPreprocessPass();
@@ -84,7 +84,6 @@ void initializeHLEmitMetadataPass(llvm::PassRegistry&);
 void initializeDxilFinalizeModulePass(llvm::PassRegistry&);
 void initializeDxilEmitMetadataPass(llvm::PassRegistry&);
 void initializeDxilExpandTrigIntrinsicsPass(llvm::PassRegistry&);
-void initializeDxilLoadMetadataPass(llvm::PassRegistry&);
 void initializeDxilDeadFunctionEliminationPass(llvm::PassRegistry&);
 void initializeHLDeadFunctionEliminationPass(llvm::PassRegistry&);
 void initializeHLPreprocessPass(llvm::PassRegistry&);

@@ -1102,6 +1102,9 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target) {
     InitBuiltinType(HalfFloatTy, BuiltinType::HalfFloat);
     InitBuiltinType(LitIntTy, BuiltinType::LitInt);
     InitBuiltinType(LitFloatTy, BuiltinType::LitFloat);
+    
+    HLSLStringTy = this->getPointerType(CharTy);
+
     hlsl::InitializeASTContextForHLSL(*this); // Previously in constructor, guarded by !DelayInitialization
   }
   // HLSL Change Ends
@@ -1565,7 +1568,6 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     // Vector align to its element.
     if (getLangOpts().HLSL) {
       Align = EltInfo.Align;
-      Width = Align * VT->getNumElements();
     }
     // HLSL Change Ends.
     // If the alignment is not a power of 2, round up to the next power of 2.

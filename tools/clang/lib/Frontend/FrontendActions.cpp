@@ -29,7 +29,7 @@
 #include <memory>
 #include <system_error>
 // HLSL Change Begin.
-#include "dxc/HLSL/DxilRootSignature.h"
+#include "dxc/DxilRootSignature/DxilRootSignature.h"
 #include "clang/Parse/ParseHLSL.h"
 // HLSL Change End.
 using namespace clang;
@@ -758,7 +758,8 @@ void HLSLRootSignatureAction::ExecuteAction() {
   }
 
   // Compile the expanded root signature.
-  clang::CompileRootSignature(rootSigString, Diags, SLoc, rootSigVer, rootSigHandle.get());
+  clang::CompileRootSignature(rootSigString, Diags, SLoc, rootSigVer,
+    hlsl::DxilRootSignatureCompilationFlags::None, rootSigHandle.get());
 }
 
 std::unique_ptr<hlsl::RootSignatureHandle> HLSLRootSignatureAction::takeRootSigHandle() {

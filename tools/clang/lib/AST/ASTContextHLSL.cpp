@@ -334,6 +334,7 @@ void hlsl::AddHLSLMatrixTemplate(ASTContext& context, ClassTemplateDecl* vectorT
     context, currentDeclContext, NoLoc, DeclarationName(&matrixId),
     templateParameterList, templateRecordDecl, nullptr);
   templateRecordDecl->setDescribedClassTemplate(classTemplateDecl);
+  templateRecordDecl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
 
   // Requesting the class name specialization will fault in required types.
   QualType T = classTemplateDecl->getInjectedClassNameSpecialization();
@@ -436,6 +437,7 @@ void hlsl::AddHLSLVectorTemplate(ASTContext& context, ClassTemplateDecl** vector
     context, currentDeclContext, NoLoc, DeclarationName(&vectorId),
     templateParameterList, templateRecordDecl, nullptr);
   templateRecordDecl->setDescribedClassTemplate(classTemplateDecl);
+  templateRecordDecl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
 
   // Requesting the class name specialization will fault in required types.
   QualType T = classTemplateDecl->getInjectedClassNameSpecialization();
@@ -503,6 +505,7 @@ void hlsl::AddRecordTypeWithHandle(ASTContext& context, _Outptr_ CXXRecordDecl**
     context, TagDecl::TagKind::TTK_Struct, currentDeclContext, NoLoc, NoLoc, &newTypeId, nullptr);
   newDecl->setLexicalDeclContext(currentDeclContext);
   newDecl->setFreeStanding();
+  newDecl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
   newDecl->startDefinition();
   AddHLSLHandleField(context, newDecl, QualType(GetHLSLObjectHandleType(context)));
   currentDeclContext->addDecl(newDecl);
@@ -554,6 +557,14 @@ void hlsl::AddHitKinds(ASTContext& context) {
   AddConstUInt(context, curDC, StringRef("HIT_KIND_NONE"), (unsigned)DXIL::HitKind::None);
   AddConstUInt(context, curDC, StringRef("HIT_KIND_TRIANGLE_FRONT_FACE"), (unsigned)DXIL::HitKind::TriangleFrontFace);
   AddConstUInt(context, curDC, StringRef("HIT_KIND_TRIANGLE_BACK_FACE"), (unsigned)DXIL::HitKind::TriangleBackFace);
+}
+
+/// <summary> Adds a constant integers for state object flags </summary>
+void hlsl::AddStateObjectFlags(ASTContext& context) {
+  DeclContext *curDC = context.getTranslationUnitDecl();
+ 
+  AddConstUInt(context, curDC, StringRef("STATE_OBJECT_FLAGS_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITONS"), (unsigned)DXIL::StateObjectFlags::AllowLocalDependenciesOnExternalDefinitions);
+  AddConstUInt(context, curDC, StringRef("STATE_OBJECT_FLAGS_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS"), (unsigned)DXIL::StateObjectFlags::AllowExternalDependenciesOnLocalDefinitions);
 }
 
 static
@@ -780,6 +791,7 @@ void hlsl::AddTemplateTypeWithHandle(
     context, currentDeclContext, NoLoc, DeclarationName(&typeId),
     templateParameterList, templateRecordDecl, nullptr);
   templateRecordDecl->setDescribedClassTemplate(classTemplateDecl);
+  templateRecordDecl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
   
   // Requesting the class name specialization will fault in required types.
   QualType T = classTemplateDecl->getInjectedClassNameSpecialization();
@@ -1067,6 +1079,20 @@ bool hlsl::TryParseAny(
       *parsedType = type;
       return true;
     }
+  }
+  return false;
+}
+
+/// <summary>Parse string hlsl type</summary>
+_Use_decl_annotations_
+bool hlsl::TryParseString(
+  _In_count_(typenameLen)
+  const char* typeName,
+  size_t typeNameLen,
+  _In_ const clang::LangOptions& langOptions) {
+
+  if (typeNameLen == 6 && typeName[0] == 's' && strncmp(typeName, "string", 6) == 0) {
+    return true;
   }
   return false;
 }

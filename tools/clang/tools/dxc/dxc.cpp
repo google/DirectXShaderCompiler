@@ -49,9 +49,9 @@
 #include "dxc/dxctools.h"
 #include "dxc/Support/dxcapi.use.h"
 #include "dxc/Support/HLSLOptions.h"
-#include "dxc/DXIL/DxilContainer.h"
+#include "dxc/DxilContainer/DxilContainer.h"
 #include "dxc/DXIL/DxilShaderModel.h"
-#include "dxc/HLSL/DxilRootSignature.h"
+#include "dxc/DxilRootSignature/DxilRootSignature.h"
 #include "dxc/Support/FileIOHelper.h"
 #include "dxc/Support/microcom.h"
 #include "llvm/Option/OptTable.h"
@@ -106,58 +106,6 @@ static bool DisassembleSpirv(IDxcBlob *binaryBlob, IDxcLibrary *library,
 #endif
 // SPIRV Change Ends
 
-struct NoSerializeHeapMalloc : public IMalloc {
-private:
-  HANDLE m_Handle;
-public:
-  void SetHandle(HANDLE Handle) { m_Handle = Handle; }
-  ULONG STDMETHODCALLTYPE AddRef() {
-    return 1;
-  }
-  ULONG STDMETHODCALLTYPE Release() {
-    return 1;
-  }
-  STDMETHODIMP QueryInterface(REFIID iid, void** ppvObject) {
-    return DoBasicQueryInterface<IMalloc>(this, iid, ppvObject);
-  }
-  virtual void *STDMETHODCALLTYPE Alloc(
-    _In_  SIZE_T cb) {
-    return HeapAlloc(m_Handle, 0, cb);
-  }
-
-  virtual void *STDMETHODCALLTYPE Realloc(
-    _In_opt_  void *pv,
-    _In_  SIZE_T cb)
-  {
-    return HeapReAlloc(m_Handle, 0, pv, cb);
-  }
-
-  virtual void STDMETHODCALLTYPE Free(
-    _In_opt_  void *pv)
-  {
-    HeapFree(m_Handle, 0, pv);
-  }
-
-  virtual SIZE_T STDMETHODCALLTYPE GetSize(
-    /* [annotation][in] */
-    _In_opt_ _Post_writable_byte_size_(return)  void *pv)
-  {
-    return HeapSize(m_Handle, 0, pv);
-  }
-
-  virtual int STDMETHODCALLTYPE DidAlloc(
-    /* [annotation][in] */
-    _In_opt_  void *pv)
-  {
-    return -1; // don't know
-  }
-
-
-  virtual void STDMETHODCALLTYPE HeapMinimize(void)
-  {
-  }
-};
-
 inline bool wcseq(LPCWSTR a, LPCWSTR b) {
   return (a == nullptr && b == nullptr) || (a != nullptr && b != nullptr && wcscmp(a, b) == 0);
 }
@@ -171,8 +119,6 @@ class DxcContext {
 private:
   DxcOpts &m_Opts;
   DxcDllSupport &m_dxcSupport;
-  NoSerializeHeapMalloc m_Malloc;
-  HANDLE m_MallocHeap;
 
   int ActOnBlob(IDxcBlob *pBlob);
   int ActOnBlob(IDxcBlob *pBlob, IDxcBlob *pDebugBlob, LPCWSTR pDebugBlobName);
@@ -194,22 +140,12 @@ private:
 
   template <typename TInterface>
   HRESULT CreateInstance(REFCLSID clsid, _Outptr_ TInterface** pResult) {
-    if (m_dxcSupport.HasCreateWithMalloc())
-      return m_dxcSupport.CreateInstance2(&m_Malloc, clsid, pResult);
-    else
-      return m_dxcSupport.CreateInstance(clsid, pResult);
+  return m_dxcSupport.CreateInstance(clsid, pResult);
   }
 
 public:
   DxcContext(DxcOpts &Opts, DxcDllSupport &dxcSupport)
-      : m_Opts(Opts), m_dxcSupport(dxcSupport), m_MallocHeap(nullptr) {
-    if (m_dxcSupport.HasCreateWithMalloc()) {
-      m_MallocHeap = HeapCreate(HEAP_NO_SERIALIZE, 1024 * 1024 * 2, 0);
-      if (m_MallocHeap == NULL)
-        IFT_Data(HRESULT_FROM_WIN32(GetLastError()), L"unable to create custom heap");
-      m_Malloc.SetHandle(m_MallocHeap);
-      // We never free the heap because it's tied to the dxc process lifetime
-    }
+      : m_Opts(Opts), m_dxcSupport(dxcSupport) {
   }
 
   int  Compile();
@@ -801,6 +737,10 @@ int DxcContext::Compile() {
       const hlsl::ShaderModel *SM = hlsl::ShaderModel::GetByName(m_Opts.TargetProfile.str().c_str());
       if (SM->IsValid() && SM->GetMajor() < 6) {
         TargetProfile = hlsl::ShaderModel::Get(SM->GetKind(), 6, 0)->GetName();
+        if (!SM->IsSM51Plus()) {
+          // Add flag for backcompat with SM 5.0 resource reservation
+          args.push_back(L"-flegacy-resource-reservation");
+        }
       }
 
       if (!m_Opts.DebugFile.empty() && m_Opts.DebugFile.endswith(llvm::StringRef("\\"))) {
@@ -872,6 +812,14 @@ void DxcContext::Preprocess() {
   // Carry forward the options that control preprocessor
   if (m_Opts.LegacyMacroExpansion)
     args.push_back(L"-flegacy-macro-expansion");
+
+  std::vector<std::wstring> includePath;
+  for (const llvm::opt::Arg *A : m_Opts.Args.filtered(hlsl::options::OPT_I))
+    includePath.emplace_back(Unicode::UTF8ToUTF16StringOrThrow(A->getValue()));
+  for (const std::wstring &directory : includePath) {
+    args.emplace_back(L"-I");
+    args.emplace_back(directory.c_str()); // The strings are kept alive in the includePath vector
+  }
 
   ReadFileIntoBlob(m_dxcSupport, StringRefUtf16(m_Opts.InputFile), &pSource);
   IFT(CreateInstance(CLSID_DxcCompiler, &pCompiler));

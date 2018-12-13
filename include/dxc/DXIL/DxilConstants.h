@@ -27,7 +27,7 @@ import hctdb_instrhelp
 namespace DXIL {
   // DXIL version.
   const unsigned kDxilMajor = 1;
-  const unsigned kDxilMinor = 3;
+  const unsigned kDxilMinor = 4;
 
   inline unsigned MakeDxilVersion(unsigned DxilMajor, unsigned DxilMinor) {
     return 0 | (DxilMajor << 8) | (DxilMinor);
@@ -92,6 +92,7 @@ namespace DXIL {
     SNormF16, UNormF16, SNormF32, UNormF32, SNormF64, UNormF64,
     LastEntry };
 
+  // Must match D3D_INTERPOLATION_MODE
   enum class InterpolationMode : uint8_t {
     Undefined                   = 0,
     Constant                    = 1,
@@ -118,6 +119,7 @@ namespace DXIL {
     PatchConstant,
   };
 
+  // Must match D3D11_SHADER_VERSION_TYPE
   enum class ShaderKind {
     Pixel = 0,
     Vertex,
@@ -168,6 +170,7 @@ namespace DXIL {
     InsideTessFactor,
     ViewID,
     Barycentrics,
+    ShadingRate,
     Invalid,
   };
   // SemanticKind-ENUM:END
@@ -342,6 +345,11 @@ namespace DXIL {
   
     // Domain shader
     DomainLocation = 105, // DomainLocation
+  
+    // Dot product with accumulate
+    Dot2AddHalf = 162, // 2D half dot product with accumulate to float
+    Dot4AddI8Packed = 163, // signed dot product of 4 x i8 vectors packed into i32, with accumulate to i32
+    Dot4AddU8Packed = 164, // unsigned dot product of 4 x u8 vectors packed into i32, with accumulate to i32
   
     // Dot
     Dot2 = 54, // Two-dimensional vector dot-product
@@ -549,8 +557,9 @@ namespace DXIL {
     NumOpCodes_Dxil_1_1 = 139,
     NumOpCodes_Dxil_1_2 = 141,
     NumOpCodes_Dxil_1_3 = 162,
+    NumOpCodes_Dxil_1_4 = 165,
   
-    NumOpCodes = 162 // exclusive last value of enumeration
+    NumOpCodes = 165 // exclusive last value of enumeration
   };
   // OPCODE-ENUM:END
 
@@ -591,6 +600,10 @@ namespace DXIL {
   
     // Domain shader
     DomainLocation,
+  
+    // Dot product with accumulate
+    Dot2AddHalf,
+    Dot4AddPacked,
   
     // Dot
     Dot2,
@@ -756,8 +769,9 @@ namespace DXIL {
     NumOpClasses_Dxil_1_1 = 95,
     NumOpClasses_Dxil_1_2 = 97,
     NumOpClasses_Dxil_1_3 = 118,
+    NumOpClasses_Dxil_1_4 = 120,
   
-    NumOpClasses = 118 // exclusive last value of enumeration
+    NumOpClasses = 120 // exclusive last value of enumeration
   };
   // OPCODECLASS-ENUM:END
 
@@ -923,7 +937,7 @@ namespace DXIL {
   const unsigned kGenericPointerAddrSpace = 4;
   const unsigned kImmediateCBufferAddrSpace = 5;
 
-  // Input primitive.
+  // Input primitive, must match D3D_PRIMITIVE
   enum class InputPrimitive : unsigned {
     Undefined = 0,
     Point = 1,
@@ -969,7 +983,7 @@ namespace DXIL {
     LastEntry,
   };
 
-  // Primitive topology.
+  // Primitive topology, must match D3D_PRIMITIVE_TOPOLOGY
   enum class PrimitiveTopology : unsigned {
     Undefined = 0,
     PointList = 1,
@@ -981,6 +995,7 @@ namespace DXIL {
     LastEntry,
   };
 
+  // Must match D3D_TESSELLATOR_DOMAIN
   enum class TessellatorDomain
   {
     Undefined = 0,
@@ -991,6 +1006,7 @@ namespace DXIL {
     LastEntry,
   };
 
+  // Must match D3D_TESSELLATOR_OUTPUT_PRIMITIVE
   enum class TessellatorOutputPrimitive
   {
     Undefined = 0,
@@ -1002,7 +1018,7 @@ namespace DXIL {
     LastEntry,
   };
 
-  // Tessellator partitioning.
+  // Tessellator partitioning, must match D3D_TESSELLATOR_PARTITIONING
   enum class TessellatorPartitioning : unsigned {
     Undefined = 0,
     Integer,
@@ -1098,6 +1114,75 @@ namespace DXIL {
     TriangleBackFace = 0xFF,
   };
 
+  // Constant for Container.
+  const uint8_t DxilProgramSigMaskX = 1;
+  const uint8_t DxilProgramSigMaskY = 2;
+  const uint8_t DxilProgramSigMaskZ = 4;
+  const uint8_t DxilProgramSigMaskW = 8;
+
+  // DFCC_FeatureInfo is a uint64_t value with these flags.
+  const uint64_t ShaderFeatureInfo_Doubles = 0x0001;
+  const uint64_t
+      ShaderFeatureInfo_ComputeShadersPlusRawAndStructuredBuffersViaShader4X =
+          0x0002;
+  const uint64_t ShaderFeatureInfo_UAVsAtEveryStage = 0x0004;
+  const uint64_t ShaderFeatureInfo_64UAVs = 0x0008;
+  const uint64_t ShaderFeatureInfo_MinimumPrecision = 0x0010;
+  const uint64_t ShaderFeatureInfo_11_1_DoubleExtensions = 0x0020;
+  const uint64_t ShaderFeatureInfo_11_1_ShaderExtensions = 0x0040;
+  const uint64_t ShaderFeatureInfo_LEVEL9ComparisonFiltering = 0x0080;
+  const uint64_t ShaderFeatureInfo_TiledResources = 0x0100;
+  const uint64_t ShaderFeatureInfo_StencilRef = 0x0200;
+  const uint64_t ShaderFeatureInfo_InnerCoverage = 0x0400;
+  const uint64_t ShaderFeatureInfo_TypedUAVLoadAdditionalFormats = 0x0800;
+  const uint64_t ShaderFeatureInfo_ROVs = 0x1000;
+  const uint64_t
+      ShaderFeatureInfo_ViewportAndRTArrayIndexFromAnyShaderFeedingRasterizer =
+          0x2000;
+  const uint64_t ShaderFeatureInfo_WaveOps = 0x4000;
+  const uint64_t ShaderFeatureInfo_Int64Ops = 0x8000;
+  const uint64_t ShaderFeatureInfo_ViewID = 0x10000;
+  const uint64_t ShaderFeatureInfo_Barycentrics = 0x20000;
+  const uint64_t ShaderFeatureInfo_NativeLowPrecision = 0x40000;
+  const uint64_t ShaderFeatureInfo_ShadingRate = 0x80000;
+
+  const unsigned ShaderFeatureInfoCount = 20;
+
+  // DxilSubobjectType must match D3D12_STATE_SUBOBJECT_TYPE, with
+  // certain values reserved, since they cannot be used from Dxil.
+  enum class SubobjectKind : uint32_t {
+    StateObjectConfig                 = 0,
+    GlobalRootSignature               = 1,
+    LocalRootSignature                = 2,
+    // 3-7 are reserved (not supported in Dxil)
+    SubobjectToExportsAssociation     = 8,
+    RaytracingShaderConfig            = 9,
+    RaytracingPipelineConfig          = 10,
+    HitGroup                          = 11,
+    NumKinds // aka D3D12_STATE_SUBOBJECT_TYPE_MAX_VALID
+  };
+
+  inline bool IsValidSubobjectKind(SubobjectKind kind) {
+    return (kind < SubobjectKind::NumKinds &&
+      ( kind <= SubobjectKind::LocalRootSignature ||
+        kind >= SubobjectKind::SubobjectToExportsAssociation));
+  }
+
+  enum class StateObjectFlags : uint32_t {
+    AllowLocalDependenciesOnExternalDefinitions = 0x1,
+    AllowExternalDependenciesOnLocalDefinitions = 0x2,
+    ValidMask = 0x3,
+  };
+
+  enum class HitGroupType : uint32_t {
+    Triangle = 0x0,
+    ProceduralPrimitive = 0x1,
+    LastEntry,
+  };
+
+  inline bool IsValidHitGroupType(HitGroupType type) {
+    return (type >= HitGroupType::Triangle && type < HitGroupType::LastEntry);
+  }
 
   extern const char* kLegacyLayoutString;
   extern const char* kNewLayoutString;

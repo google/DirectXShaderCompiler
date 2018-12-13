@@ -20,6 +20,7 @@
 #include "dxc/DXIL/DxilShaderModel.h"
 #include "dxc/DXIL/DxilSignature.h"
 #include "dxc/DXIL/DxilFunctionProps.h"
+#include "dxc/DXIL/DxilSubobject.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -44,12 +45,12 @@ namespace hlsl {
 
 class ShaderModel;
 class OP;
-class RootSignatureHandle;
 
 struct HLOptions {
   HLOptions()
-      : bDefaultRowMajor(false), bIEEEStrict(false), bDisableOptimizations(false),
-        bLegacyCBufferLoad(false), PackingStrategy(0), bDX9CompatMode(0), bFXCCompatMode(0), unused(0) {
+      : bDefaultRowMajor(false), bIEEEStrict(false), bAllResourcesBound(false), bDisableOptimizations(false),
+        bLegacyCBufferLoad(false), PackingStrategy(0), bUseMinPrecision(false), bDX9CompatMode(false),
+        bFXCCompatMode(false), bLegacyResourceReservation(false), unused(0) {
   }
   uint32_t GetHLOptionsRaw() const;
   void SetHLOptionsRaw(uint32_t data);
@@ -63,7 +64,8 @@ struct HLOptions {
   unsigned bUseMinPrecision        : 1;
   unsigned bDX9CompatMode          : 1;
   unsigned bFXCCompatMode          : 1;
-  unsigned unused                  : 22;
+  unsigned bLegacyResourceReservation : 1;
+  unsigned unused                  : 21;
 };
 
 typedef std::unordered_map<const llvm::Function *, std::unique_ptr<DxilFunctionProps>> DxilFunctionPropsMap;
@@ -122,7 +124,6 @@ public:
 
   void RemoveGlobal(llvm::GlobalVariable *GV);
   void RemoveFunction(llvm::Function *F);
-  void RemoveResources(llvm::GlobalVariable **ppVariables, unsigned count);
 
   // ThreadGroupSharedMemory.
   typedef std::vector<llvm::GlobalVariable*>::iterator tgsm_iterator;
@@ -131,7 +132,8 @@ public:
   void AddGroupSharedVariable(llvm::GlobalVariable *GV);
 
   // Signatures.
-  RootSignatureHandle &GetRootSignature();
+  std::vector<uint8_t> &GetSerializedRootSignature();
+  void SetSerializedRootSignature(const uint8_t *pData, unsigned size);
 
   // DxilFunctionProps.
   bool HasDxilFunctionProps(llvm::Function *F);
@@ -224,7 +226,6 @@ public:
   // Release functions used to transfer ownership.
   DxilTypeSystem *ReleaseTypeSystem();
   OP *ReleaseOP();
-  RootSignatureHandle *ReleaseRootSignature();
   DxilFunctionPropsMap &&ReleaseFunctionPropsMap();
 
   llvm::DebugInfoFinder &GetOrCreateDebugInfoFinder();
@@ -243,9 +244,14 @@ public:
                                 llvm::DebugInfoFinder &DbgInfoFinder,
                                 llvm::GlobalVariable *NewGV);
 
+  DxilSubobjects *GetSubobjects();
+  const DxilSubobjects *GetSubobjects() const;
+  DxilSubobjects *ReleaseSubobjects();
+  void ResetSubobjects(DxilSubobjects *subobjects);
+
 private:
   // Signatures.
-  std::unique_ptr<RootSignatureHandle> m_RootSignature;
+  std::vector<uint8_t> m_SerializedRootSignature;
 
   // Shader resources.
   std::vector<std::unique_ptr<HLResource> > m_SRVs;
@@ -281,6 +287,7 @@ private:
   size_t m_pUnused;
   uint32_t m_AutoBindingSpace;
   DXIL::DefaultLinkage m_DefaultLinkage;
+  std::unique_ptr<DxilSubobjects> m_pSubobjects;
 
   // DXIL metadata serialization/deserialization.
   llvm::MDTuple *EmitHLResources();

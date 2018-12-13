@@ -94,105 +94,167 @@ void ApplyRewriteMapOnResTable(RemapEntryCollection &rewrites, DxilModule &DM) {
 
 } // namespace
 
-// Resource lowerBound allocation.
-namespace {
+class DxilResourceRegisterAllocator {
+private:
+  SpacesAllocator<unsigned, hlsl::DxilCBuffer> m_reservedCBufferRegisters;
+  SpacesAllocator<unsigned, hlsl::DxilSampler> m_reservedSamplerRegisters;
+  SpacesAllocator<unsigned, hlsl::DxilResource> m_reservedUAVRegisters;
+  SpacesAllocator<unsigned, hlsl::DxilResource> m_reservedSRVRegisters;
 
-template <typename T>
-static bool
-AllocateDxilResource(const std::vector<std::unique_ptr<T>> &resourceList,
-                     LLVMContext &Ctx, unsigned AutoBindingSpace=0) {
-  bool bChanged = false;
-  SpacesAllocator<unsigned, T> SAlloc;
-
-  for (auto &res : resourceList) {
-    const unsigned space = res->GetSpaceID();
-    typename SpacesAllocator<unsigned, T>::Allocator &alloc = SAlloc.Get(space);
-
-    if (res->IsAllocated()) {
-      const unsigned reg = res->GetLowerBound();
-      const T *conflict = nullptr;
-      if (res->IsUnbounded()) {
-        const T *unbounded = alloc.GetUnbounded();
-        if (unbounded) {
-          Ctx.emitError(Twine("more than one unbounded resource (") +
-                        unbounded->GetGlobalName() + (" and ") +
-                        res->GetGlobalName() + (") in space ") + Twine(space));
-        } else {
-          conflict = alloc.Insert(res.get(), reg, res->GetUpperBound());
-          if (!conflict)
-            alloc.SetUnbounded(res.get());
-        }
-      } else {
-        conflict = alloc.Insert(res.get(), reg, res->GetUpperBound());
-      }
-      if (conflict) {
-        Ctx.emitError(((res->IsUnbounded()) ? Twine("unbounded ") : Twine("")) +
-                      Twine("resource ") + res->GetGlobalName() +
-                      Twine(" at register ") + Twine(reg) +
-                      Twine(" overlaps with resource ") +
-                      conflict->GetGlobalName() + Twine(" at register ") +
-                      Twine(conflict->GetLowerBound()) + Twine(", space ") +
-                      Twine(space));
+  template<typename T>
+  static void GatherReservedRegisters(
+    const std::vector<std::unique_ptr<T>> &ResourceList,
+    SpacesAllocator<unsigned, T> &SAlloc) {
+    for (auto &res : ResourceList) {
+      if (res->IsAllocated()) {
+        typename SpacesAllocator<unsigned, T>::Allocator &Alloc = SAlloc.Get(res->GetSpaceID());
+        Alloc.ForceInsertAndClobber(res.get(), res->GetLowerBound(), res->GetUpperBound());
+        if (res->IsUnbounded())
+          Alloc.SetUnbounded(res.get());
       }
     }
   }
 
-  // Allocate.
-  const unsigned space = AutoBindingSpace;
-  typename SpacesAllocator<unsigned, T>::Allocator &alloc0 = SAlloc.Get(space);
-  for (auto &res : resourceList) {
-    if (!res->IsAllocated()) {
-      DXASSERT(res->GetSpaceID() == 0,
-               "otherwise non-zero space has no user register assignment");
-      unsigned reg = 0;
-      bool success = false;
-      if (res->IsUnbounded()) {
-        const T *unbounded = alloc0.GetUnbounded();
-        if (unbounded) {
-          Ctx.emitError(Twine("more than one unbounded resource (") +
-                        unbounded->GetGlobalName() + Twine(" and ") +
-                        res->GetGlobalName() + Twine(") in space ") +
-                        Twine(space));
-        } else {
-          success = alloc0.AllocateUnbounded(res.get(), reg);
-          if (success)
-            alloc0.SetUnbounded(res.get());
+  template <typename T>
+  static bool
+  AllocateRegisters(const std::vector<std::unique_ptr<T>> &resourceList,
+    LLVMContext &Ctx, SpacesAllocator<unsigned, T> &ReservedRegisters,
+    unsigned AutoBindingSpace) {
+    bool bChanged = false;
+    SpacesAllocator<unsigned, T> SAlloc;
+
+    // Reserve explicitly allocated resources
+    for (auto &res : resourceList) {
+      const unsigned space = res->GetSpaceID();
+      typename SpacesAllocator<unsigned, T>::Allocator &alloc = SAlloc.Get(space);
+      typename SpacesAllocator<unsigned, T>::Allocator &reservedAlloc = ReservedRegisters.Get(space);
+
+      if (res->IsAllocated()) {
+        const unsigned reg = res->GetLowerBound();
+        const T *conflict = nullptr;
+        if (res->IsUnbounded()) {
+          const T *unbounded = alloc.GetUnbounded();
+          if (unbounded) {
+            Ctx.emitError(Twine("more than one unbounded resource (") +
+              unbounded->GetGlobalName() + (" and ") +
+              res->GetGlobalName() + (") in space ") + Twine(space));
+          }
+          else {
+            conflict = alloc.Insert(res.get(), reg, res->GetUpperBound());
+            if (!conflict) {
+              alloc.SetUnbounded(res.get());
+              reservedAlloc.SetUnbounded(res.get());
+            }
+          }
         }
-      } else {
-        success = alloc0.Allocate(res.get(), res->GetRangeSize(), reg);
+        else {
+          conflict = alloc.Insert(res.get(), reg, res->GetUpperBound());
+        }
+        if (conflict) {
+          Ctx.emitError(((res->IsUnbounded()) ? Twine("unbounded ") : Twine("")) +
+            Twine("resource ") + res->GetGlobalName() +
+            Twine(" at register ") + Twine(reg) +
+            Twine(" overlaps with resource ") +
+            conflict->GetGlobalName() + Twine(" at register ") +
+            Twine(conflict->GetLowerBound()) + Twine(", space ") +
+            Twine(space));
+        }
+        else {
+          // Also add this to the reserved (unallocatable) range, if it wasn't already there.
+          reservedAlloc.ForceInsertAndClobber(res.get(), res->GetLowerBound(), res->GetUpperBound());
+        }
       }
-      if (success) {
+    }
+
+    // Allocate unallocated resources
+    const unsigned space = AutoBindingSpace;
+    typename SpacesAllocator<unsigned, T>::Allocator &alloc0 = SAlloc.Get(space);
+    typename SpacesAllocator<unsigned, T>::Allocator &reservedAlloc0 = ReservedRegisters.Get(space);
+    for (auto &res : resourceList) {
+      if (res->IsAllocated())
+        continue;
+
+      DXASSERT(res->GetSpaceID() == 0,
+        "otherwise non-zero space has no user register assignment");
+
+      unsigned reg = 0;
+      unsigned end = 0;
+      bool allocateSpaceFound = false;
+      if (res->IsUnbounded()) {
+        if (alloc0.GetUnbounded() != nullptr) {
+          const T *unbounded = alloc0.GetUnbounded();
+          Ctx.emitError(Twine("more than one unbounded resource (") +
+            unbounded->GetGlobalName() + Twine(" and ") +
+            res->GetGlobalName() + Twine(") in space ") +
+            Twine(space));
+          continue;
+        }
+
+        if (reservedAlloc0.FindForUnbounded(reg)) {
+          end = UINT_MAX;
+          allocateSpaceFound = true;
+        }
+      }
+      else if (reservedAlloc0.Find(res->GetRangeSize(), reg)) {
+        end = reg + res->GetRangeSize() - 1;
+        allocateSpaceFound = true;
+      }
+
+      if (allocateSpaceFound) {
+        bool success = reservedAlloc0.Insert(res.get(), reg, end) == nullptr;
+        DXASSERT_NOMSG(success);
+
+        success = alloc0.Insert(res.get(), reg, end) == nullptr;
+        DXASSERT_NOMSG(success);
+
+        if (res->IsUnbounded()) {
+          alloc0.SetUnbounded(res.get());
+          reservedAlloc0.SetUnbounded(res.get());
+        }
+
         res->SetLowerBound(reg);
         res->SetSpaceID(space);
         bChanged = true;
       } else {
         Ctx.emitError(((res->IsUnbounded()) ? Twine("unbounded ") : Twine("")) +
-                      Twine("resource ") + res->GetGlobalName() +
-                      Twine(" could not be allocated"));
+          Twine("resource ") + res->GetGlobalName() +
+          Twine(" could not be allocated"));
       }
+    }
+
+    return bChanged;
+  }
+
+public:
+  void GatherReservedRegisters(DxilModule &DM) {
+    // For backcompat with FXC, shader models 5.0 and below will not auto-allocate
+    // resources at a register explicitely assigned to even an unused resource.
+    if (DM.GetLegacyResourceReservation()) {
+      GatherReservedRegisters(DM.GetCBuffers(), m_reservedCBufferRegisters);
+      GatherReservedRegisters(DM.GetSamplers(), m_reservedSamplerRegisters);
+      GatherReservedRegisters(DM.GetUAVs(), m_reservedUAVRegisters);
+      GatherReservedRegisters(DM.GetSRVs(), m_reservedSRVRegisters);
     }
   }
 
-  return bChanged;
-}
+  bool AllocateRegisters(DxilModule &DM) {
+    uint32_t AutoBindingSpace = DM.GetAutoBindingSpace();
+    if (AutoBindingSpace == UINT_MAX) {
+      // For libraries, we don't allocate unless AutoBindingSpace is set.
+      if (DM.GetShaderModel()->IsLib())
+        return false;
+      // For shaders, we allocate in space 0 by default.
+      AutoBindingSpace = 0;
+    }
 
-bool AllocateDxilResources(DxilModule &DM) {
-  uint32_t AutoBindingSpace = DM.GetAutoBindingSpace();
-  if (AutoBindingSpace == UINT_MAX) {
-    // For libraries, we don't allocate unless AutoBindingSpace is set.
-    if (DM.GetShaderModel()->IsLib())
-      return false;
-    // For shaders, we allocate in space 0 by default.
-    AutoBindingSpace = 0;
+    bool bChanged = false;
+    bChanged |= AllocateRegisters(DM.GetCBuffers(), DM.GetCtx(), m_reservedCBufferRegisters, AutoBindingSpace);
+    bChanged |= AllocateRegisters(DM.GetSamplers(), DM.GetCtx(), m_reservedSamplerRegisters, AutoBindingSpace);
+    bChanged |= AllocateRegisters(DM.GetUAVs(), DM.GetCtx(), m_reservedUAVRegisters, AutoBindingSpace);
+    bChanged |= AllocateRegisters(DM.GetSRVs(), DM.GetCtx(), m_reservedSRVRegisters, AutoBindingSpace);
+    return bChanged;
   }
-  bool bChanged = false;
-  bChanged |= AllocateDxilResource(DM.GetCBuffers(), DM.GetCtx(), AutoBindingSpace);
-  bChanged |= AllocateDxilResource(DM.GetSamplers(), DM.GetCtx(), AutoBindingSpace);
-  bChanged |= AllocateDxilResource(DM.GetUAVs(), DM.GetCtx(), AutoBindingSpace);
-  bChanged |= AllocateDxilResource(DM.GetSRVs(), DM.GetCtx(), AutoBindingSpace);
-  return bChanged;
-}
-} // namespace
+};
 
 class DxilCondenseResources : public ModulePass {
 private:
@@ -210,7 +272,12 @@ public:
     if (DM.GetShaderModel()->IsLib())
       return false;
 
-    // Remove unused resource.
+    // Gather reserved resource registers while we still have
+    // unused resources that might have explicit register assignments.
+    DxilResourceRegisterAllocator ResourceRegisterAllocator;
+    ResourceRegisterAllocator.GatherReservedRegisters(DM);
+
+    // Remove unused resources.
     DM.RemoveUnusedResources();
 
     // Make sure all resource types are dense; build a map of rewrites.
@@ -224,7 +291,7 @@ public:
 
     if (hasResource) {
       if (!DM.GetShaderModel()->IsLib()) {
-        AllocateDxilResources(DM);
+        ResourceRegisterAllocator.AllocateRegisters(DM);
         PatchCreateHandle(DM);
       }
     }
@@ -323,109 +390,6 @@ void PatchLowerBoundOfCreateHandle(CallInst *handle, DxilModule &DM) {
   }
 }
 
-static void PatchTBufferCreateHandle(CallInst *handle, DxilModule &DM, std::unordered_set<unsigned> &tbufferIDs) {
-  DxilInst_CreateHandle createHandle(handle);
-  DXASSERT_NOMSG(createHandle);
-
-  DXIL::ResourceClass ResClass = static_cast<DXIL::ResourceClass>(createHandle.get_resourceClass_val());
-  if (ResClass != DXIL::ResourceClass::CBuffer)
-    return;
-
-  Value *resID = createHandle.get_rangeId();
-  DXASSERT(isa<ConstantInt>(resID), "cannot handle dynamic resID for cbuffer CreateHandle");
-  if (!isa<ConstantInt>(resID))
-    return;
-
-  unsigned rangeId = cast<ConstantInt>(resID)->getLimitedValue();
-  DxilResourceBase *res = &DM.GetCBuffer(rangeId);
-
-  // For TBuffer, we need to switch resource type from CBuffer to SRV
-  if (res->GetKind() == DXIL::ResourceKind::TBuffer) {
-    // Track cbuffers IDs that are actually tbuffers
-    tbufferIDs.insert(rangeId);
-    hlsl::OP *hlslOP = DM.GetOP();
-    llvm::LLVMContext &Ctx = DM.GetCtx();
-
-    // Temporarily add SRV size to rangeID to guarantee unique new SRV ID
-    Value *newRangeID = hlslOP->GetU32Const(rangeId + DM.GetSRVs().size());
-    handle->setArgOperand(DXIL::OperandIndex::kCreateHandleResIDOpIdx,
-                          newRangeID);
-    // switch create handle to SRV
-    handle->setArgOperand(DXIL::OperandIndex::kCreateHandleResClassOpIdx,
-                          hlslOP->GetU8Const(
-                            static_cast<std::underlying_type<DxilResourceBase::Class>::type>(
-                              DXIL::ResourceClass::SRV)));
-
-    Type *doubleTy = Type::getDoubleTy(Ctx);
-    Type *i64Ty = Type::getInt64Ty(Ctx);
-
-    // Replace corresponding cbuffer loads with typed buffer loads
-    for (auto U = handle->user_begin(); U != handle->user_end(); ) {
-      CallInst *I = cast<CallInst>(*(U++));
-      DXASSERT(I && OP::IsDxilOpFuncCallInst(I), "otherwise unexpected user of CreateHandle value");
-      DXIL::OpCode opcode = OP::GetDxilOpFuncCallInst(I);
-      if (opcode == DXIL::OpCode::CBufferLoadLegacy) {
-        DxilInst_CBufferLoadLegacy cbLoad(I);
-
-        // Replace with appropriate buffer load instruction
-        IRBuilder<> Builder(I);
-        opcode = OP::OpCode::BufferLoad;
-        Type *Ty = Type::getInt32Ty(Ctx);
-        Function *BufLoad = hlslOP->GetOpFunc(opcode, Ty);
-        Constant *opArg = hlslOP->GetU32Const((unsigned)opcode);
-        Value *undefI = UndefValue::get(Type::getInt32Ty(Ctx));
-        Value *offset = cbLoad.get_regIndex();
-        CallInst* load = Builder.CreateCall(BufLoad, {opArg, handle, offset, undefI});
-
-        // Find extractelement uses of cbuffer load and replace + generate bitcast as necessary
-        for (auto LU = I->user_begin(); LU != I->user_end(); ) {
-          ExtractValueInst *evInst = dyn_cast<ExtractValueInst>(*(LU++));
-          DXASSERT(evInst && evInst->getNumIndices() == 1, "user of cbuffer load result should be extractvalue");
-          uint64_t idx = evInst->getIndices()[0];
-          Type *EltTy = evInst->getType();
-          IRBuilder<> EEBuilder(evInst);
-          Value *result = nullptr;
-          if (EltTy != Ty) {
-            // extract two values and DXIL::OpCode::MakeDouble or construct i64
-            if ((EltTy == doubleTy) || (EltTy == i64Ty)) {
-              DXASSERT(idx < 2, "64-bit component index out of range");
-
-              // This assumes big endian order in tbuffer elements (is this correct?)
-              Value *low = EEBuilder.CreateExtractValue(load, idx * 2);
-              Value *high = EEBuilder.CreateExtractValue(load, idx * 2 + 1);
-              if (EltTy == doubleTy) {
-                opcode = OP::OpCode::MakeDouble;
-                Function *MakeDouble = hlslOP->GetOpFunc(opcode, doubleTy);
-                Constant *opArg = hlslOP->GetU32Const((unsigned)opcode);
-                result = EEBuilder.CreateCall(MakeDouble, {opArg, low, high});
-              } else {
-                high = EEBuilder.CreateZExt(high, i64Ty);
-                low = EEBuilder.CreateZExt(low, i64Ty);
-                high = EEBuilder.CreateShl(high, hlslOP->GetU64Const(32));
-                result = EEBuilder.CreateOr(high, low);
-              }
-            } else {
-              result = EEBuilder.CreateExtractValue(load, idx);
-              result = EEBuilder.CreateBitCast(result, EltTy);
-            }
-          } else {
-            result = EEBuilder.CreateExtractValue(load, idx);
-          }
-
-          evInst->replaceAllUsesWith(result);
-          evInst->eraseFromParent();
-        }
-      } else if (opcode == DXIL::OpCode::CBufferLoad) {
-        // TODO: Handle this, or prevent this for tbuffer
-        DXASSERT(false, "otherwise CBufferLoad used for tbuffer rather than CBufferLoadLegacy");
-      } else {
-        DXASSERT(false, "otherwise unexpected user of CreateHandle value");
-      }
-      I->eraseFromParent();
-    }
-  }
-}
-
 }
 
 void DxilCondenseResources::PatchCreateHandle(DxilModule &DM) {
@@ -494,8 +458,13 @@ public:
     if (DM.GetCBuffers().size())
       bChanged = PatchTBuffers(DM) || bChanged;
 
-    // Remove unused resource.
-    DM.RemoveUnusedResourceSymbols();
+    // Gather reserved resource registers while we still have
+    // unused resources that might have explicit register assignments.
+    DxilResourceRegisterAllocator ResourceRegisterAllocator;
+    ResourceRegisterAllocator.GatherReservedRegisters(DM);
+
+    // Remove unused resources.
+    DM.RemoveResourcesWithUnusedSymbols();
 
     unsigned newResources = DM.GetCBuffers().size() + DM.GetUAVs().size() +
                             DM.GetSRVs().size() + DM.GetSamplers().size();
@@ -504,7 +473,7 @@ public:
     if (0 == newResources)
       return bChanged;
 
-    bChanged |= AllocateDxilResources(DM);
+    bChanged |= ResourceRegisterAllocator.AllocateRegisters(DM);
 
     if (m_bIsLib && DM.GetShaderModel()->GetMinor() == ShaderModel::kOfflineMinor)
       return bChanged;
@@ -1649,15 +1618,15 @@ StructType *UpdateStructTypeForLegacyLayout(StructType *ST, bool IsCBuf,
 
 void UpdateStructTypeForLegacyLayout(DxilResourceBase &Res,
                                      DxilTypeSystem &TypeSys, Module &M) {
-  GlobalVariable *GV = cast<GlobalVariable>(Res.GetGlobalSymbol());
-  Type *Ty = GV->getType()->getPointerElementType();
+  Constant *Symbol = Res.GetGlobalSymbol();
+  Type *ElemTy = Symbol->getType()->getPointerElementType();
   bool IsResourceArray = Res.GetRangeSize() != 1;
   if (IsResourceArray) {
     // Support Array of struct buffer.
-    if (Ty->isArrayTy())
-      Ty = Ty->getArrayElementType();
+    if (ElemTy->isArrayTy())
+      ElemTy = ElemTy->getArrayElementType();
   }
-  StructType *ST = cast<StructType>(Ty);
+  StructType *ST = cast<StructType>(ElemTy);
   if (ST->isOpaque()) {
     DXASSERT(Res.GetClass() == DxilResourceBase::Class::CBuffer,
              "Only cbuffer can have opaque struct.");
@@ -1667,7 +1636,7 @@ void UpdateStructTypeForLegacyLayout(DxilResourceBase &Res,
   Type *UpdatedST =
       UpdateStructTypeForLegacyLayout(ST, IsResourceArray, TypeSys, M);
   if (ST != UpdatedST) {
-    Type *Ty = GV->getType()->getPointerElementType();
+    Type *Ty = Symbol->getType()->getPointerElementType();
     if (IsResourceArray) {
       // Support Array of struct buffer.
       if (Ty->isArrayTy()) {
@@ -1675,10 +1644,10 @@ void UpdateStructTypeForLegacyLayout(DxilResourceBase &Res,
       }
     }
     GlobalVariable *NewGV = cast<GlobalVariable>(
-        M.getOrInsertGlobal(GV->getName().str() + "_legacy", UpdatedST));
+        M.getOrInsertGlobal(Symbol->getName().str() + "_legacy", UpdatedST));
     Res.SetGlobalSymbol(NewGV);
     // Delete old GV.
-    for (auto UserIt = GV->user_begin(); UserIt != GV->user_end();) {
+    for (auto UserIt = Symbol->user_begin(); UserIt != Symbol->user_end();) {
       Value *User = *(UserIt++);
       if (Instruction *I = dyn_cast<Instruction>(User)) {
         if (!User->user_empty())
@@ -1691,8 +1660,10 @@ void UpdateStructTypeForLegacyLayout(DxilResourceBase &Res,
           CE->replaceAllUsesWith(UndefValue::get(CE->getType()));
       }
     }
-    GV->removeDeadConstantUsers();
-    GV->eraseFromParent();
+    Symbol->removeDeadConstantUsers();
+
+    if (GlobalVariable *GV = dyn_cast<GlobalVariable>(Symbol))
+      GV->eraseFromParent();
   }
 }
 
@@ -1725,15 +1696,13 @@ void DxilLowerCreateHandleForLib::UpdateResourceSymbols() {
   std::vector<GlobalVariable *> &LLVMUsed = m_DM->GetLLVMUsed();
 
   auto UpdateResourceSymbol = [&LLVMUsed, this](DxilResourceBase *res) {
-    GlobalVariable *GV = cast<GlobalVariable>(res->GetGlobalSymbol());
-    GV->removeDeadConstantUsers();
-    DXASSERT(GV->user_empty(), "else resource not lowered");
-    Type *Ty = GV->getType();
-    res->SetGlobalSymbol(UndefValue::get(Ty));
-    if (m_HasDbgInfo)
-      LLVMUsed.emplace_back(GV);
-
-    res->SetGlobalSymbol(UndefValue::get(Ty));
+    if (GlobalVariable *GV = dyn_cast<GlobalVariable>(res->GetGlobalSymbol())) {
+      GV->removeDeadConstantUsers();
+      DXASSERT(GV->user_empty(), "else resource not lowered");
+      res->SetGlobalSymbol(UndefValue::get(GV->getType()));
+      if (m_HasDbgInfo)
+        LLVMUsed.emplace_back(GV);
+    }
   };
 
   for (auto &&C : m_DM->GetCBuffers()) {
@@ -1810,6 +1779,8 @@ void DxilLowerCreateHandleForLib::TranslateDxilResourceUses(
   Value *isUniformRes = hlslOP->GetI1Const(0);
 
   Value *GV = res.GetGlobalSymbol();
+  DXASSERT(isa<GlobalValue>(GV), "DxilLowerCreateHandleForLib cannot deal with unused resources.");
+
   Module *pM = m_DM->GetModule();
   // TODO: add debug info to create handle.
   DIVariable *DIV = nullptr;
@@ -2081,7 +2052,9 @@ bool DxilLowerCreateHandleForLib::PatchTBuffers(DxilModule &DM) {
       InitTBuffer(CB, srv.get());
       srv->SetID(offset++);
       DM.AddSRV(std::move(srv));
-      GlobalVariable *GV = cast<GlobalVariable>(CB->GetGlobalSymbol());
+      GlobalVariable *GV = dyn_cast<GlobalVariable>(CB->GetGlobalSymbol());
+      if (GV == nullptr)
+        continue;
       PatchTBufferUse(GV, DM);
       // Set global symbol for cbuffer to an unused value so it can be removed
       // in RemoveUnusedResourceSymbols.
@@ -2134,7 +2107,9 @@ public:
 
     if (hasResource) {
       DM.SetAutoBindingSpace(m_AutoBindingSpace);
-      AllocateDxilResources(DM);
+
+      DxilResourceRegisterAllocator ResourceRegisterAllocator;
+      ResourceRegisterAllocator.AllocateRegisters(DM);
     }
     return true;
   }

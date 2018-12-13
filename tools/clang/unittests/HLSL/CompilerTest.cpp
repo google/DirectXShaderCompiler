@@ -20,7 +20,8 @@
 #include <cassert>
 #include <sstream>
 #include <algorithm>
-#include "dxc/DXIL/DxilContainer.h"
+#include <cfloat>
+#include "dxc/DxilContainer/DxilContainer.h"
 #include "dxc/Support/WinIncludes.h"
 #include "dxc/dxcapi.h"
 #ifdef _WIN32
@@ -163,8 +164,9 @@ public:
   struct LoadSourceCallResult {
     HRESULT hr;
     std::string source;
-    LoadSourceCallResult() : hr(E_FAIL) { }
-    LoadSourceCallResult(const char *pSource) : hr(S_OK), source(pSource) { }
+    UINT32 codePage;
+    LoadSourceCallResult() : hr(E_FAIL), codePage(0) { }
+    LoadSourceCallResult(const char *pSource, UINT32 codePage = CP_UTF8) : hr(S_OK), source(pSource), codePage(codePage) { }
   };
   std::vector<LoadSourceCallResult> CallResults;
   size_t callIndex;
@@ -182,7 +184,8 @@ public:
     if (FAILED(CallResults[callIndex].hr)) {
       return CallResults[callIndex++].hr;
     }
-    Utf8ToBlob(m_dllSupport, CallResults[callIndex].source, ppIncludeSource);
+    MultiByteStringToBlob(m_dllSupport, CallResults[callIndex].source,
+                          CallResults[callIndex].codePage, ppIncludeSource);
     return CallResults[callIndex++].hr;
   }
 };
@@ -222,14 +225,13 @@ public:
   TEST_METHOD(CompileWhenIncludeFlagsThenIncludeUsed)
   TEST_METHOD(CompileWhenIncludeMissingThenFail)
   TEST_METHOD(CompileWhenIncludeHasPathThenOK)
+  TEST_METHOD(CompileWhenIncludeEmptyThenOK)
 
   TEST_METHOD(CompileWhenODumpThenPassConfig)
   TEST_METHOD(CompileWhenODumpThenOptimizerMatch)
   TEST_METHOD(CompileWhenVdThenProducesDxilContainer)
 
-#ifndef DXC_ON_APPVEYOR_CI
   TEST_METHOD(CompileWhenNoMemThenOOM)
-#endif // DXC_ON_APPVEYOR_CI
   TEST_METHOD(CompileWhenShaderModelMismatchAttributeThenFail)
   TEST_METHOD(CompileBadHlslThenFail)
   TEST_METHOD(CompileLegacyShaderModelThenFail)
@@ -353,7 +355,6 @@ public:
   TEST_METHOD(CodeGenEliminateDynamicIndexing2)
   TEST_METHOD(CodeGenEliminateDynamicIndexing3)
   TEST_METHOD(CodeGenEliminateDynamicIndexing4)
-  TEST_METHOD(CodeGenEliminateDynamicIndexing5)
   TEST_METHOD(CodeGenEliminateDynamicIndexing6)
   TEST_METHOD(CodeGenEmpty)
   TEST_METHOD(CodeGenEmptyStruct)
@@ -372,6 +373,7 @@ public:
   TEST_METHOD(CodeGenExternRes)
   TEST_METHOD(CodeGenExpandTrig)
   TEST_METHOD(CodeGenFloatCast)
+  TEST_METHOD(CodeGenFloatingPointEnvironment)
   TEST_METHOD(CodeGenFloatToBool)
   TEST_METHOD(CodeGenFirstbitHi)
   TEST_METHOD(CodeGenFirstbitLo)
@@ -921,6 +923,7 @@ public:
   TEST_METHOD(CodeGenDx12MiniEngineParticlesortindirectargscs)
   TEST_METHOD(CodeGenDx12MiniEngineParticlespawncs)
   TEST_METHOD(CodeGenDx12MiniEngineParticletilecullingcs)
+  TEST_METHOD(CodeGenDx12MiniEngineParticletilecullingcs_fail_unroll)
   TEST_METHOD(CodeGenDx12MiniEngineParticletilerendercs)
   TEST_METHOD(CodeGenDx12MiniEngineParticletilerenderfastcs)
   TEST_METHOD(CodeGenDx12MiniEngineParticletilerenderfastdynamiccs)
@@ -947,7 +950,9 @@ public:
   TEST_METHOD(HoistConstantArray)
   TEST_METHOD(VecElemConstEval)
   TEST_METHOD(ViewID)
+  TEST_METHOD(SubobjectCodeGenErrors)
   TEST_METHOD(ShaderCompatSuite)
+  TEST_METHOD(Unroll)
   TEST_METHOD(QuickTest)
   TEST_METHOD(QuickLlTest)
   BEGIN_TEST_METHOD(SingleFileCheckTest)
@@ -2299,6 +2304,27 @@ TEST_F(CompilerTest, CompileWhenIncludeHasPathThenOK) {
  }
 }
 
+TEST_F(CompilerTest, CompileWhenIncludeEmptyThenOK) {
+  CComPtr<IDxcCompiler> pCompiler;
+  CComPtr<IDxcOperationResult> pResult;
+  CComPtr<IDxcBlobEncoding> pSource;
+  CComPtr<TestIncludeHandler> pInclude;
+
+  VERIFY_SUCCEEDED(CreateCompiler(&pCompiler));
+  CreateBlobFromText("#include \"empty.h\"\r\n"
+                     "float4 main() : SV_Target { return 0; }",
+                     &pSource);
+
+  pInclude = new TestIncludeHandler(m_dllSupport);
+  pInclude->CallResults.emplace_back("", CP_ACP); // An empty file would get detected as ACP code page
+
+  VERIFY_SUCCEEDED(pCompiler->Compile(pSource, L"source.hlsl", L"main",
+                                      L"ps_6_0", nullptr, 0, nullptr, 0,
+                                      pInclude, &pResult));
+  VerifyOperationSucceeded(pResult);
+  VERIFY_ARE_EQUAL_WSTR(L"./empty.h;", pInclude->GetAllFileNames().c_str());
+}
+
 static const char EmptyCompute[] = "[numthreads(8,8,1)] void main() { }";
 
 TEST_F(CompilerTest, CompileWhenODumpThenPassConfig) {
@@ -2541,9 +2567,19 @@ public:
   }
 
   virtual void STDMETHODCALLTYPE HeapMinimize(void) {}
+
+  void DumpLeaks() {
+    PtrData *ptr = (PtrData*)AllocList.Flink;;
+    PtrData *end = (PtrData*)AllocList.Blink;;
+
+    WEX::Logging::Log::Comment(FormatToWString(L"Leaks total size: %d", (signed int)m_Size).data());
+    while (ptr != end) {
+      WEX::Logging::Log::Comment(FormatToWString(L"Memory leak at 0x0%X, size %d, alloc# %d", ptr + 1, ptr->Size, ptr->AllocAtCount).data());
+      ptr = (PtrData*)ptr->Entry.Flink;
+    }
+  }
 };
 
-#ifndef DXC_ON_APPVEYOR_CI
 TEST_F(CompilerTest, CompileWhenNoMemThenOOM) {
   WEX::TestExecution::SetVerifyOutput verifySettings(WEX::TestExecution::VerifyOutputSettings::LogOnlyFailures);
 
@@ -2591,7 +2627,12 @@ TEST_F(CompilerTest, CompileWhenNoMemThenOOM) {
   // allocations or references.
   //
   // First leak is in ((InstrumentedHeapMalloc::PtrData *)InstrMalloc.AllocList.Flink)
-  VERIFY_IS_TRUE(0 == InstrMalloc.GetSize());
+  if (InstrMalloc.GetSize() != 0) {
+    WEX::Logging::Log::Comment(L"Memory leak(s) detected");
+    InstrMalloc.DumpLeaks();
+    VERIFY_IS_TRUE(0 == InstrMalloc.GetSize());
+  }
+
   VERIFY_ARE_EQUAL(initialRefCount, InstrMalloc.GetRefCount());
 
   // In Debug, without /D_ITERATOR_DEBUG_LEVEL=0, debug iterators will be used;
@@ -2627,11 +2668,15 @@ TEST_F(CompilerTest, CompileWhenNoMemThenOOM) {
       VERIFY_FAILED(hrOp);
     pCompiler.Release();
     pResult.Release();
-    VERIFY_IS_TRUE(0 == InstrMalloc.GetSize()); // breakpoint for i failure - i == val
+    
+    if (InstrMalloc.GetSize() != 0) {
+      WEX::Logging::Log::Comment(FormatToWString(L"Memory leak(s) detected, allocCount = %d", i).data()); 
+      InstrMalloc.DumpLeaks();
+      VERIFY_IS_TRUE(0 == InstrMalloc.GetSize());
+    }
     VERIFY_ARE_EQUAL(initialRefCount, InstrMalloc.GetRefCount());
   }
 }
-#endif // DXC_ON_APPVEYOR_CI
 
 TEST_F(CompilerTest, CompileWhenShaderModelMismatchAttributeThenFail) {
   CComPtr<IDxcCompiler> pCompiler;
@@ -3320,10 +3365,6 @@ TEST_F(CompilerTest, CodeGenEliminateDynamicIndexing4) {
   CodeGenTestCheck(L"eliminate_dynamic_output4.hlsl");
 }
 
-TEST_F(CompilerTest, CodeGenEliminateDynamicIndexing5) {
-  CodeGenTestCheck(L"eliminate_dynamic_output5.hlsl");
-}
-
 TEST_F(CompilerTest, CodeGenEliminateDynamicIndexing6) {
   CodeGenTestCheck(L"eliminate_dynamic_output6.hlsl");
 }
@@ -3409,6 +3450,28 @@ TEST_F(CompilerTest, CodeGenExpandTrig) {
 
 TEST_F(CompilerTest, CodeGenFloatCast) {
   CodeGenTestCheck(L"..\\CodeGenHLSL\\float_cast.hlsl");
+}
+
+struct FPEnableExceptionsScope
+{
+  // _controlfp_s is non-standard and <cfenv> doesn't have a function to enable exceptions
+#ifdef _WIN32
+  unsigned int previousValue;
+  FPEnableExceptionsScope() {
+    VERIFY_IS_TRUE(_controlfp_s(&previousValue, 0, _MCW_EM) == 0); // _MCW_EM == 0 means enable all exceptions
+  }
+  ~FPEnableExceptionsScope() {
+    unsigned int newValue;
+    errno_t error = _controlfp_s(&newValue, previousValue, _MCW_EM);
+    DXASSERT(error == 0, "Failed to restore floating-point environment.");
+    (void)error;
+  }
+#endif
+};
+
+TEST_F(CompilerTest, CodeGenFloatingPointEnvironment) {
+  FPEnableExceptionsScope fpEnableExceptions;
+  CodeGenTestCheck(L"..\\CodeGenHLSL\\fpexcept.hlsl");
 }
 
 TEST_F(CompilerTest, CodeGenFloatToBool) {
@@ -5591,6 +5654,10 @@ TEST_F(CompilerTest, CodeGenDx12MiniEngineParticletilecullingcs){
   CodeGenTestCheck(L"..\\CodeGenHLSL\\Samples\\MiniEngine\\ParticleTileCullingCS.hlsl");
 }
 
+TEST_F(CompilerTest, CodeGenDx12MiniEngineParticletilecullingcs_fail_unroll){
+  CodeGenTestCheck(L"..\\CodeGenHLSL\\Samples\\MiniEngine\\ParticleTileCullingCS_fail_unroll.hlsl");
+}
+
 TEST_F(CompilerTest, CodeGenDx12MiniEngineParticletilerendercs){
   CodeGenTestCheck(L"..\\CodeGenHLSL\\Samples\\MiniEngine\\ParticleTileRenderCS.hlsl");
 }
@@ -5899,6 +5966,56 @@ TEST_F(CompilerTest, ViewID) {
   CodeGenTestCheck(L"..\\CodeGenHLSL\\viewid\\viewid17.hlsl");
   CodeGenTestCheck(L"..\\CodeGenHLSL\\viewid\\viewid18.hlsl");
   CodeGenTestCheck(L"..\\CodeGenHLSL\\viewid\\viewid19.hlsl");
+}
+
+TEST_F(CompilerTest, SubobjectCodeGenErrors) {
+  struct SubobjectErrorTestCase {
+    const char *shaderText;
+    const char *expectedError;
+  };
+  SubobjectErrorTestCase testCases[] = {
+    { "GlobalRootSignature grs;",           "1:1: error: subobject needs to be initialized" },
+    { "StateObjectConfig soc;",             "1:1: error: subobject needs to be initialized" },
+    { "LocalRootSignature lrs;",            "1:1: error: subobject needs to be initialized" },
+    { "SubobjectToExportsAssociation sea;", "1:1: error: subobject needs to be initialized" },
+    { "RaytracingShaderConfig rsc;",        "1:1: error: subobject needs to be initialized" },
+    { "RaytracingPipelineConfig rpc;",      "1:1: error: subobject needs to be initialized" },
+    { "TriangleHitGroup hitGt;",            "1:1: error: subobject needs to be initialized" },
+    { "ProceduralPrimitiveHitGroup hitGt;", "1:1: error: subobject needs to be initialized" },
+    { "GlobalRootSignature grs2 = {\"\"};", "1:29: error: empty string not expected here" },
+    { "LocalRootSignature lrs2 = {\"\"};",  "1:28: error: empty string not expected here" },
+    { "SubobjectToExportsAssociation sea2 = { \"\", \"x\" };", "1:40: error: empty string not expected here" },
+    { "string s; SubobjectToExportsAssociation sea4 = { \"x\", s };", "1:55: error: cannot convert to constant string" },
+    { "extern int v; RaytracingPipelineConfig rpc2 = { v + 16 };", "1:49: error: cannot convert to constant unsigned int" },
+    { "string s; TriangleHitGroup trHitGt2_8 = { s, \"foo\" };", "1:43: error: cannot convert to constant string" },
+    { "string s; ProceduralPrimitiveHitGroup ppHitGt2_8 = { s, \"\", s };", "1:54: error: cannot convert to constant string" },
+    { "ProceduralPrimitiveHitGroup ppHitGt2_9 = { \"a\", \"b\", \"\"};", "1:54: error: empty string not expected here" }
+  };
+
+  for (unsigned i = 0; i < _countof(testCases); i++) {
+    CComPtr<IDxcCompiler> pCompiler;
+    CComPtr<IDxcOperationResult> pResult;
+    CComPtr<IDxcBlobEncoding> pSource;
+    VERIFY_SUCCEEDED(CreateCompiler(&pCompiler));
+
+    CreateBlobFromText(testCases[i].shaderText, &pSource);
+    VERIFY_SUCCEEDED(pCompiler->Compile(pSource, L"source.hlsl", L"", L"lib_6_4", nullptr, 0, nullptr, 0, nullptr, &pResult));
+    std::string failLog(VerifyOperationFailed(pResult));
+    VERIFY_ARE_NOT_EQUAL(string::npos, failLog.find(testCases[i].expectedError));
+  }
+}
+
+TEST_F(CompilerTest, Unroll) {
+  using namespace WEX::TestExecution;
+  std::wstring suitePath = L"..\\CodeGenHLSL\\unroll";
+
+  WEX::Common::String value;
+  if (!DXC_FAILED(RuntimeParameters::TryGetValue(L"SuitePath", value)))
+  {
+    suitePath = value;
+  }
+
+  CodeGenTestCheckBatchDir(suitePath);
 }
 
 TEST_F(CompilerTest, ShaderCompatSuite) {

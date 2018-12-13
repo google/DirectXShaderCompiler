@@ -215,6 +215,57 @@ bool IsValidWarpDllVersion(unsigned int minBuildNumber) {
     return false;
 }
 
+#if WDK_NTDDI_VERSION <= NTDDI_WIN10_RS2
+#define D3D12_FEATURE_D3D12_OPTIONS3 ((D3D12_FEATURE)21)
+#define NTDDI_WIN10_RS3                     0x0A000004  /* ABRACADABRA_WIN10_RS2 */
+typedef
+enum D3D12_COMMAND_LIST_SUPPORT_FLAGS
+{
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_NONE = 0,
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_DIRECT = (1 << D3D12_COMMAND_LIST_TYPE_DIRECT),
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_BUNDLE = (1 << D3D12_COMMAND_LIST_TYPE_BUNDLE),
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_COMPUTE = (1 << D3D12_COMMAND_LIST_TYPE_COMPUTE),
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_COPY = (1 << D3D12_COMMAND_LIST_TYPE_COPY),
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_VIDEO_DECODE = (1 << 4),
+  D3D12_COMMAND_LIST_SUPPORT_FLAG_VIDEO_PROCESS = (1 << 5)
+} D3D12_COMMAND_LIST_SUPPORT_FLAGS;
+
+typedef
+enum D3D12_VIEW_INSTANCING_TIER
+{
+  D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED = 0,
+  D3D12_VIEW_INSTANCING_TIER_1 = 1,
+  D3D12_VIEW_INSTANCING_TIER_2 = 2,
+  D3D12_VIEW_INSTANCING_TIER_3 = 3
+} D3D12_VIEW_INSTANCING_TIER;
+
+typedef struct D3D12_FEATURE_DATA_D3D12_OPTIONS3
+{
+  _Out_  BOOL CopyQueueTimestampQueriesSupported;
+  _Out_  BOOL CastingFullyTypedFormatSupported;
+  _Out_  DWORD WriteBufferImmediateSupportFlags;
+  _Out_  D3D12_VIEW_INSTANCING_TIER ViewInstancingTier;
+  _Out_  BOOL BarycentricsSupported;
+} D3D12_FEATURE_DATA_D3D12_OPTIONS3;
+#endif
+
+#if WDK_NTDDI_VERSION <= NTDDI_WIN10_RS3
+#define D3D12_FEATURE_D3D12_OPTIONS4 ((D3D12_FEATURE)23)
+typedef enum D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER
+{
+    D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER_0,
+    D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER_1,
+} D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER;
+
+typedef struct D3D12_FEATURE_DATA_D3D12_OPTIONS4
+{
+    _Out_ BOOL ReservedBufferPlacementSupported;
+    _Out_ D3D12_SHARED_RESOURCE_COMPATIBILITY_TIER SharedResourceCompatibilityTier;
+    _Out_ BOOL Native16BitShaderOpsSupported;
+} D3D12_FEATURE_DATA_D3D12_OPTIONS4;
+
+#endif
+
 // Virtual class to compute the expected result given a set of inputs
 struct TableParameter;
 
@@ -355,6 +406,21 @@ public:
     TEST_METHOD_PROPERTY(L"Priority", L"2") // Remove this line once warp supports this feature in Shader Model 6.2
   END_TEST_METHOD()
 
+  TEST_METHOD(BarycentricsTest);
+  
+  TEST_METHOD(ComputeRawBufferLdStI32);
+  TEST_METHOD(ComputeRawBufferLdStFloat);
+  TEST_METHOD(ComputeRawBufferLdStI64);
+  TEST_METHOD(ComputeRawBufferLdStDouble);
+  TEST_METHOD(ComputeRawBufferLdStI16);
+  TEST_METHOD(ComputeRawBufferLdStHalf);
+  TEST_METHOD(GraphicsRawBufferLdStI32);
+  TEST_METHOD(GraphicsRawBufferLdStFloat);
+  TEST_METHOD(GraphicsRawBufferLdStI64);
+  TEST_METHOD(GraphicsRawBufferLdStDouble);
+  TEST_METHOD(GraphicsRawBufferLdStI16);
+  TEST_METHOD(GraphicsRawBufferLdStHalf);
+
   // This is defined in d3d.h for Windows 10 Anniversary Edition SDK, but we only
   // require the Windows 10 SDK.
   typedef enum D3D_SHADER_MODEL {
@@ -379,7 +445,7 @@ public:
 
   const float ClearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
 
-// Do not remove the following line - it is used bqy TranslateExecutionTest.py
+// Do not remove the following line - it is used by TranslateExecutionTest.py
 // MARKER: ExecutionTest/DxilConf Shared Implementation Start
 
   bool UseDxbc() {
@@ -413,6 +479,17 @@ public:
   void BasicTriangleTestSetup(LPCSTR OpName, LPCWSTR FileName, D3D_SHADER_MODEL testModel);
 
   void RunBasicShaderModelTest(D3D_SHADER_MODEL shaderModel);
+
+  enum class RawBufferLdStType {
+     I32,
+     Float,
+     I64,
+     Double,
+     I16,
+     Half
+  };
+
+  void RunRawBufferLdStTest(D3D_SHADER_MODEL shaderModel, RawBufferLdStType dataType, char *shaderOpName = nullptr);
 
   template <class Ty>
   void RunBasicShaderModelTest(CComPtr<ID3D12Device> pDevice, const char *pShaderModelStr, const char *pShader, Ty *pInputDataPairs, unsigned inputDataCount);
@@ -778,6 +855,20 @@ public:
     return O.WaveOps != FALSE;
   }
 
+  bool DoesDeviceSupportBarycentrics(ID3D12Device *pDevice) {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS3 O;
+    if (FAILED(pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS3, &O, sizeof(O))))
+      return false;
+    return O.BarycentricsSupported != FALSE;
+  }
+
+  bool DoesDeviceSupportNative16bitOps(ID3D12Device *pDevice) {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS4 O;
+    if (FAILED(pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS4, &O, sizeof(O))))
+      return false;
+    return O.Native16BitShaderOpsSupported != FALSE;
+  }
+    
 #ifndef _HLK_CONF
   void DXBCFromText(LPCSTR pText, LPCWSTR pEntryPoint, LPCWSTR pTargetProfile, ID3DBlob **ppBlob) {
     CW2A pEntryPointA(pEntryPoint, CP_UTF8);
@@ -5716,6 +5807,170 @@ TEST_F(ExecutionTest, CBufferTestHalf) {
       VERIFY_ARE_EQUAL(inputFloat, outputFloat);
     }
   }
+}
+
+TEST_F(ExecutionTest, BarycentricsTest) {
+    WEX::TestExecution::SetVerifyOutput verifySettings(WEX::TestExecution::VerifyOutputSettings::LogOnlyFailures);
+    CComPtr<IStream> pStream;
+    ReadHlslDataIntoNewStream(L"ShaderOpArith.xml", &pStream);
+
+    CComPtr<ID3D12Device> pDevice;
+    if (!CreateDevice(&pDevice, D3D_SHADER_MODEL_6_1))
+        return;
+
+    if (!DoesDeviceSupportBarycentrics(pDevice)) {
+      WEX::Logging::Log::Comment(L"Device does not support barycentrics.");
+      WEX::Logging::Log::Result(WEX::Logging::TestResults::Skipped);
+      return;
+    }
+
+    std::shared_ptr<ShaderOpTestResult> test = RunShaderOpTest(pDevice, m_support, pStream, "Barycentrics", nullptr);
+    MappedData data;
+    D3D12_RESOURCE_DESC &D = test->ShaderOp->GetResourceByName("RTarget")->Desc;
+    UINT width = (UINT)D.Width;
+    UINT height = D.Height;
+    UINT pixelSize = GetByteSizeForFormat(D.Format);
+
+    test->Test->GetReadBackData("RTarget", &data);
+    //const uint8_t *pPixels = (uint8_t *)data.data();
+    const float *pPixels = (float *)data.data();
+    // Get the vertex of barycentric coordinate using VBuffer
+    MappedData triangleData;
+    test->Test->GetReadBackData("VBuffer", &triangleData);
+    const float *pTriangleData = (float*)triangleData.data();
+    // get the size of the input data
+    unsigned triangleVertexSizeInFloat = 0;
+    for (auto element : test->ShaderOp->InputElements)
+        triangleVertexSizeInFloat += GetByteSizeForFormat(element.Format) / 4;
+
+    XMFLOAT2 p0(pTriangleData[0], pTriangleData[1]);
+    XMFLOAT2 p1(pTriangleData[triangleVertexSizeInFloat], pTriangleData[triangleVertexSizeInFloat + 1]);
+    XMFLOAT2 p2(pTriangleData[triangleVertexSizeInFloat * 2], pTriangleData[triangleVertexSizeInFloat * 2 + 1]);
+
+    XMFLOAT3 barycentricWeights[4] = {
+        XMFLOAT3(0.3333f, 0.3333f, 0.3333f),
+        XMFLOAT3(0.5f, 0.25f, 0.25f),
+        XMFLOAT3(0.25f, 0.5f, 0.25f),
+        XMFLOAT3(0.25f, 0.25f, 0.50f)
+    };
+
+    float tolerance = 0.001f;
+    for (unsigned i = 0; i < sizeof(barycentricWeights) / sizeof(XMFLOAT3); ++i) {
+        float w0 = barycentricWeights[i].x;
+        float w1 = barycentricWeights[i].y;
+        float w2 = barycentricWeights[i].z;
+        float x1 = w0 * p0.x + w1 * p1.x + w2 * p2.x;
+        float y1 = w0 * p0.y + w1 * p1.y + w2 * p2.y;
+        // map from x1 y1 to rtv pixels
+        int pixelX = (int)((x1 + 1) * (width - 1) / 2);
+        int pixelY = (int)((1 - y1) * (height - 1) / 2);
+        int offset = pixelSize * (pixelX + pixelY * width) / sizeof(pPixels[0]);
+        LogCommentFmt(L"location  %u %u, value %f, %f, %f", pixelX, pixelY, pPixels[offset], pPixels[offset + 1], pPixels[offset + 2]);
+        VERIFY_IS_TRUE(CompareFloatEpsilon(pPixels[offset], w0, tolerance));
+        VERIFY_IS_TRUE(CompareFloatEpsilon(pPixels[offset + 1], w1, tolerance));
+        VERIFY_IS_TRUE(CompareFloatEpsilon(pPixels[offset + 2], w2, tolerance));
+    }
+    //SavePixelsToFile(pPixels, DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, L"barycentric.bmp");
+}
+
+TEST_F(ExecutionTest, ComputeRawBufferLdStI32) {
+  RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::I32, "ComputeRawBufferLdStI32");
+}
+
+TEST_F(ExecutionTest,    ComputeRawBufferLdStFloat)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::Float, "ComputeRawBufferLdStFloat");
+}
+
+TEST_F(ExecutionTest,  ComputeRawBufferLdStI64)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_3, RawBufferLdStType::I64, "ComputeRawBufferLdStI64");
+}
+
+TEST_F(ExecutionTest,  ComputeRawBufferLdStDouble)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_3, RawBufferLdStType::Double, "ComputeRawBufferLdStDouble");
+}
+
+TEST_F(ExecutionTest, ComputeRawBufferLdStI16) {
+  RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::I16, "ComputeRawBufferLdStI16");
+}
+
+TEST_F(ExecutionTest,  ComputeRawBufferLdStHalf)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::Half, "ComputeRawBufferLdStHalf");
+}
+
+TEST_F(ExecutionTest,  GraphicsRawBufferLdStI32)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::I32, "GraphicsRawBufferLdStI32");
+}
+
+TEST_F(ExecutionTest,  GraphicsRawBufferLdStFloat)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::Float, "GraphicsRawBufferLdStFloat");
+}
+
+TEST_F(ExecutionTest,  GraphicsRawBufferLdStI64)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_3, RawBufferLdStType::I64, "GraphicsRawBufferLdStI64");
+}
+
+TEST_F(ExecutionTest,  GraphicsRawBufferLdStDouble)  {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_3, RawBufferLdStType::Double, "GraphicsRawBufferLdStDouble");
+}
+
+TEST_F(ExecutionTest, GraphicsRawBufferLdStI16) {
+  RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::I16, "GraphicsRawBufferLdStI16");
+}
+
+TEST_F(ExecutionTest, GraphicsRawBufferLdStHalf) {
+   RunRawBufferLdStTest(D3D_SHADER_MODEL_6_2, RawBufferLdStType::Half, "GraphicsRawBufferLdStHalf");
+}
+
+void ExecutionTest::RunRawBufferLdStTest(D3D_SHADER_MODEL shaderModel, RawBufferLdStType dataType, char *shaderOpName) {
+   WEX::TestExecution::SetVerifyOutput verifySettings(
+   WEX::TestExecution::VerifyOutputSettings::LogOnlyFailures);
+
+   CComPtr<ID3D12Device> pDevice;
+   if (!CreateDevice(&pDevice, shaderModel)) {
+     return;
+   }
+
+   switch (dataType) {
+   case RawBufferLdStType::I64:
+     if (!DoesDeviceSupportInt64(pDevice)) {
+       WEX::Logging::Log::Comment(L"Device does not support int64 operations.");
+       WEX::Logging::Log::Result(WEX::Logging::TestResults::Skipped);
+       return;
+     }
+     break;
+   case RawBufferLdStType::Double:
+     if (!DoesDeviceSupportDouble(pDevice)) {
+       WEX::Logging::Log::Comment(L"Device does not support double operations.");
+       WEX::Logging::Log::Result(WEX::Logging::TestResults::Skipped);
+       return;
+     }
+     break;
+   case RawBufferLdStType::I16:
+   case RawBufferLdStType::Half:
+     if (!DoesDeviceSupportNative16bitOps(pDevice)) {
+       WEX::Logging::Log::Comment(L"Device does not support native 16-bit operations.");
+       WEX::Logging::Log::Result(WEX::Logging::TestResults::Skipped);
+       return;
+     }
+     break;
+   case RawBufferLdStType::I32:
+   case RawBufferLdStType::Float:
+     break;
+   default:
+     DXASSERT_NOMSG("Invalid RawBufferLdStType");
+   }
+
+   if (shaderOpName == nullptr) {
+     // TODO: finish up all variations
+     WEX::Logging::Log::Result(WEX::Logging::TestResults::Skipped);
+     return;
+   }
+
+   CComPtr<IStream> pStream;
+   ReadHlslDataIntoNewStream(L"ShaderOpArith.xml", &pStream);
+
+   // TODO: finish up
+   WEX::Logging::Log::Result(WEX::Logging::TestResults::Skipped);
 }
 
 #ifndef _HLK_CONF

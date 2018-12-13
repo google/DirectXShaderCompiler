@@ -13,6 +13,7 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include "dxc/Support/Global.h"
 #include "clang/AST/CanonicalType.h"
 #include "clang/AST/DeclTemplate.h"
 #include "clang/AST/HlslTypes.h"
@@ -276,6 +277,26 @@ void GetRowsAndCols(clang::QualType type, uint32_t &rowCount,
   colCount = colSize.getLimitedValue();
 }
 
+bool IsArrayConstantStringType(const QualType type) {
+  DXASSERT_NOMSG(type->isArrayType());
+  return type->getArrayElementTypeNoTypeQual()->isSpecificBuiltinType(BuiltinType::Char_S);
+}
+
+bool IsPointerStringType(const QualType type) {
+  DXASSERT_NOMSG(type->isPointerType());
+  return type->getPointeeType()->isSpecificBuiltinType(BuiltinType::Char_S);
+}
+
+bool IsStringType(const QualType type) {
+  QualType canType = type.getCanonicalType();
+  return canType->isPointerType() && IsPointerStringType(canType);
+}
+
+bool IsStringLiteralType(const QualType type) {
+  QualType canType = type.getCanonicalType();
+  return canType->isArrayType() && IsArrayConstantStringType(canType);
+}
+
 void GetRowsAndColsForAny(QualType type, uint32_t &rowCount,
                           uint32_t &colCount) {
   assert(!type.isNull());
@@ -284,7 +305,7 @@ void GetRowsAndColsForAny(QualType type, uint32_t &rowCount,
   rowCount = 1;
   colCount = 1;
   const Type *Ty = type.getCanonicalType().getTypePtr();
-  if (type->isArrayType()) {
+  if (type->isArrayType() && !IsArrayConstantStringType(type)) {
     if (type->isConstantArrayType()) {
       const ConstantArrayType *arrayType =
           (const ConstantArrayType *)type->getAsArrayTypeUnsafe();
@@ -479,6 +500,50 @@ bool IsHLSLResourceType(clang::QualType type) {
   }
   return false;
 }
+
+bool IsHLSLSubobjectType(clang::QualType type) {
+  DXIL::SubobjectKind kind;
+  DXIL::HitGroupType hgType;
+  return GetHLSLSubobjectKind(type, kind, hgType);
+}
+
+bool GetHLSLSubobjectKind(clang::QualType type, DXIL::SubobjectKind &subobjectKind, DXIL::HitGroupType &hgType) {
+  hgType = (DXIL::HitGroupType)(-1);
+  type = type.getCanonicalType();
+  if (const RecordType *RT = type->getAs<RecordType>()) {
+    StringRef name = RT->getDecl()->getName();
+    switch (name.size()) {
+    case 17:
+      return name == "StateObjectConfig" ? (subobjectKind = DXIL::SubobjectKind::StateObjectConfig, true) : false;
+    case 18:
+      return name == "LocalRootSignature" ? (subobjectKind = DXIL::SubobjectKind::LocalRootSignature, true) : false;
+    case 19:
+      return name == "GlobalRootSignature" ? (subobjectKind = DXIL::SubobjectKind::GlobalRootSignature, true) : false;
+    case 29:
+      return name == "SubobjectToExportsAssociation" ? (subobjectKind = DXIL::SubobjectKind::SubobjectToExportsAssociation, true) : false;
+    case 22:
+      return name == "RaytracingShaderConfig" ? (subobjectKind = DXIL::SubobjectKind::RaytracingShaderConfig, true) : false;
+    case 24:
+      return name == "RaytracingPipelineConfig" ? (subobjectKind = DXIL::SubobjectKind::RaytracingPipelineConfig, true) : false;
+    case 16:
+      if (name == "TriangleHitGroup") {
+        subobjectKind = DXIL::SubobjectKind::HitGroup;
+        hgType = DXIL::HitGroupType::Triangle;
+        return true;
+      }
+      return false;
+    case 27:
+      if (name == "ProceduralPrimitiveHitGroup") {
+        subobjectKind = DXIL::SubobjectKind::HitGroup;
+        hgType = DXIL::HitGroupType::ProceduralPrimitive;
+        return true;
+      }
+      return false;
+    }
+  }
+  return false;
+}
+
 QualType GetHLSLResourceResultType(QualType type) {
   type = type.getCanonicalType();
   const RecordType *RT = cast<RecordType>(type);

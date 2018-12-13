@@ -25,14 +25,17 @@
 #include "llvm/IR/AssemblyAnnotationWriter.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Format.h"
-#include "dxc/HLSL/DxilPipelineStateValidation.h"
+#include "dxc/DxilContainer/DxilPipelineStateValidation.h"
+#include "dxc/DxilContainer/DxilContainer.h"
+#include "dxc/DxilContainer/DxilRuntimeReflection.h"
+#include "dxc/DxilContainer/DxilContainerReader.h"
 #include "dxc/HLSL/ComputeViewIdState.h"
-#include "dxc/DXIL/DxilContainer.h"
 #include "dxc/DXIL/DxilUtil.h"
 #include "dxcutil.h"
 
 using namespace llvm;
 using namespace hlsl;
+using namespace hlsl::DXIL;
 
 namespace {
 // Disassemble helper functions.
@@ -321,7 +324,8 @@ PCSTR g_pFeatureInfoNames[] = {
     "64-Bit integer",
     "View Instancing",
     "Barycentrics",
-    "Use native low precision"
+    "Use native low precision",
+    "Shading Rate"
 };
 static_assert(_countof(g_pFeatureInfoNames) == ShaderFeatureInfoCount, "g_pFeatureInfoNames needs to be updated");
 
@@ -574,11 +578,165 @@ void PrintViewIdState(DxilModule &M, raw_string_ostream &OS,
   OS << comment << "\n";
 }
 
-void PrintStructLayout(StructType *ST, DxilTypeSystem &typeSys,
-                              raw_string_ostream &OS, StringRef comment,
-                              StringRef varName, unsigned offset,
-                              unsigned indent, unsigned arraySize,
-                              unsigned sizeOfStruct = 0);
+static const char *SubobjectKindToString(DXIL::SubobjectKind kind) {
+  switch (kind) {
+  case DXIL::SubobjectKind::StateObjectConfig: return "StateObjectConfig";
+  case DXIL::SubobjectKind::GlobalRootSignature: return "GlobalRootSignature";
+  case DXIL::SubobjectKind::LocalRootSignature: return "LocalRootSignature";
+  case DXIL::SubobjectKind::SubobjectToExportsAssociation: return "SubobjectToExportsAssociation";
+  case DXIL::SubobjectKind::RaytracingShaderConfig: return "RaytracingShaderConfig";
+  case DXIL::SubobjectKind::RaytracingPipelineConfig: return "RaytracingPipelineConfig";
+  case DXIL::SubobjectKind::HitGroup: return "HitGroup";
+  }
+  return "<invalid kind>";
+}
+
+static const char *FlagToString(DXIL::StateObjectFlags Flag) {
+  switch (Flag) {
+  case DXIL::StateObjectFlags::AllowLocalDependenciesOnExternalDefinitions:
+    return "STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITIONS";
+  case DXIL::StateObjectFlags::AllowExternalDependenciesOnLocalDefinitions:
+    return "STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS";
+  }
+  return "<invalid StateObjectFlag>";
+}
+
+static const char *HitGroupTypeToString(DXIL::HitGroupType type) {
+  switch (type) {
+  case DXIL::HitGroupType::Triangle:
+    return "Triangle";
+  case DXIL::HitGroupType::ProceduralPrimitive:
+    return "ProceduralPrimitive";
+  }
+  return "<invalid HitGroupType>";
+}
+
+template <typename _T>
+void PrintFlags(raw_string_ostream &OS, uint32_t Flags) {
+  if (!Flags) {
+    OS << "0";
+    return;
+  }
+  uint32_t flag = 0;
+  while (Flags) {
+    if (flag)
+      OS << " | ";
+    flag = (Flags & ~(Flags - 1));
+    Flags ^= flag;
+    OS << FlagToString((_T)flag);
+  }
+}
+
+void PrintSubobjects(const DxilSubobjects &subobjects,
+                     raw_string_ostream &OS,
+                     StringRef comment) {
+  if (subobjects.GetSubobjects().empty())
+    return;
+
+  OS << comment << "\n";
+  OS << comment << " Subobjects:\n";
+  OS << comment << "\n";
+
+  for (auto &it : subobjects.GetSubobjects()) {
+    StringRef name = it.first;
+    if (!it.second) {
+      OS << comment << "  " << name << " = <null>" << "\n";
+      continue;
+    }
+    const DxilSubobject &obj = *it.second.get();
+    OS << comment << "  " << SubobjectKindToString(obj.GetKind()) << " " << name << " = " << "{ ";
+    bool bLocalRS = false;
+    switch (obj.GetKind()) {
+    case DXIL::SubobjectKind::StateObjectConfig: {
+      uint32_t Flags = 0;
+      if (!obj.GetStateObjectConfig(Flags)) {
+        OS << "<error getting subobject>";
+        break;
+      }
+      PrintFlags<DXIL::StateObjectFlags>(OS, Flags);
+      break;
+    }
+    case DXIL::SubobjectKind::LocalRootSignature:
+      bLocalRS = true;
+      __fallthrough;
+    case DXIL::SubobjectKind::GlobalRootSignature: {
+      const char *Text = nullptr;
+      const void *Data = nullptr;
+      uint32_t Size = 0;
+      if (!obj.GetRootSignature(bLocalRS, Data, Size, &Text)) {
+        OS << "<error getting subobject>";
+        break;
+      }
+      OS << "<" << Size << " bytes>";
+      if (Text && Text[0]) {
+        OS << ", \"" << Text << "\"";
+      }
+      break;
+    }
+    case DXIL::SubobjectKind::SubobjectToExportsAssociation: {
+      llvm::StringRef Subobject;
+      const char * const * Exports = nullptr;
+      uint32_t NumExports;
+      if (!obj.GetSubobjectToExportsAssociation(Subobject, Exports, NumExports)) {
+        OS << "<error getting subobject>";
+        break;
+      }
+      OS << "\"" << Subobject << "\", { ";
+      if (Exports) {
+        for (unsigned i = 0; i < NumExports; ++i) {
+          OS << (i ? ", " : "") << "\"" << Exports[i] << "\"";
+        }
+      }
+      OS << " } ";
+      break;
+    }
+    case DXIL::SubobjectKind::RaytracingShaderConfig: {
+      uint32_t MaxPayloadSizeInBytes;
+      uint32_t MaxAttributeSizeInBytes;
+      if (!obj.GetRaytracingShaderConfig(MaxPayloadSizeInBytes,
+                                         MaxAttributeSizeInBytes)) {
+        OS << "<error getting subobject>";
+        break;
+      }
+      OS << "MaxPayloadSizeInBytes = " << MaxPayloadSizeInBytes
+         << ", MaxAttributeSizeInBytes = " << MaxAttributeSizeInBytes;
+      break;
+    }
+    case DXIL::SubobjectKind::RaytracingPipelineConfig: {
+      uint32_t MaxTraceRecursionDepth;
+      if (!obj.GetRaytracingPipelineConfig(MaxTraceRecursionDepth)) {
+        OS << "<error getting subobject>";
+        break;
+      }
+      OS << "MaxTraceRecursionDepth = " << MaxTraceRecursionDepth;
+      break;
+    }
+    case DXIL::SubobjectKind::HitGroup: {
+      HitGroupType hgType;
+      StringRef AnyHit;
+      StringRef ClosestHit;
+      StringRef Intersection;
+      if (!obj.GetHitGroup(hgType, AnyHit, ClosestHit, Intersection)) {
+        OS << "<error getting subobject>";
+        break;
+      }
+      OS << "HitGroupType = " << HitGroupTypeToString(hgType) 
+         << ", Anyhit = \"" << AnyHit
+         << "\", Closesthit = \"" << ClosestHit
+         << "\", Intersection = \"" << Intersection << "\"";
+      break;
+    }
+    }
+    OS << " };\n";
+  }
+  OS << comment << "\n";
+}
+
+void PrintStructLayout(StructType *ST, DxilTypeSystem &typeSys, const DataLayout *DL,
+                       raw_string_ostream &OS, StringRef comment,
+                       StringRef varName, unsigned offset,
+                       unsigned indent, unsigned arraySize,
+                       unsigned sizeOfStruct = 0);
 
 void PrintTypeAndName(llvm::Type *Ty, DxilFieldAnnotation &annotation,
                              std::string &StreamStr, unsigned arraySize, bool minPrecision) {
@@ -614,13 +772,13 @@ void PrintTypeAndName(llvm::Type *Ty, DxilFieldAnnotation &annotation,
 }
 
 void PrintFieldLayout(llvm::Type *Ty, DxilFieldAnnotation &annotation,
-                             DxilTypeSystem &typeSys, raw_string_ostream &OS,
-                             StringRef comment, unsigned offset,
-                             unsigned indent, unsigned offsetIndent,
-                             unsigned sizeToPrint = 0) {
-  offset += annotation.GetCBufferOffset();
+                      DxilTypeSystem &typeSys, const DataLayout* DL,
+                      raw_string_ostream &OS,
+                      StringRef comment, unsigned offset,
+                      unsigned indent, unsigned offsetIndent,
+                      unsigned sizeToPrint = 0) {
   if (Ty->isStructTy() && !annotation.HasMatrixAnnotation()) {
-    PrintStructLayout(cast<StructType>(Ty), typeSys, OS, comment,
+    PrintStructLayout(cast<StructType>(Ty), typeSys, DL, OS, comment,
                       annotation.GetFieldName(), offset, indent, offsetIndent);
   } else {
     llvm::Type *EltTy = Ty;
@@ -667,7 +825,7 @@ void PrintFieldLayout(llvm::Type *Ty, DxilFieldAnnotation &annotation,
       Stream << ";";
       Stream.flush();
 
-      PrintStructLayout(cast<StructType>(EltTy), typeSys, OS, comment,
+      PrintStructLayout(cast<StructType>(EltTy), typeSys, DL, OS, comment,
                         NameTypeStr, offset, indent, offsetIndent);
     } else {
       (OS << comment).indent(indent);
@@ -684,11 +842,12 @@ void PrintFieldLayout(llvm::Type *Ty, DxilFieldAnnotation &annotation,
   }
 }
 
-void PrintStructLayout(StructType *ST, DxilTypeSystem &typeSys,
-                              raw_string_ostream &OS, StringRef comment,
-                              StringRef varName, unsigned offset,
-                              unsigned indent, unsigned offsetIndent,
-                              unsigned sizeOfStruct) {
+// null DataLayout => assume constant buffer layout
+void PrintStructLayout(StructType *ST, DxilTypeSystem &typeSys, const DataLayout *DL,
+                       raw_string_ostream &OS, StringRef comment,
+                       StringRef varName, unsigned offset,
+                       unsigned indent, unsigned offsetIndent,
+                       unsigned sizeOfStruct) {
   DxilStructAnnotation *annotation = typeSys.GetStructAnnotation(ST);
   (OS << comment).indent(indent) << "struct " << ST->getName() << "\n";
   (OS << comment).indent(indent) << "{\n";
@@ -704,9 +863,17 @@ void PrintStructLayout(StructType *ST, DxilTypeSystem &typeSys,
     }
   } else {
     for (unsigned i = 0; i < ST->getNumElements(); i++) {
-      PrintFieldLayout(ST->getElementType(i), annotation->GetFieldAnnotation(i),
-                       typeSys, OS, comment, offset, fieldIndent,
-                       offsetIndent - 4);
+      DxilFieldAnnotation &fieldAnnotation = annotation->GetFieldAnnotation(i);
+      unsigned int fieldOffset;
+      if (DL == nullptr) { // Constant buffer data layout
+        fieldOffset = offset + fieldAnnotation.GetCBufferOffset();
+      } else { // Normal data layout
+        fieldOffset = offset + DL->getStructLayout(ST)->getElementOffset(i);
+      }
+
+      PrintFieldLayout(ST->getElementType(i), fieldAnnotation,
+                       typeSys, DL, OS, comment, fieldOffset,
+                       fieldIndent, offsetIndent - 4);
     }
   }
   (OS << comment).indent(indent) << "\n";
@@ -735,8 +902,7 @@ void PrintStructBufferDefinition(DxilResource *buf,
   llvm::Type *RetTy = buf->GetRetType();
   // Skip none struct type.
   if (!RetTy->isStructTy() || HLMatrixLower::IsMatrixType(RetTy)) {
-    Value *GV = buf->GetGlobalSymbol();
-    llvm::Type *Ty = GV->getType()->getPointerElementType();
+    llvm::Type *Ty = buf->GetGlobalSymbol()->getType()->getPointerElementType();
     // For resource array, use element type.
     if (Ty->isArrayTy())
       Ty = Ty->getArrayElementType();
@@ -750,7 +916,7 @@ void PrintStructBufferDefinition(DxilResource *buf,
     } else {
       DxilFieldAnnotation &fieldAnnotation = annotation->GetFieldAnnotation(0);
       fieldAnnotation.SetFieldName("$Element");
-      PrintFieldLayout(RetTy, fieldAnnotation, typeSys, OS, comment,
+      PrintFieldLayout(RetTy, fieldAnnotation, typeSys, /*DL*/ nullptr, OS, comment,
                        /*offset*/ 0, /*indent*/ 3, offsetIndent,
                        DL.getTypeAllocSize(ST));
     }
@@ -758,14 +924,12 @@ void PrintStructBufferDefinition(DxilResource *buf,
   } else {
     StructType *ST = cast<StructType>(RetTy);
 
-    // TODO: struct buffer has different layout.
-    // Cannot use cbuffer layout here.
     DxilStructAnnotation *annotation = typeSys.GetStructAnnotation(ST);
     if (nullptr == annotation) {
       OS << comment << "   [" << DL.getTypeAllocSize(ST)
          << " x i8] (type annotation not present)\n";
     } else {
-      PrintStructLayout(ST, typeSys, OS, comment, "$Element;",
+      PrintStructLayout(ST, typeSys, &DL, OS, comment, "$Element;",
                         /*offset*/ 0, /*indent*/ 3, offsetIndent,
                         DL.getTypeAllocSize(ST));
     }
@@ -777,8 +941,7 @@ void PrintStructBufferDefinition(DxilResource *buf,
 void PrintTBufferDefinition(DxilResource *buf, DxilTypeSystem &typeSys,
                                    raw_string_ostream &OS, StringRef comment) {
   const unsigned offsetIndent = 50;
-  Value *GV = buf->GetGlobalSymbol();
-  llvm::Type *Ty = GV->getType()->getPointerElementType();
+  llvm::Type *Ty = buf->GetGlobalSymbol()->getType()->getPointerElementType();
   // For TextureBuffer<> buf[2], the array size is in Resource binding count
   // part.
   if (Ty->isArrayTy())
@@ -793,7 +956,7 @@ void PrintTBufferDefinition(DxilResource *buf, DxilTypeSystem &typeSys,
     OS << comment << "   (type annotation not present)\n";
     OS << comment << "\n";
   } else {
-    PrintStructLayout(cast<StructType>(Ty), typeSys, OS, comment,
+    PrintStructLayout(cast<StructType>(Ty), typeSys, /*DL*/ nullptr, OS, comment,
                       buf->GetGlobalName(), /*offset*/ 0, /*indent*/ 3,
                       offsetIndent, annotation->GetCBufferSize());
   }
@@ -804,8 +967,7 @@ void PrintTBufferDefinition(DxilResource *buf, DxilTypeSystem &typeSys,
 void PrintCBufferDefinition(DxilCBuffer *buf, DxilTypeSystem &typeSys,
                                    raw_string_ostream &OS, StringRef comment) {
   const unsigned offsetIndent = 50;
-  Value *GV = buf->GetGlobalSymbol();
-  llvm::Type *Ty = GV->getType()->getPointerElementType();
+  llvm::Type *Ty = buf->GetGlobalSymbol()->getType()->getPointerElementType();
   // For ConstantBuffer<> buf[2], the array size is in Resource binding count
   // part.
   if (Ty->isArrayTy())
@@ -821,7 +983,7 @@ void PrintCBufferDefinition(DxilCBuffer *buf, DxilTypeSystem &typeSys,
        << " x i8] (type annotation not present)\n";
     OS << comment << "\n";
   } else {
-    PrintStructLayout(cast<StructType>(Ty), typeSys, OS, comment,
+    PrintStructLayout(cast<StructType>(Ty), typeSys, /*DL*/ nullptr, OS, comment,
                       buf->GetGlobalName(), /*offset*/ 0, /*indent*/ 3,
                       offsetIndent, buf->GetSize());
   }
@@ -1015,7 +1177,10 @@ static const char *OpCodeSignatures[] = {
   "(THit,HitKind,Attributes)",  // ReportHit
   "(ShaderIndex,Parameter)",  // CallShader
   "(Resource)",  // CreateHandleForLib
-  "()"  // PrimitiveIndex
+  "()",  // PrimitiveIndex
+  "(acc,ax,ay,bx,by)",  // Dot2AddHalf
+  "(acc,a,b)",  // Dot4AddI8Packed
+  "(acc,a,b)"  // Dot4AddU8Packed
 };
 // OPCODE-SIGS:END
 
@@ -1288,9 +1453,11 @@ void PrintPipelineStateValidationRuntimeInfo(const char *pBuffer,
 
 
 namespace dxcutil {
+
 HRESULT Disassemble(IDxcBlob *pProgram, raw_string_ostream &Stream) {
   const char *pIL = (const char *)pProgram->GetBufferPointer();
   uint32_t pILLength = pProgram->GetBufferSize();
+  const DxilPartHeader *pRDATPart = nullptr;
   if (const DxilContainerHeader *pContainer =
           IsDxilContainerLike(pIL, pILLength)) {
     if (!IsValidDxilContainer(pContainer, pILLength)) {
@@ -1368,6 +1535,14 @@ HRESULT Disassemble(IDxcBlob *pProgram, raw_string_ostream &Stream) {
           GetVersionShaderType(pProgramHeader->ProgramVersion), Stream,
           /*comment*/ ";");
     }
+
+    // RDAT
+    it = std::find_if(begin(pContainer), end(pContainer),
+      DxilPartIsType(DFCC_RuntimeData));
+    if (it != end(pContainer)) {
+      pRDATPart = *it;
+    }
+
     GetDxilProgramBitcode(pProgramHeader, &pIL, &pILLength);
   } else {
     const DxilProgramHeader *pProgramHeader =
@@ -1387,6 +1562,7 @@ HRESULT Disassemble(IDxcBlob *pProgram, raw_string_ostream &Stream) {
 
   if (pModule->getNamedMetadata("dx.version")) {
     DxilModule &dxilModule = pModule->GetOrCreateDxilModule();
+
     if (!dxilModule.GetShaderModel()->IsLib()) {
       PrintDxilSignature("Input", dxilModule.GetInputSignature(), Stream,
                          /*comment*/ ";");
@@ -1399,6 +1575,21 @@ HRESULT Disassemble(IDxcBlob *pProgram, raw_string_ostream &Stream) {
     PrintBufferDefinitions(dxilModule, Stream, /*comment*/ ";");
     PrintResourceBindings(dxilModule, Stream, /*comment*/ ";");
     PrintViewIdState(dxilModule, Stream, /*comment*/ ";");
+
+    if (pRDATPart) {
+      RDAT::DxilRuntimeData runtimeData(GetDxilPartData(pRDATPart), pRDATPart->PartSize);
+      // TODO: Print the rest of the RDAT info
+      if (RDAT::SubobjectTableReader *pSubobjectTableReader =
+        runtimeData.GetSubobjectTableReader()) {
+        dxilModule.ResetSubobjects(new DxilSubobjects());
+        if (!LoadSubobjectsFromRDAT(*dxilModule.GetSubobjects(), pSubobjectTableReader)) {
+          Stream << "; error occurred while loading Subobjects from RDAT.\n";
+        }
+      }
+    }
+    if (dxilModule.GetSubobjects()) {
+      PrintSubobjects(*dxilModule.GetSubobjects(), Stream, /*comment*/ ";");
+    }
   }
   DxcAssemblyAnnotationWriter w;
   pModule->print(Stream, &w);

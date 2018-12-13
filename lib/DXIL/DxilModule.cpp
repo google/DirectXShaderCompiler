@@ -10,13 +10,13 @@
 #include "dxc/Support/Global.h"
 #include "dxc/DXIL/DxilOperations.h"
 #include "dxc/DXIL/DxilModule.h"
+#include "dxc/DXIL/DxilConstants.h"
 #include "dxc/DXIL/DxilShaderModel.h"
 #include "dxc/DXIL/DxilSignatureElement.h"
-#include "dxc/DXIL/DxilContainer.h"
-#include "dxc/HLSL/DxilRootSignature.h"
 #include "dxc/DXIL/DxilFunctionProps.h"
 #include "dxc/Support/WinAdapter.h"
 #include "dxc/DXIL/DxilEntryProps.h"
+#include "dxc/DXIL/DxilSubobject.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
@@ -75,13 +75,25 @@ const char* kFP32DenormValuePreserveString = "preserve";
 const char* kFP32DenormValueFtzString      = "ftz";
 }
 
+// Avoid dependency on DxilModule from llvm::Module using this:
+void DxilModule_RemoveGlobal(llvm::Module* M, llvm::GlobalObject* G) {
+  if (M && G && M->HasDxilModule()) {
+    if (llvm::Function *F = dyn_cast<llvm::Function>(G))
+      M->GetDxilModule().RemoveFunction(F);
+  }
+}
+void DxilModule_ResetModule(llvm::Module* M) {
+  if (M && M->HasDxilModule())
+    delete &M->GetDxilModule();
+  M->SetDxilModule(nullptr);
+}
+
 //------------------------------------------------------------------------------
 //
 //  DxilModule methods.
 //
 DxilModule::DxilModule(Module *pModule)
-: m_RootSignature(nullptr)
-, m_StreamPrimitiveTopology(DXIL::PrimitiveTopology::Undefined)
+: m_StreamPrimitiveTopology(DXIL::PrimitiveTopology::Undefined)
 , m_ActiveStreamMask(0)
 , m_Ctx(pModule->getContext())
 , m_pModule(pModule)
@@ -99,9 +111,14 @@ DxilModule::DxilModule(Module *pModule)
 , m_bDisableOptimizations(false)
 , m_bUseMinPrecision(true) // use min precision by default
 , m_bAllResourcesBound(false)
-, m_AutoBindingSpace(UINT_MAX) {
+, m_IntermediateFlags(0)
+, m_AutoBindingSpace(UINT_MAX)
+, m_pSubobjects(nullptr)
+{
 
   DXASSERT_NOMSG(m_pModule != nullptr);
+  m_pModule->pfnRemoveGlobal = &DxilModule_RemoveGlobal;
+  m_pModule->pfnResetDxilModule = &DxilModule_ResetModule;
 
 #if defined(_DEBUG) || defined(DBG)
   // Pin LLVM dump methods.
@@ -114,6 +131,8 @@ DxilModule::DxilModule(Module *pModule)
 }
 
 DxilModule::~DxilModule() {
+  if (m_pModule->pfnRemoveGlobal == &DxilModule_RemoveGlobal)
+    m_pModule->pfnRemoveGlobal = nullptr;
 }
 
 LLVMContext &DxilModule::GetCtx() const { return m_Ctx; }
@@ -138,7 +157,7 @@ void DxilModule::SetShaderModel(const ShaderModel *pSM, bool bUseMinPrecision) {
     m_DxilEntryPropsMap[nullptr] =
       llvm::make_unique<DxilEntryProps>(props, m_bUseMinPrecision);
   }
-  m_RootSignature.reset(new RootSignatureHandle());
+  m_SerializedRootSignature.clear();
 }
 
 const ShaderModel *DxilModule::GetShaderModel() const {
@@ -177,7 +196,8 @@ bool DxilModule::GetMinValidatorVersion(unsigned &ValMajor, unsigned &ValMinor) 
   if (!m_pSM)
     return false;
   m_pSM->GetMinValidatorVersion(ValMajor, ValMinor);
-  if (ValMajor == 1 && ValMinor == 0 && (m_ShaderFlags.GetFeatureInfo() & hlsl::ShaderFeatureInfo_ViewID))
+  if (ValMajor == 1 && ValMinor == 0 &&
+      (m_ShaderFlags.GetFeatureInfo() & hlsl::DXIL::ShaderFeatureInfo_ViewID))
     ValMinor = 1;
   return true;
 }
@@ -267,53 +287,6 @@ void DxilModule::CollectShaderFlagsForModule(ShaderFlags &Flags) {
   };
 
   const ShaderModel *SM = GetShaderModel();
-  if (SM->IsPS()) {
-    bool hasStencilRef = false;
-    DxilSignature &outS = GetOutputSignature();
-    for (auto &&E : outS.GetElements()) {
-      if (E->GetKind() == Semantic::Kind::StencilRef) {
-        hasStencilRef = true;
-      } else if (E->GetKind() == Semantic::Kind::InnerCoverage) {
-        Flags.SetInnerCoverage(true);
-      }
-    }
-
-    Flags.SetStencilRef(hasStencilRef);
-  }
-
-  bool checkInputRTArrayIndex =
-      SM->IsGS() || SM->IsDS() || SM->IsHS() || SM->IsPS();
-  if (checkInputRTArrayIndex) {
-    bool hasViewportArrayIndex = false;
-    bool hasRenderTargetArrayIndex = false;
-    DxilSignature &inS = GetInputSignature();
-    for (auto &E : inS.GetElements()) {
-      if (E->GetKind() == Semantic::Kind::ViewPortArrayIndex) {
-        hasViewportArrayIndex = true;
-      } else if (E->GetKind() == Semantic::Kind::RenderTargetArrayIndex) {
-        hasRenderTargetArrayIndex = true;
-      }
-    }
-    Flags.SetViewportAndRTArrayIndex(hasViewportArrayIndex |
-                                     hasRenderTargetArrayIndex);
-  }
-
-  bool checkOutputRTArrayIndex =
-      SM->IsVS() || SM->IsDS() || SM->IsHS() || SM->IsPS();
-  if (checkOutputRTArrayIndex) {
-    bool hasViewportArrayIndex = false;
-    bool hasRenderTargetArrayIndex = false;
-    DxilSignature &outS = GetOutputSignature();
-    for (auto &E : outS.GetElements()) {
-      if (E->GetKind() == Semantic::Kind::ViewPortArrayIndex) {
-        hasViewportArrayIndex = true;
-      } else if (E->GetKind() == Semantic::Kind::RenderTargetArrayIndex) {
-        hasRenderTargetArrayIndex = true;
-      }
-    }
-    Flags.SetViewportAndRTArrayIndex(hasViewportArrayIndex |
-                                     hasRenderTargetArrayIndex);
-  }
 
   unsigned NumUAVs = m_UAVs.size();
   const unsigned kSmallUAVCount = 8;
@@ -526,6 +499,19 @@ bool DxilModule::GetAllResourcesBound() const {
   return m_bAllResourcesBound;
 }
 
+void DxilModule::SetLegacyResourceReservation(bool legacyResourceReservation) {
+  m_IntermediateFlags &= ~LegacyResourceReservation;
+  if (legacyResourceReservation) m_IntermediateFlags |= LegacyResourceReservation;
+}
+
+bool DxilModule::GetLegacyResourceReservation() const {
+  return (m_IntermediateFlags & LegacyResourceReservation) != 0;
+}
+
+void DxilModule::ClearIntermediateOptions() {
+  m_IntermediateFlags = 0;
+}
+
 unsigned DxilModule::GetInputControlPointCount() const {
   if (!(m_pSM->IsHS() || m_pSM->IsDS()))
     return 0;
@@ -591,8 +577,9 @@ void DxilModule::SetOutputControlPointCount(unsigned NumOCPs) {
 }
 
 DXIL::TessellatorPartitioning DxilModule::GetTessellatorPartitioning() const {
-  DXASSERT(m_DxilEntryPropsMap.size() == 1 && m_pSM->IsHS(),
-           "only works for HS profile");
+  if (!m_pSM->IsHS())
+    return DXIL::TessellatorPartitioning::Undefined;
+  DXASSERT(m_DxilEntryPropsMap.size() == 1, "should have one entry prop");
   DxilFunctionProps &props = m_DxilEntryPropsMap.begin()->second->props;
   DXASSERT(props.IsHS(), "Must be HS profile");
   return props.ShaderProps.HS.partition;
@@ -825,7 +812,7 @@ void DxilModule::RemoveFunction(llvm::Function *F) {
 }
 
 void DxilModule::RemoveUnusedResources() {
-  DXASSERT(!m_pSM->IsLib(), "this function not work on library");
+  DXASSERT(!m_pSM->IsLib(), "this function does not work on libraries");
   hlsl::OP *hlslOP = GetOP();
   Function *createHandleFunc = hlslOP->GetOpFunc(DXIL::OpCode::CreateHandle, Type::getVoidTy(GetCtx()));
   if (createHandleFunc->user_empty()) {
@@ -879,11 +866,11 @@ void DxilModule::RemoveUnusedResources() {
   std::unordered_set<unsigned> immSamplerID;
   std::unordered_set<unsigned> immCBufID;
   ConvertUsedResource(immUAVID, usedUAVID);
-  RemoveResources(m_UAVs, immUAVID);
   ConvertUsedResource(immSRVID, usedSRVID);
   ConvertUsedResource(immSamplerID, usedSamplerID);
   ConvertUsedResource(immCBufID, usedCBufID);
 
+  RemoveResources(m_UAVs, immUAVID);
   RemoveResources(m_SRVs, immSRVID);
   RemoveResources(m_Samplers, immSamplerID);
   RemoveResources(m_CBuffers, immCBufID);
@@ -891,15 +878,16 @@ void DxilModule::RemoveUnusedResources() {
 
 namespace {
 template <typename TResource>
-static void RemoveResourceSymbols(std::vector<std::unique_ptr<TResource>> &vec) {
+static void RemoveResourcesWithUnusedSymbolsHelper(std::vector<std::unique_ptr<TResource>> &vec) {
   unsigned resID = 0;
   for (auto p = vec.begin(); p != vec.end();) {
     auto c = p++;
-    GlobalVariable *GV = cast<GlobalVariable>((*c)->GetGlobalSymbol());
-    GV->removeDeadConstantUsers();
-    if (GV->user_empty()) {
+    Constant *symbol = (*c)->GetGlobalSymbol();
+    symbol->removeDeadConstantUsers();
+    if (symbol->user_empty()) {
       p = vec.erase(c);
-      GV->eraseFromParent();
+      if (GlobalVariable *GV = dyn_cast<GlobalVariable>(symbol))
+        GV->eraseFromParent();
       continue;
     }
     if ((*c)->GetID() != resID) {
@@ -910,11 +898,11 @@ static void RemoveResourceSymbols(std::vector<std::unique_ptr<TResource>> &vec) 
 }
 }
 
-void DxilModule::RemoveUnusedResourceSymbols() {
-  RemoveResourceSymbols(m_SRVs);
-  RemoveResourceSymbols(m_UAVs);
-  RemoveResourceSymbols(m_CBuffers);
-  RemoveResourceSymbols(m_Samplers);
+void DxilModule::RemoveResourcesWithUnusedSymbols() {
+  RemoveResourcesWithUnusedSymbolsHelper(m_SRVs);
+  RemoveResourcesWithUnusedSymbolsHelper(m_UAVs);
+  RemoveResourcesWithUnusedSymbolsHelper(m_CBuffers);
+  RemoveResourcesWithUnusedSymbolsHelper(m_Samplers);
 }
 
 DxilSignature &DxilModule::GetInputSignature() {
@@ -953,8 +941,8 @@ const DxilSignature &DxilModule::GetPatchConstantSignature() const {
   return m_DxilEntryPropsMap.begin()->second->sig.PatchConstantSignature;
 }
 
-const RootSignatureHandle &DxilModule::GetRootSignature() const {
-  return *m_RootSignature;
+const std::vector<uint8_t> &DxilModule::GetSerializedRootSignature() const {
+  return m_SerializedRootSignature;
 }
 
 // Entry props.
@@ -983,6 +971,10 @@ bool DxilModule::HasDxilEntryProps(const llvm::Function *F) const {
   return m_DxilEntryPropsMap.find(F) != m_DxilEntryPropsMap.end();
 }
 DxilEntryProps &DxilModule::GetDxilEntryProps(const llvm::Function *F) {
+  DXASSERT(m_DxilEntryPropsMap.count(F) != 0, "cannot find F in map");
+  return *m_DxilEntryPropsMap.find(F)->second.get();
+}
+const DxilEntryProps &DxilModule::GetDxilEntryProps(const llvm::Function *F) const {
   DXASSERT(m_DxilEntryPropsMap.count(F) != 0, "cannot find F in map");
   return *m_DxilEntryPropsMap.find(F)->second.get();
 }
@@ -1035,19 +1027,45 @@ bool DxilModule::IsEntryThatUsesSignatures(const llvm::Function *F) const {
   return IsPatchConstantShader(F);
 }
 
-void DxilModule::StripRootSignatureFromMetadata() {
+bool DxilModule::StripRootSignatureFromMetadata() {
   NamedMDNode *pRootSignatureNamedMD = GetModule()->getNamedMetadata(DxilMDHelper::kDxilRootSignatureMDName);
   if (pRootSignatureNamedMD) {
     GetModule()->eraseNamedMetadata(pRootSignatureNamedMD);
+    return true;
   }
+  return false;
+}
+
+DxilSubobjects *DxilModule::GetSubobjects() {
+  return m_pSubobjects.get();
+}
+const DxilSubobjects *DxilModule::GetSubobjects() const {
+  return m_pSubobjects.get();
+}
+DxilSubobjects *DxilModule::ReleaseSubobjects() {
+  return m_pSubobjects.release();
+}
+void DxilModule::ResetSubobjects(DxilSubobjects *subobjects) {
+  m_pSubobjects.reset(subobjects);
+}
+
+bool DxilModule::StripSubobjectsFromMetadata() {
+  NamedMDNode *pSubobjectsNamedMD = GetModule()->getNamedMetadata(DxilMDHelper::kDxilSubobjectsMDName);
+  if (pSubobjectsNamedMD) {
+    GetModule()->eraseNamedMetadata(pSubobjectsNamedMD);
+    return true;
+  }
+  return false;
 }
 
 void DxilModule::UpdateValidatorVersionMetadata() {
   m_pMDHelper->EmitValidatorVersion(m_ValMajor, m_ValMinor);
 }
 
-void DxilModule::ResetRootSignature(RootSignatureHandle *pValue) {
-  m_RootSignature.reset(pValue);
+void DxilModule::ResetSerializedRootSignature(std::vector<uint8_t> &Value) {
+  m_SerializedRootSignature.clear();
+  m_SerializedRootSignature.reserve(Value.size());
+  m_SerializedRootSignature.assign(Value.begin(), Value.end());
 }
 
 DxilTypeSystem &DxilModule::GetTypeSystem() {
@@ -1141,9 +1159,11 @@ void DxilModule::ClearDxilMetadata(Module &M) {
       name == DxilMDHelper::kDxilShaderModelMDName ||
       name == DxilMDHelper::kDxilEntryPointsMDName ||
       name == DxilMDHelper::kDxilRootSignatureMDName ||
+      name == DxilMDHelper::kDxilIntermediateOptionsMDName ||
       name == DxilMDHelper::kDxilResourcesMDName ||
       name == DxilMDHelper::kDxilTypeSystemMDName ||
       name == DxilMDHelper::kDxilViewIdStateMDName ||
+      name == DxilMDHelper::kDxilSubobjectsMDName ||
       name.startswith(DxilMDHelper::kDxilTypeSystemHelperVariablePrefix)) {
       nodes.push_back(&b);
     }
@@ -1157,6 +1177,7 @@ void DxilModule::EmitDxilMetadata() {
   m_pMDHelper->EmitDxilVersion(m_DxilMajor, m_DxilMinor);
   m_pMDHelper->EmitValidatorVersion(m_ValMajor, m_ValMinor);
   m_pMDHelper->EmitDxilShaderModel(m_pSM);
+  m_pMDHelper->EmitDxilIntermediateOptions(m_IntermediateFlags);
 
   MDTuple *pMDProperties = nullptr;
   uint64_t flag = m_ShaderFlags.GetShaderFlagsRaw();
@@ -1214,11 +1235,16 @@ void DxilModule::EmitDxilMetadata() {
       Entries.emplace_back(pSubEntry);
     }
     funcOrder.clear();
+
+    // Save Subobjects
+    if (GetSubobjects()) {
+      m_pMDHelper->EmitSubobjects(*GetSubobjects());
+    }
   }
   m_pMDHelper->EmitDxilEntryPoints(Entries);
 
-  if (!m_RootSignature->IsEmpty()) {
-    m_pMDHelper->EmitRootSignature(*m_RootSignature.get());
+  if (!m_SerializedRootSignature.empty()) {
+    m_pMDHelper->EmitRootSignature(m_SerializedRootSignature);
   }
 }
 
@@ -1231,6 +1257,7 @@ void DxilModule::LoadDxilMetadata() {
   m_pMDHelper->LoadValidatorVersion(m_ValMajor, m_ValMinor);
   const ShaderModel *loadedSM;
   m_pMDHelper->LoadDxilShaderModel(loadedSM);
+  m_pMDHelper->LoadDxilIntermediateOptions(m_IntermediateFlags);
 
   // This must be set before LoadDxilEntryProperties
   m_pMDHelper->SetShaderModel(loadedSM);
@@ -1255,15 +1282,8 @@ void DxilModule::LoadDxilMetadata() {
   uint64_t rawShaderFlags = 0;
   DxilFunctionProps entryFuncProps;
   entryFuncProps.shaderKind = loadedSM->GetKind();
-  if (loadedSM->IsLib()) {
-    // Get rawShaderFlags and m_AutoBindingSpace; entryFuncProps unused.
-    m_pMDHelper->LoadDxilEntryProperties(*pEntryProperties, rawShaderFlags,
-                                         entryFuncProps, m_AutoBindingSpace);
-  }
-  else {
-    m_pMDHelper->LoadDxilEntryProperties(*pEntryProperties, rawShaderFlags,
-                                         entryFuncProps, m_AutoBindingSpace);
-  }
+  m_pMDHelper->LoadDxilEntryProperties(*pEntryProperties, rawShaderFlags,
+                                       entryFuncProps, m_AutoBindingSpace);
 
   m_bUseMinPrecision = true;
   if (rawShaderFlags) {
@@ -1300,6 +1320,13 @@ void DxilModule::LoadDxilMetadata() {
 
       m_DxilEntryPropsMap[pFunc] = std::move(pEntryProps);
     }
+
+    // Load Subobjects
+    std::unique_ptr<DxilSubobjects> pSubobjects(new DxilSubobjects());
+    m_pMDHelper->LoadSubobjects(*pSubobjects);
+    if (pSubobjects->GetSubobjects().size()) {
+      ResetSubobjects(pSubobjects.release());
+    }
   } else {
     std::unique_ptr<DxilEntryProps> pEntryProps =
         llvm::make_unique<DxilEntryProps>(entryFuncProps, m_bUseMinPrecision);
@@ -1318,7 +1345,7 @@ void DxilModule::LoadDxilMetadata() {
 
   m_pMDHelper->LoadDxilTypeSystem(*m_pTypeSystem.get());
 
-  m_pMDHelper->LoadRootSignature(*m_RootSignature.get());
+  m_pMDHelper->LoadRootSignature(m_SerializedRootSignature);
 
   m_pMDHelper->LoadDxilViewIdState(m_SerializedState);
 }
@@ -1575,13 +1602,6 @@ hlsl::DxilModule &Module::GetOrCreateDxilModule(bool skipInit) {
     SetDxilModule(M.release());
   }
   return GetDxilModule();
-}
-
-void Module::ResetDxilModule() {
-  if (HasDxilModule()) {
-    delete TheDxilModule;
-    TheDxilModule = nullptr;
-  }
 }
 
 }

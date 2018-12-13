@@ -13,10 +13,10 @@
 #include "dxc/Support/Global.h"
 #include "dxc/Support/Unicode.h"
 #include "dxc/Support/microcom.h"
-#include "dxc/DXIL/DxilContainer.h"
+#include "dxc/DxilContainer/DxilContainer.h"
 #include "dxc/Support/FileIOHelper.h"
 #include "dxc/DXIL/DxilModule.h"
-#include "dxc/HLSL/ReducibilityAnalysis.h"
+#include "llvm/Analysis/ReducibilityAnalysis.h"
 #include "dxc/HLSL/HLMatrixLowerPass.h"
 #include "dxc/HLSL/DxilGenerationPass.h"
 #include "dxc/HLSL/ComputeViewIdState.h"
@@ -157,6 +157,7 @@ HRESULT SetupRegistryPassForHLSL() {
     initializeSROA_Parameter_HLSLPass(Registry);
     initializeSROA_SSAUpPass(Registry);
     initializeSROA_SSAUp_HLSLPass(Registry);
+    initializeDxilLoopUnrollPass(Registry);
     initializeSampleProfileLoaderPass(Registry);
     initializeScalarizerPass(Registry);
     initializeScopedNoAliasAAPass(Registry);
