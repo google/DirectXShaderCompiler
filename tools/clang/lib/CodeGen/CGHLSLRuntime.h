@@ -19,6 +19,7 @@ template <typename T, unsigned N> class SmallVector;
 class Value;
 class Constant;
 class TerminatorInst;
+class GlobalVariable;
 class Type;
 template <typename T> class ArrayRef;
 }
@@ -54,6 +55,7 @@ public:
   virtual ~CGHLSLRuntime();
 
   virtual void addResource(Decl *D) = 0;
+  virtual void addSubobject(Decl *D) = 0;
   virtual void FinishCodeGen() = 0;
   virtual RValue EmitHLSLBuiltinCallExpr(CodeGenFunction &CGF,
                                          const FunctionDecl *FD,
@@ -116,8 +118,7 @@ public:
   virtual void AddHLSLFunctionInfo(llvm::Function *, const FunctionDecl *FD) = 0;
   virtual void EmitHLSLFunctionProlog(llvm::Function *, const FunctionDecl *FD) = 0;
 
-  virtual bool IsHlslObjectType(llvm::Type *Ty) = 0;
-
+  
   virtual void AddControlFlowHint(CodeGenFunction &CGF, const Stmt &S, llvm::TerminatorInst *TI, llvm::ArrayRef<const Attr *> Attrs) = 0;
 
   virtual void FinishAutoVar(CodeGenFunction &CGF, const VarDecl &D, llvm::Value *V) = 0;

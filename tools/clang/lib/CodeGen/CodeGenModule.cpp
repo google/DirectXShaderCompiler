@@ -1869,6 +1869,7 @@ CodeGenModule::GetOrCreateLLVMGlobal(StringRef MangledName,
   if (AddrSpace != Ty->getAddressSpace() && !LangOpts.HLSL) // HLSL Change -TODO: do we put address space in type?
     return llvm::ConstantExpr::getAddrSpaceCast(GV, Ty);
 
+
   return GV;
 }
 
@@ -2183,7 +2184,10 @@ void CodeGenModule::EmitGlobalVarDefinition(const VarDecl *D) {
   if (D->hasAttr<AnnotateAttr>())
     AddGlobalAnnotations(D, GV);
 
-  GV->setInitializer(Init);
+  // HLSL Change Begins.
+  if (!getLangOpts().HLSL || !D->isExternallyVisible())
+    GV->setInitializer(Init); // Resources and $Globals are not initialized
+  // HLSL Change Ends.
 
   // If it is safe to mark the global 'constant', do so now.
   GV->setConstant(!NeedsGlobalCtor && !NeedsGlobalDtor &&
@@ -2209,6 +2213,11 @@ void CodeGenModule::EmitGlobalVarDefinition(const VarDecl *D) {
   if (!D->isStaticLocal() && D->getTLSKind() == VarDecl::TLS_Dynamic &&
       Context.getTargetInfo().getTriple().isMacOSX())
     Linkage = llvm::GlobalValue::InternalLinkage;
+
+  // HLSL Change Begins.
+  if (getLangOpts().HLSL && D->isExternallyVisible())
+    Linkage = llvm::GlobalValue::ExternalLinkage; //Resources and $Globals have no definition
+  // HLSL Change Ends.
 
   GV->setLinkage(Linkage);
   if (D->hasAttr<DLLImportAttr>())
@@ -3385,7 +3394,14 @@ void CodeGenModule::EmitTopLevelDecl(Decl *D) {
       return;
   case Decl::VarTemplateSpecialization:
     EmitGlobal(cast<VarDecl>(D));
-    getHLSLRuntime().addResource(D); // HLSL Change - add resource for global variables
+    // HLSL Change Start - add resource or subobject for global variables
+    if (hlsl::IsHLSLSubobjectType(cast<VarDecl>(D)->getType())) {
+      getHLSLRuntime().addSubobject(D);
+    }
+    else {
+      getHLSLRuntime().addResource(D);
+    }
+    // HLSL Change End
     break;
 
   // Indirect fields from global anonymous structs and unions can be

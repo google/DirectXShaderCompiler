@@ -542,6 +542,7 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
   opts.DisassembleByteOffset = Args.hasFlag(OPT_No, OPT_INVALID, false);
   opts.DisaseembleHex = Args.hasFlag(OPT_Lx, OPT_INVALID, false);
   opts.LegacyMacroExpansion = Args.hasFlag(OPT_flegacy_macro_expansion, OPT_INVALID, false);
+  opts.LegacyResourceReservation = Args.hasFlag(OPT_flegacy_resource_reservation, OPT_INVALID, false);
   opts.ExportShadersOnly = Args.hasFlag(OPT_export_shaders_only, OPT_INVALID, false);
 
   if (opts.DefaultColMajor && opts.DefaultRowMajor) {
@@ -636,6 +637,7 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
   opts.SpirvOptions.invertW = Args.hasFlag(OPT_fvk_use_dx_position_w, OPT_INVALID, false);
   opts.SpirvOptions.useGlLayout = Args.hasFlag(OPT_fvk_use_gl_layout, OPT_INVALID, false);
   opts.SpirvOptions.useDxLayout = Args.hasFlag(OPT_fvk_use_dx_layout, OPT_INVALID, false);
+  opts.SpirvOptions.useScalarLayout = Args.hasFlag(OPT_fvk_use_scalar_layout, OPT_INVALID, false);
   opts.SpirvOptions.enableReflect = Args.hasFlag(OPT_fspv_reflect, OPT_INVALID, false);
   opts.SpirvOptions.noWarnIgnoredFeatures = Args.hasFlag(OPT_Wno_vk_ignored_features, OPT_INVALID, false);
   opts.SpirvOptions.noWarnEmulatedFeatures = Args.hasFlag(OPT_Wno_vk_emulated_features, OPT_INVALID, false);
@@ -696,7 +698,7 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
       errors << "-Oconfig should not be specified more than once";
       return 1;
     }
-    if (Args.getLastArg(OPT_O0, OPT_O1, OPT_O2, OPT_O3, OPT_O4)) {
+    if (Args.getLastArg(OPT_O0, OPT_O1, OPT_O2, OPT_O3)) {
       errors << "-Oconfig should not be used together with -O";
       return 1;
     }
@@ -711,6 +713,7 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
       Args.hasFlag(OPT_fvk_use_dx_position_w, OPT_INVALID, false) ||
       Args.hasFlag(OPT_fvk_use_gl_layout, OPT_INVALID, false) ||
       Args.hasFlag(OPT_fvk_use_dx_layout, OPT_INVALID, false) ||
+      Args.hasFlag(OPT_fvk_use_scalar_layout, OPT_INVALID, false) ||
       Args.hasFlag(OPT_fspv_reflect, OPT_INVALID, false) ||
       Args.hasFlag(OPT_Wno_vk_ignored_features, OPT_INVALID, false) ||
       Args.hasFlag(OPT_Wno_vk_emulated_features, OPT_INVALID, false) ||

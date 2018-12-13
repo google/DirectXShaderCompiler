@@ -29,6 +29,7 @@ class MDTuple;
 class MDNode;
 class NamedMDNode;
 class GlobalVariable;
+class StringRef;
 }
 
 namespace hlsl {
@@ -49,6 +50,8 @@ class DxilFunctionAnnotation;
 class DxilParameterAnnotation;
 class RootSignatureHandle;
 struct DxilFunctionProps;
+class DxilSubobjects;
+class DxilSubobject;
 
 /// Use this class to manipulate DXIL-spcific metadata.
 // In our code, only DxilModule and HLModule should use this class.
@@ -71,6 +74,10 @@ public:
   static const unsigned kDxilShaderModelMajorIdx  = 1;  // Shader model major.
   static const unsigned kDxilShaderModelMinorIdx  = 2;  // Shader model minor.
 
+  // Intermediate codegen/optimizer options, not valid in final DXIL module.
+  static const char kDxilIntermediateOptionsMDName[];
+  static const unsigned kDxilIntermediateOptionsFlags = 0;  // Unique element ID.
+
   // Entry points.
   static const char kDxilEntryPointsMDName[];
 
@@ -79,6 +86,9 @@ public:
 
   // ViewId state.
   static const char kDxilViewIdStateMDName[];
+
+  // Subobjects
+  static const char kDxilSubobjectsMDName[];
 
   // Source info.
   static const char kDxilSourceContentsMDName[];
@@ -280,6 +290,10 @@ public:
   void EmitDxilShaderModel(const ShaderModel *pSM);
   void LoadDxilShaderModel(const ShaderModel *&pSM);
 
+  // Intermediate flags
+  void EmitDxilIntermediateOptions(uint32_t flags);
+  void LoadDxilIntermediateOptions(uint32_t &flags);
+
   // Entry points.
   void EmitDxilEntryPoints(std::vector<llvm::MDNode *> &MDEntries);
   void UpdateDxilEntryPoints(std::vector<llvm::MDNode *> &MDEntries);
@@ -295,11 +309,11 @@ public:
   void LoadDxilSignatures(const llvm::MDOperand &MDO,
                           DxilEntrySignature &EntrySig);
   llvm::MDTuple *EmitSignatureMetadata(const DxilSignature &Sig);
-  void EmitRootSignature(RootSignatureHandle &RootSig);
+  void EmitRootSignature(std::vector<uint8_t> &SerializedRootSignature);
   void LoadSignatureMetadata(const llvm::MDOperand &MDO, DxilSignature &Sig);
   llvm::MDTuple *EmitSignatureElement(const DxilSignatureElement &SE);
   void LoadSignatureElement(const llvm::MDOperand &MDO, DxilSignatureElement &SE);
-  void LoadRootSignature(RootSignatureHandle &RootSig);
+  void LoadRootSignature(std::vector<uint8_t> &SerializedRootSignature);
 
   // Resources.
   llvm::MDTuple *EmitDxilResourceTuple(llvm::MDTuple *pSRVs, llvm::MDTuple *pUAVs, 
@@ -357,6 +371,11 @@ public:
   // Control flow hints.
   static llvm::MDNode *EmitControlFlowHints(llvm::LLVMContext &Ctx, std::vector<DXIL::ControlFlowHint> &hints);
 
+  // Subobjects
+  void EmitSubobjects(const DxilSubobjects &Subobjects);
+  void LoadSubobjects(DxilSubobjects &Subobjects);
+  llvm::Metadata *EmitSubobject(const DxilSubobject &obj);
+  void LoadSubobject(const llvm::MDNode &MDO, DxilSubobjects &Subobjects);
 
   // Shader specific.
 private:
@@ -408,6 +427,7 @@ public:
   static bool ConstMDToBool(const llvm::MDOperand &MDO);
   static float ConstMDToFloat(const llvm::MDOperand &MDO);
   static std::string StringMDToString(const llvm::MDOperand &MDO);
+  static llvm::StringRef StringMDToStringRef(const llvm::MDOperand &MDO);
   static llvm::Value *ValueMDToValue(const llvm::MDOperand &MDO);
   llvm::MDTuple *Uint32VectorToConstMDTuple(const std::vector<unsigned> &Vec);
   void ConstMDTupleToUint32Vector(llvm::MDTuple *pTupleMD, std::vector<unsigned> &Vec);

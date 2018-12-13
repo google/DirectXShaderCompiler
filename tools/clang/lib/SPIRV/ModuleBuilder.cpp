@@ -762,6 +762,15 @@ uint32_t ModuleBuilder::addStageIOVar(uint32_t type,
 
 uint32_t ModuleBuilder::addStageBuiltinVar(uint32_t type, spv::StorageClass sc,
                                            spv::BuiltIn builtin) {
+  auto found =
+      std::find_if(builtinVars.begin(), builtinVars.end(),
+                   [sc, builtin](const BuiltInVarInfo &varInfo) {
+                     return varInfo.sc == sc && varInfo.builtIn == builtin;
+                   });
+  if (found != builtinVars.end()) {
+    return found->variable;
+  }
+
   const uint32_t pointerType = getPointerType(type, sc);
   const uint32_t varId = theContext.takeNextId();
   instBuilder.opVariable(pointerType, varId, sc, llvm::None).x();
@@ -770,6 +779,8 @@ uint32_t ModuleBuilder::addStageBuiltinVar(uint32_t type, spv::StorageClass sc,
   // Decorate with the specified Builtin
   const Decoration *d = Decoration::getBuiltIn(theContext, builtin);
   theModule.addDecoration(d, varId);
+
+  builtinVars.emplace_back(sc, builtin, varId);
 
   return varId;
 }
@@ -879,6 +890,11 @@ void ModuleBuilder::decoratePatch(uint32_t targetId) {
 
 void ModuleBuilder::decorateNonUniformEXT(uint32_t targetId) {
   const Decoration *d = Decoration::getNonUniformEXT(theContext);
+  theModule.addDecoration(d, targetId);
+}
+
+void ModuleBuilder::decorateNoContraction(uint32_t targetId) {
+  const Decoration *d = Decoration::getNoContraction(theContext);
   theModule.addDecoration(d, targetId);
 }
 

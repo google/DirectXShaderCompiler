@@ -7161,8 +7161,8 @@ def err_first_argument_to_cwsc_pdtor_call : Error<
 def err_second_argument_to_cwsc_not_pointer : Error<
   "second argument to __builtin_call_with_static_chain must be of pointer type">;
 
-def err_vector_incorrect_num_initializers : Error<
-  "%select{too many|too few}0 elements in vector initialization (expected %1 element%s1, have %2)">;
+def err_incorrect_num_initializers : Error<
+  "%select{too many|too few}0 elements in %select{vector|subobject}1 initialization (expected %2 element%s2, have %3)">;
 def err_altivec_empty_initializer : Error<"expected initializer">;
 
 def err_invalid_neon_type_code : Error<
@@ -7446,6 +7446,8 @@ def err_hlsl_attribute_expects_string_literal_from_list: Error<
   "attribute %0 must have one of these values: %1">;
 def err_hlsl_attribute_valid_on_function_only: Error<
   "attribute is valid only on functions">;
+def err_hlsl_bitfields: Error<
+  "bitfields are not supported in HLSL">;
 def err_hlsl_cannot_convert: Error<
   "cannot %select{implicitly |}0convert %select{|output parameter }1from %2 to %3">;
 def err_hlsl_half_load_store: Error<
@@ -7650,6 +7652,12 @@ def warn_hlsl_effect_object : Warning <
 def warn_hlsl_unused_call : Warning<
   "ignoring return value of function that only reads data">,
   InGroup<UnusedValue>;
+def err_hlsl_object_not_global : Error<
+   "%select{subobject|string}0 declaration may only appear in global scope">;
+def err_hlsl_object_extern_not_supported : Error<
+   "%select{subobject|string}0 cannot be declared with 'extern' storage specifier">;
+def err_hlsl_object_missing_initializer : Error<
+   "%select{subobject|string}0 declaration needs to be initialized">;
 def err_hlsl_func_in_func_decl : Error<
    "function declaration is not allowed in function parameters">;
 def err_hlsl_unsupported_keyword_for_version : Error<
@@ -7675,6 +7683,8 @@ def err_hlsl_missing_patchconstantfunc_attr: Error<
    "HS entry point must have the patchconstantfunc attribute">;
 def err_hlsl_missing_inout_attr: Error<
    "stream-output object must be an inout parameter">;
+def err_hlsl_unsupported_string_decl: Error<
+   "%select{array|parameter|return value}0 of type string is not supported">;
 // HLSL Change Ends
 
 // SPIRV Change Starts

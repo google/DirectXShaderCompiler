@@ -315,6 +315,7 @@ void AddRecordTypeWithHandle(
 
 void AddRayFlags(clang::ASTContext& context);
 void AddHitKinds(clang::ASTContext& context);
+void AddStateObjectFlags(clang::ASTContext& context);
 
 /// <summary>Adds the implementation for std::is_equal.</summary>
 void AddStdIsEqualImplementation(clang::ASTContext& context, clang::Sema& sema);
@@ -388,6 +389,15 @@ unsigned GetHLSLInputPatchCount(clang::QualType type);
 clang::QualType GetHLSLOutputPatchElementType(clang::QualType type);
 unsigned GetHLSLOutputPatchCount(clang::QualType type);
 
+bool IsHLSLSubobjectType(clang::QualType type);
+bool GetHLSLSubobjectKind(clang::QualType type, DXIL::SubobjectKind &subobjectKind, 
+                          DXIL::HitGroupType &ghType);
+
+bool IsArrayConstantStringType(const clang::QualType type);
+bool IsPointerStringType(const clang::QualType type);
+bool IsStringType(const clang::QualType type);
+bool IsStringLiteralType(const clang::QualType type);
+
 void GetRowsAndColsForAny(clang::QualType type, uint32_t &rowCount,
                           uint32_t &colCount);
 uint32_t GetElementCount(clang::QualType type);
@@ -460,6 +470,13 @@ bool TryParseAny(
   _Out_ int *rowCount,
   _Out_ int *colCount,
   _In_      const clang::LangOptions& langOption);
+
+_Success_(return != false)
+bool TryParseString(
+  _In_count_(typenameLen)
+  const char* typeName,
+  size_t typeNameLen,
+  _In_ const clang::LangOptions& langOptions);
 
 _Success_(return != false)
 bool TryParseMatrixOrVectorDimension(

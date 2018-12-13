@@ -30,6 +30,7 @@
 #include "clang/Sema/Template.h"
 #include "clang/Sema/TemplateDeduction.h"
 #include "clang/Sema/SemaHLSL.h"
+#include "clang/Sema/SemaHLSL.h"
 #include "dxc/Support/Global.h"
 #include "dxc/Support/WinIncludes.h"
 #include "dxc/Support/WinAdapter.h"
@@ -84,6 +85,7 @@ enum ArBasicKind {
   AR_BASIC_ENUM_CLASS,
 
   AR_OBJECT_NULL,
+  AR_OBJECT_STRING_LITERAL,
   AR_OBJECT_STRING,
 
   // AR_OBJECT_TEXTURE,
@@ -186,6 +188,16 @@ enum ArBasicKind {
   AR_OBJECT_ACCELARATION_STRUCT,
   AR_OBJECT_USER_DEFINED_TYPE,
   AR_OBJECT_TRIANGLE_INTERSECTION_ATTRIBUTES,
+
+  // subobjects
+  AR_OBJECT_STATE_OBJECT_CONFIG,
+  AR_OBJECT_GLOBAL_ROOT_SIGNATURE,
+  AR_OBJECT_LOCAL_ROOT_SIGNATURE,
+  AR_OBJECT_SUBOBJECT_TO_EXPORTS_ASSOC,
+  AR_OBJECT_RAYTRACING_SHADER_CONFIG,
+  AR_OBJECT_RAYTRACING_PIPELINE_CONFIG,
+  AR_OBJECT_TRIANGLE_HIT_GROUP,
+  AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP,
 
   AR_BASIC_MAXIMUM_COUNT
 };
@@ -360,6 +372,7 @@ const UINT g_uBasicKindProps[] =
   BPROP_ENUM, // AR_BASIC_ENUM_CLASS
 
   BPROP_OBJECT | BPROP_RBUFFER, // AR_OBJECT_NULL
+  BPROP_OBJECT | BPROP_RBUFFER,  // AR_OBJECT_STRING_LITERAL
   BPROP_OBJECT | BPROP_RBUFFER, // AR_OBJECT_STRING
 
 
@@ -452,6 +465,17 @@ const UINT g_uBasicKindProps[] =
   LICOMPTYPE_ACCELERATION_STRUCT,   // AR_OBJECT_ACCELARATION_STRUCT
   LICOMPTYPE_USER_DEFINED_TYPE,      // AR_OBJECT_USER_DEFINED_TYPE
   0,      // AR_OBJECT_TRIANGLE_INTERSECTION_ATTRIBUTES
+
+  // subobjects
+  0,      //AR_OBJECT_STATE_OBJECT_CONFIG,
+  0,      //AR_OBJECT_GLOBAL_ROOT_SIGNATURE,
+  0,      //AR_OBJECT_LOCAL_ROOT_SIGNATURE,
+  0,      //AR_OBJECT_SUBOBJECT_TO_EXPORTS_ASSOC,
+  0,      //AR_OBJECT_RAYTRACING_SHADER_CONFIG,
+  0,      //AR_OBJECT_RAYTRACING_PIPELINE_CONFIG,
+  0,      //AR_OBJECT_TRIANGLE_HIT_GROUP,
+  0,      //AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP,
+
   // AR_BASIC_MAXIMUM_COUNT
 };
 
@@ -541,6 +565,7 @@ enum ArTypeObjectKind {
   AR_TOBJ_QUALIFIER, // Represents another type plus an ArTypeQualifier.
   AR_TOBJ_INNER_OBJ, // Represents a built-in inner object, such as an 
                      // indexer object used to implement .mips[1].
+  AR_TOBJ_STRING,    // Represents a string
 };
 
 enum TYPE_CONVERSION_FLAGS
@@ -1087,6 +1112,7 @@ static const ArBasicKind g_UDTCT[] =
 
 static const ArBasicKind g_StringCT[] =
 {
+  AR_OBJECT_STRING_LITERAL,
   AR_OBJECT_STRING,
   AR_BASIC_UNKNOWN
 };
@@ -1251,6 +1277,16 @@ const ArBasicKind g_ArBasicKindsAsTypes[] =
   AR_OBJECT_RAY_DESC,
   AR_OBJECT_ACCELARATION_STRUCT,
   AR_OBJECT_TRIANGLE_INTERSECTION_ATTRIBUTES,
+
+  // subobjects
+  AR_OBJECT_STATE_OBJECT_CONFIG,
+  AR_OBJECT_GLOBAL_ROOT_SIGNATURE,
+  AR_OBJECT_LOCAL_ROOT_SIGNATURE,
+  AR_OBJECT_SUBOBJECT_TO_EXPORTS_ASSOC,
+  AR_OBJECT_RAYTRACING_SHADER_CONFIG,
+  AR_OBJECT_RAYTRACING_PIPELINE_CONFIG,
+  AR_OBJECT_TRIANGLE_HIT_GROUP,
+  AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP
 };
 
 // Count of template arguments for basic kind of objects that look like templates (one or more type arguments).
@@ -1321,6 +1357,15 @@ const uint8_t g_ArBasicKindsTemplateCount[] =
   0, // AR_OBJECT_RAY_DESC
   0, // AR_OBJECT_ACCELARATION_STRUCT
   0, // AR_OBJECT_TRIANGLE_INTERSECTION_ATTRIBUTES
+
+  0, // AR_OBJECT_STATE_OBJECT_CONFIG,
+  0, // AR_OBJECT_GLOBAL_ROOT_SIGNATURE,
+  0, // AR_OBJECT_LOCAL_ROOT_SIGNATURE,
+  0, // AR_OBJECT_SUBOBJECT_TO_EXPORTS_ASSOC,
+  0, // AR_OBJECT_RAYTRACING_SHADER_CONFIG,
+  0, // AR_OBJECT_RAYTRACING_PIPELINE_CONFIG,
+  0, // AR_OBJECT_TRIANGLE_HIT_GROUP,
+  0, // AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP,
 };
 
 C_ASSERT(_countof(g_ArBasicKindsAsTypes) == _countof(g_ArBasicKindsTemplateCount));
@@ -1401,6 +1446,16 @@ const SubscriptOperatorRecord g_ArBasicKindsSubscripts[] =
   { 0, MipsFalse, SampleFalse },  // AR_OBJECT_RAY_DESC
   { 0, MipsFalse, SampleFalse },  // AR_OBJECT_ACCELARATION_STRUCT
   { 0, MipsFalse, SampleFalse },  // AR_OBJECT_TRIANGLE_INTERSECTION_ATTRIBUTES
+
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_STATE_OBJECT_CONFIG,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_GLOBAL_ROOT_SIGNATURE,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_LOCAL_ROOT_SIGNATURE,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_SUBOBJECT_TO_EXPORTS_ASSOC,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_RAYTRACING_SHADER_CONFIG,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_RAYTRACING_PIPELINE_CONFIG,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_TRIANGLE_HIT_GROUP,
+  { 0, MipsFalse, SampleFalse },  // AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP,
+
 };
 
 C_ASSERT(_countof(g_ArBasicKindsAsTypes) == _countof(g_ArBasicKindsSubscripts));
@@ -1424,6 +1479,7 @@ const char* g_ArBasicTypeNames[] =
   "enum class",
 
   "null",
+  "literal string",
   "string",
   // "texture",
   "Texture1D",
@@ -1502,29 +1558,41 @@ const char* g_ArBasicTypeNames[] =
   "RayDesc",
   "RaytracingAccelerationStructure",
   "user defined type",
-  "BuiltInTriangleIntersectionAttributes"
+  "BuiltInTriangleIntersectionAttributes",
+
+  // subobjects
+  "StateObjectConfig",
+  "GlobalRootSignature",
+  "LocalRootSignature",
+  "SubobjectToExportsAssociation", 
+  "RaytracingShaderConfig",
+  "RaytracingPipelineConfig",
+  "TriangleHitGroup",
+  "ProceduralPrimitiveHitGroup"
 };
 
 C_ASSERT(_countof(g_ArBasicTypeNames) == AR_BASIC_MAXIMUM_COUNT);
 
+static bool IsValidBasicKind(ArBasicKind kind) {
+  return kind != AR_BASIC_COUNT &&
+    kind != AR_BASIC_NONE &&
+    kind != AR_BASIC_UNKNOWN &&
+    kind != AR_BASIC_NOCAST &&
+    kind != AR_BASIC_POINTER &&
+    kind != AR_OBJECT_RENDERTARGETVIEW &&
+    kind != AR_OBJECT_DEPTHSTENCILVIEW &&
+    kind != AR_OBJECT_COMPUTESHADER &&
+    kind != AR_OBJECT_DOMAINSHADER &&
+    kind != AR_OBJECT_GEOMETRYSHADER &&
+    kind != AR_OBJECT_HULLSHADER &&
+    kind != AR_OBJECT_PIXELSHADER &&
+    kind != AR_OBJECT_VERTEXSHADER &&
+    kind != AR_OBJECT_PIXELFRAGMENT &&
+    kind != AR_OBJECT_VERTEXFRAGMENT;
+}
 // kind should never be a flag value or effects framework type - we simply do not expect to deal with these
 #define DXASSERT_VALIDBASICKIND(kind) \
-  DXASSERT(\
-  kind != AR_BASIC_COUNT && \
-  kind != AR_BASIC_NONE && \
-  kind != AR_BASIC_UNKNOWN && \
-  kind != AR_BASIC_NOCAST && \
-  kind != AR_BASIC_POINTER && \
-  kind != AR_OBJECT_RENDERTARGETVIEW && \
-  kind != AR_OBJECT_DEPTHSTENCILVIEW && \
-  kind != AR_OBJECT_COMPUTESHADER && \
-  kind != AR_OBJECT_DOMAINSHADER && \
-  kind != AR_OBJECT_GEOMETRYSHADER && \
-  kind != AR_OBJECT_HULLSHADER && \
-  kind != AR_OBJECT_PIXELSHADER && \
-  kind != AR_OBJECT_VERTEXSHADER && \
-  kind != AR_OBJECT_PIXELFRAGMENT && \
-  kind != AR_OBJECT_VERTEXFRAGMENT, "otherwise caller is using a special flag or an unsupported kind value");
+  DXASSERT(IsValidBasicKind(kind), "otherwise caller is using a special flag or an unsupported kind value");
 
 static
 const char* g_DeprecatedEffectObjectNames[] =
@@ -2322,9 +2390,8 @@ static void AddHLSLSubscriptAttr(Decl *D, ASTContext &context, HLSubscriptOpcode
   D->addAttr(HLSLIntrinsicAttr::CreateImplicit(context, group, "", static_cast<unsigned>(opcode)));
 }
 
-static void CreateSimpleField(clang::ASTContext &context,
-                              CXXRecordDecl *recordDecl, StringRef Name,
-                              QualType Ty) {
+static void CreateSimpleField(clang::ASTContext &context, CXXRecordDecl *recordDecl, StringRef Name,
+                              QualType Ty, AccessSpecifier access = AccessSpecifier::AS_public) {
   IdentifierInfo &fieldId =
       context.Idents.get(Name, tok::TokenKind::identifier);
   TypeSourceInfo *filedTypeSource = context.getTrivialTypeSourceInfo(Ty, NoLoc);
@@ -2334,7 +2401,7 @@ static void CreateSimpleField(clang::ASTContext &context,
   FieldDecl *fieldDecl =
       FieldDecl::Create(context, recordDecl, NoLoc, NoLoc, &fieldId, Ty,
                         filedTypeSource, nullptr, MutableFalse, initStyle);
-  fieldDecl->setAccess(AccessSpecifier::AS_public);
+  fieldDecl->setAccess(access);
   fieldDecl->setImplicit(true);
 
   recordDecl->addDecl(fieldDecl);
@@ -2355,6 +2422,7 @@ static CXXRecordDecl *CreateRayDescStruct(clang::ASTContext &context,
   CXXRecordDecl *rayDescDecl = CXXRecordDecl::Create(
       context, TagTypeKind::TTK_Struct, currentDeclContext, NoLoc, NoLoc,
       &rayDesc, nullptr, DelayTypeCreationTrue);
+  rayDescDecl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
   rayDescDecl->startDefinition();
 
   QualType floatTy = context.FloatTy;
@@ -2386,6 +2454,7 @@ static CXXRecordDecl *AddBuiltInTriangleIntersectionAttributes(ASTContext& conte
     CXXRecordDecl *attributesDecl = CXXRecordDecl::Create(
         context, TagTypeKind::TTK_Struct, curDC, NoLoc, NoLoc,
         &attributesId, nullptr, DelayTypeCreationTrue);
+    attributesDecl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
     attributesDecl->startDefinition();
     // float2 barycentrics;
     CreateSimpleField(context, attributesDecl, "barycentrics", baryType);
@@ -2393,6 +2462,111 @@ static CXXRecordDecl *AddBuiltInTriangleIntersectionAttributes(ASTContext& conte
     attributesDecl->setImplicit(true);
     curDC->addDecl(attributesDecl);
     return attributesDecl;
+}
+
+//
+// Subobjects
+
+static CXXRecordDecl *StartSubobjectDecl(ASTContext& context, const char *name) {
+  IdentifierInfo &id = context.Idents.get(StringRef(name), tok::TokenKind::identifier);
+  CXXRecordDecl *decl = CXXRecordDecl::Create( context, TagTypeKind::TTK_Struct, 
+    context.getTranslationUnitDecl(), NoLoc, NoLoc, &id, nullptr, DelayTypeCreationTrue);
+  decl->addAttr(FinalAttr::CreateImplicit(context, FinalAttr::Keyword_final));
+  decl->startDefinition();
+  return decl;
+}
+
+void FinishSubobjectDecl(ASTContext& context, CXXRecordDecl *decl) {
+  decl->completeDefinition();
+  context.getTranslationUnitDecl()->addDecl(decl);
+  decl->setImplicit(true);
+}
+
+// struct StateObjectConfig 
+// {
+//   uint32_t Flags;
+// };
+static CXXRecordDecl *CreateSubobjectStateObjectConfig(ASTContext& context) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, "StateObjectConfig");
+  CreateSimpleField(context, decl, "Flags", context.UnsignedIntTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
+}
+
+// struct GlobalRootSignature
+// {
+//   string signature;
+// };
+static CXXRecordDecl *CreateSubobjectRootSignature(ASTContext& context, bool global) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, global ? "GlobalRootSignature" : "LocalRootSignature");
+  CreateSimpleField(context, decl, "Data", context.HLSLStringTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
+}
+
+// struct SubobjectToExportsAssociation 
+// {
+//   string Subobject;
+//   string Exports;
+// };
+static CXXRecordDecl *CreateSubobjectSubobjectToExportsAssoc(ASTContext& context) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, "SubobjectToExportsAssociation");
+  CreateSimpleField(context, decl, "Subobject", context.HLSLStringTy, AccessSpecifier::AS_private);
+  CreateSimpleField(context, decl, "Exports",   context.HLSLStringTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
+}
+
+// struct RaytracingShaderConfig 
+// {
+//   uint32_t MaxPayloadSizeInBytes;
+//   uint32_t MaxAttributeSizeInBytes;
+// };
+static CXXRecordDecl *CreateSubobjectRaytracingShaderConfig(ASTContext& context) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, "RaytracingShaderConfig");
+  CreateSimpleField(context, decl, "MaxPayloadSizeInBytes",   context.UnsignedIntTy, AccessSpecifier::AS_private);
+  CreateSimpleField(context, decl, "MaxAttributeSizeInBytes", context.UnsignedIntTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
+}
+
+// struct RaytracingPipelineConfig 
+// {
+//   uint32_t MaxTraceRecursionDepth;
+// };
+static CXXRecordDecl *CreateSubobjectRaytracingPipelineConfig(ASTContext& context) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, "RaytracingPipelineConfig"); 
+  CreateSimpleField(context, decl, "MaxTraceRecursionDepth", context.UnsignedIntTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
+}
+
+// struct TriangleHitGroup
+// {
+//   string AnyHit;
+//   string ClosestHit;
+// };
+static CXXRecordDecl *CreateSubobjectTriangleHitGroup(ASTContext& context) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, "TriangleHitGroup");
+  CreateSimpleField(context, decl, "AnyHit",       context.HLSLStringTy, AccessSpecifier::AS_private);
+  CreateSimpleField(context, decl, "ClosestHit",   context.HLSLStringTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
+}
+
+// struct ProceduralPrimitiveHitGroup
+// {
+//   string AnyHit;
+//   string ClosestHit;
+//   string Intersection;
+// };
+static CXXRecordDecl *CreateSubobjectProceduralPrimitiveHitGroup(ASTContext& context) {
+  CXXRecordDecl *decl = StartSubobjectDecl(context, "ProceduralPrimitiveHitGroup");
+  CreateSimpleField(context, decl, "AnyHit", context.HLSLStringTy, AccessSpecifier::AS_private);
+  CreateSimpleField(context, decl, "ClosestHit", context.HLSLStringTy, AccessSpecifier::AS_private);
+  CreateSimpleField(context, decl, "Intersection", context.HLSLStringTy, AccessSpecifier::AS_private);
+  FinishSubobjectDecl(context, decl);
+  return decl;
 }
 
 //
@@ -2592,6 +2766,10 @@ private:
   // BuiltinType for each scalar type.
   QualType m_baseTypes[HLSLScalarTypeCount];
 
+  // String type
+  QualType m_hlslStringType;
+  TypedefDecl* m_hlslStringTypedef;
+
   // Built-in object types declarations, indexed by basic kind constant.
   CXXRecordDecl* m_objectTypeDecls[_countof(g_ArBasicKindsAsTypes)];
   // Map from object decl to the object index.
@@ -2607,6 +2785,9 @@ private:
 
   /// <summary>Adds all supporting declarations to reference scalar types.</summary>
   void AddHLSLScalarTypes();
+
+  /// <summary>Adds string type QualType for HSLS string declarations</summary>
+  void AddHLSLStringType();
 
   QualType GetTemplateObjectDataType(_In_ CXXRecordDecl* recordDecl)
   {
@@ -3012,8 +3193,36 @@ private:
       } else if (kind == AR_OBJECT_TRIANGLE_INTERSECTION_ATTRIBUTES) {
         QualType float2Type = LookupVectorType(HLSLScalarType::HLSLScalarType_float, 2);
         recordDecl = AddBuiltInTriangleIntersectionAttributes(*m_context, float2Type);
-      } else
-      if (templateArgCount == 0)
+      } else if (IsSubobjectBasicKind(kind)) {
+        switch (kind) {
+        case AR_OBJECT_STATE_OBJECT_CONFIG:
+          recordDecl = CreateSubobjectStateObjectConfig(*m_context);
+          break;
+        case AR_OBJECT_GLOBAL_ROOT_SIGNATURE:
+          recordDecl = CreateSubobjectRootSignature(*m_context, true);
+          break;
+        case AR_OBJECT_LOCAL_ROOT_SIGNATURE:
+          recordDecl = CreateSubobjectRootSignature(*m_context, false);
+          break;
+        case AR_OBJECT_SUBOBJECT_TO_EXPORTS_ASSOC:
+          recordDecl = CreateSubobjectSubobjectToExportsAssoc(*m_context);
+          break;
+          break;
+        case AR_OBJECT_RAYTRACING_SHADER_CONFIG:
+          recordDecl = CreateSubobjectRaytracingShaderConfig(*m_context);
+          break;
+        case AR_OBJECT_RAYTRACING_PIPELINE_CONFIG:
+          recordDecl = CreateSubobjectRaytracingPipelineConfig(*m_context);
+          break;
+        case AR_OBJECT_TRIANGLE_HIT_GROUP:
+          recordDecl = CreateSubobjectTriangleHitGroup(*m_context);
+          break;
+        case AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP:
+          recordDecl = CreateSubobjectProceduralPrimitiveHitGroup(*m_context);
+          break;
+        }
+      }
+      else if (templateArgCount == 0)
       {
         AddRecordTypeWithHandle(*m_context, &recordDecl, typeName);
         DXASSERT(recordDecl != nullptr, "AddRecordTypeWithHandle failed to return the object declaration");
@@ -3111,7 +3320,8 @@ public:
     m_matrixTemplateDecl(nullptr),
     m_vectorTemplateDecl(nullptr),
     m_context(nullptr),
-    m_sema(nullptr)
+    m_sema(nullptr),
+    m_hlslStringTypedef(nullptr)
   {
     memset(m_matrixTypes, 0, sizeof(m_matrixTypes));
     memset(m_matrixShorthandTypes, 0, sizeof(m_matrixShorthandTypes));
@@ -3192,6 +3402,23 @@ public:
       m_vectorTypes[scalarType][colCount - 1] = qt;
     }
     return qt;
+  }
+
+  TypedefDecl* GetStringTypedef() {
+    if (m_hlslStringTypedef == nullptr) {
+      m_hlslStringTypedef = CreateGlobalTypedef(m_context, "string", m_hlslStringType);
+      m_hlslStringType = m_context->getTypeDeclType(m_hlslStringTypedef);
+    }
+    DXASSERT_NOMSG(m_hlslStringTypedef != nullptr);
+    return m_hlslStringTypedef;
+  }
+
+  static bool IsSubobjectBasicKind(ArBasicKind kind) {
+    return kind >= AR_OBJECT_STATE_OBJECT_CONFIG && kind <= AR_OBJECT_PROCEDURAL_PRIMITIVE_HIT_GROUP;
+  }
+
+  bool IsSubobjectType(QualType type) {
+    return IsSubobjectBasicKind(GetTypeElementKind(type));
   }
 
   void WarnMinPrecision(HLSLScalarType type, SourceLocation loc) {
@@ -3297,6 +3524,11 @@ public:
       }
       return true;
     }
+    // string
+    else if (TryParseString(nameIdentifier.data(), nameIdentifier.size(), getSema()->getLangOpts())) {
+      TypedefDecl *strDecl = GetStringTypedef();
+      R.addDecl(strDecl);
+    }
     return false;
   }
 
@@ -3377,9 +3609,11 @@ public:
     type = GetStructuralForm(type);
 
     if (type->isVoidType()) return AR_TOBJ_VOID;
-    if (type->isArrayType()) return AR_TOBJ_ARRAY;
+    if (type->isArrayType()) {
+      return hlsl::IsArrayConstantStringType(type) ? AR_TOBJ_STRING : AR_TOBJ_ARRAY;
+    }
     if (type->isPointerType()) {
-      return AR_TOBJ_POINTER;
+      return hlsl::IsPointerStringType(type) ? AR_TOBJ_STRING : AR_TOBJ_POINTER;
     }
     if (type->isStructureOrClassType()) {
       const RecordType* recordType = type->getAs<RecordType>();
@@ -3459,6 +3693,10 @@ public:
     if (kind == AR_TOBJ_MATRIX || kind == AR_TOBJ_VECTOR) {
       QualType elementType = GetMatrixOrVectorElementType(type);
       return GetTypeElementKind(elementType);
+    }
+
+    if (kind == AR_TOBJ_STRING) {
+      return type->isArrayType() ? AR_OBJECT_STRING_LITERAL : AR_OBJECT_STRING;
     }
 
     if (type->isArrayType()) {
@@ -3625,8 +3863,8 @@ public:
     case AR_BASIC_ENUM:           return m_context->IntTy;
     case AR_BASIC_ENUM_CLASS:     return m_context->IntTy;
 
-    case AR_OBJECT_STRING: return QualType();
-
+    case AR_OBJECT_STRING:        return m_hlslStringType;
+    
     case AR_OBJECT_LEGACY_EFFECT:   // used for all legacy effect object types
 
     case AR_OBJECT_TEXTURE1D:
@@ -3900,6 +4138,7 @@ public:
     m_hlslNSDecl->setImplicit();
     AddBaseTypes();
     AddHLSLScalarTypes();
+    AddHLSLStringType();
 
     AddHLSLVectorTemplate(*m_context, &m_vectorTemplateDecl);
     DXASSERT(m_vectorTemplateDecl != nullptr, "AddHLSLVectorTypes failed to return the vector template declaration");
@@ -3909,6 +4148,7 @@ public:
     // Initializing built in integers for ray tracing
     AddRayFlags(*m_context);
     AddHitKinds(*m_context);
+    AddStateObjectFlags(*m_context);
 
     return true;
   }
@@ -4598,7 +4838,7 @@ public:
 
     /// <summary>Whether the elements can be converted and the sequences have the same length.</summary>
     bool IsConvertibleAndEqualLength() const {
-      return LeftCount == RightCount;
+      return CanConvertElements && LeftCount == RightCount;
     }
 
     /// <summary>Whether the elements can be converted but the left-hand sequence is longer.</summary>
@@ -4608,6 +4848,10 @@ public:
 
     bool IsRightLonger() const {
       return RightCount > LeftCount;
+    }
+
+    bool IsEqualLength() const {
+      return LeftCount == RightCount;
     }
   };
 
@@ -4676,6 +4920,10 @@ void HLSLExternalSource::AddHLSLScalarTypes()
   m_scalarTypes[HLSLScalarType_double] = m_baseTypes[HLSLScalarType_double];
   m_scalarTypes[HLSLScalarType_float_lit] = m_baseTypes[HLSLScalarType_float_lit];
   m_scalarTypes[HLSLScalarType_int_lit] = m_baseTypes[HLSLScalarType_int_lit];
+}
+
+void HLSLExternalSource::AddHLSLStringType() {
+  m_hlslStringType = m_context->HLSLStringTy;
 }
 
 FunctionDecl* HLSLExternalSource::AddSubscriptSpecialization(
@@ -5336,7 +5584,10 @@ bool HLSLExternalSource::MatchArguments(
           return false;
         }
         pEltType = GetTypeElementKind(objectElement);
-        DXASSERT_VALIDBASICKIND(pEltType);
+        if (!IsValidBasicKind(pEltType)) {
+          // This can happen with Texture2D<Struct> or other invalid declarations
+          return false;
+        }
       }
       else {
         pEltType = ComponentType[pArgument->uComponentTypeId];
@@ -5701,6 +5952,7 @@ unsigned HLSLExternalSource::GetNumElements(QualType anyType) {
   switch (kind) {
   case AR_TOBJ_BASIC:
   case AR_TOBJ_OBJECT:
+  case AR_TOBJ_STRING:
     return 1;
   case AR_TOBJ_COMPOUND: {
     // TODO: consider caching this value for perf
@@ -5736,6 +5988,7 @@ unsigned HLSLExternalSource::GetNumBasicElements(QualType anyType) {
   switch (kind) {
   case AR_TOBJ_BASIC:
   case AR_TOBJ_OBJECT:
+  case AR_TOBJ_STRING:
     return 1;
   case AR_TOBJ_COMPOUND: {
     // TODO: consider caching this value for perf
@@ -5834,6 +6087,7 @@ QualType HLSLExternalSource::GetNthElementType(QualType type, unsigned index) {
   switch (kind) {
   case AR_TOBJ_BASIC:
   case AR_TOBJ_OBJECT:
+  case AR_TOBJ_STRING:
     return (index == 0) ? type : QualType();
   case AR_TOBJ_COMPOUND: {
     // TODO: consider caching this value for perf
@@ -6518,10 +6772,16 @@ void HLSLExternalSource::InitializeInitSequenceForHLSL(
         diagLocation = Entity.getDiagLoc();
       }
 
-      m_sema->Diag(diagLocation,
-        diag::err_vector_incorrect_num_initializers)
-        << (comparisonResult.RightCount < comparisonResult.LeftCount)
-        << comparisonResult.LeftCount << comparisonResult.RightCount;
+      if (comparisonResult.IsEqualLength()) {
+        m_sema->Diag(diagLocation, diag::err_hlsl_type_mismatch);
+      }
+      else {
+        m_sema->Diag(diagLocation,
+          diag::err_incorrect_num_initializers)
+          << (comparisonResult.RightCount < comparisonResult.LeftCount)
+          << IsSubobjectType(destType)
+          << comparisonResult.LeftCount << comparisonResult.RightCount;
+      }
       SilenceSequenceDiagnostics(initSequence);
     }
   }
@@ -6693,6 +6953,7 @@ bool HLSLExternalSource::IsTypeNumeric(QualType type, UINT* count)
     *count = GetElementCount(type);
     return IsBasicKindNumeric(GetTypeElementKind(type));
   case AR_TOBJ_OBJECT:
+  case AR_TOBJ_STRING:
     return false;
   }
 }
@@ -7655,6 +7916,14 @@ static bool ConvertDimensions(ArTypeInfo TargetInfo, ArTypeInfo SourceInfo,
 
     break;
   }
+  case AR_TOBJ_STRING:
+    if (SourceInfo.ShapeKind == AR_TOBJ_STRING) {
+      Second = ICK_Identity;
+      break;
+    }
+    else {
+      return false;
+    }
 
   default:
     return false;
@@ -7709,6 +7978,16 @@ static bool ConvertComponent(ArTypeInfo TargetInfo, ArTypeInfo SourceInfo,
       // enum -> int/float
       ComponentConversion = ICK_Integral_Conversion;
     }
+    else if (TargetInfo.EltKind == AR_OBJECT_STRING) 
+    {
+      if (SourceInfo.EltKind == AR_OBJECT_STRING_LITERAL) {
+        ComponentConversion = ICK_Array_To_Pointer;
+      }
+      else 
+      {
+        return false;
+      }
+    }
     else
     {
       bool targetIsInt = IS_BASIC_AINT(TargetInfo.EltKind);
@@ -7755,7 +8034,6 @@ bool HLSLExternalSource::CanConvert(
   _Out_opt_ TYPE_CONVERSION_REMARKS* remarks,
   _Inout_opt_ StandardConversionSequence* standard)
 {
-  bool bCheckElt = false;
   UINT uTSize, uSSize;
 
   DXASSERT_NOMSG(sourceExpr != nullptr);
@@ -7954,6 +8232,9 @@ lSuccess:
         case ICK_Boolean_Conversion:
           standard->First = ICK_Lvalue_To_Rvalue;
           break;
+        case ICK_Array_To_Pointer:
+          standard->First = ICK_Array_To_Pointer;
+          break;
         default:
           // Only potential assignments above covered.
           break;
@@ -7969,7 +8250,8 @@ lSuccess:
           // Scalar to scalar type conversion, use normal mechanism (Second)
           Second = ComponentConversion;
           ComponentConversion = ICK_Identity;
-        } else {
+        }
+        else if (TargetInfo.ShapeKind != AR_TOBJ_STRING) {
           // vector or matrix dimensions are not being changed, but component type
           // is being converted, so change Second to signal the conversion
           Second = ICK_HLSLVector_Conversion;
@@ -9802,7 +10084,8 @@ bool FlattenedTypeIterator::considerLeaf()
   case FlattenedIterKind::FK_Simple: {
     ArTypeObjectKind objectKind = m_source.GetTypeObjectKind(tracker.Type);
     if (objectKind != ArTypeObjectKind::AR_TOBJ_BASIC &&
-        objectKind != ArTypeObjectKind::AR_TOBJ_OBJECT) {
+        objectKind != ArTypeObjectKind::AR_TOBJ_OBJECT &&
+        objectKind != ArTypeObjectKind::AR_TOBJ_STRING) {
       if (pushTrackerForType(tracker.Type, tracker.CurrentExpr)) {
         result = considerLeaf();
       }
@@ -9993,9 +10276,27 @@ bool FlattenedTypeIterator::pushTrackerForType(QualType type, MultiExprArg::iter
       GetHLSLVecSize(type), nullptr));
     return true;
   case ArTypeObjectKind::AR_TOBJ_OBJECT: {
-    // Object have no sub-types.
-    m_typeTrackers.push_back(FlattenedTypeIterator::FlattenedTypeTracker(
+    if (m_source.IsSubobjectType(type)) {
+      // subobjects are initialized with initialization lists
+      recordType = type->getAsStructureType();
+      fi = recordType->getDecl()->field_begin();
+      fe = recordType->getDecl()->field_end();
+
+      m_typeTrackers.push_back(
+          FlattenedTypeIterator::FlattenedTypeTracker(type, fi, fe));
+      return true;
+    }
+    else {
+      // Object have no sub-types.
+      m_typeTrackers.push_back(FlattenedTypeIterator::FlattenedTypeTracker(
         type.getCanonicalType(), 1, expression));
+      return true;
+    }
+  }
+  case ArTypeObjectKind::AR_TOBJ_STRING: {
+    // Strings have no sub-types.
+    m_typeTrackers.push_back(FlattenedTypeIterator::FlattenedTypeTracker(
+      type.getCanonicalType(), 1, expression));
     return true;
   }
   default:
@@ -10348,8 +10649,8 @@ static Attr* HandleClipPlanes(Sema& S, const AttributeList &A)
 static Attr* HandleUnrollAttribute(Sema& S, const AttributeList &Attr)
 {
   int argValue = ValidateAttributeIntArg(S, Attr);
-  // Default value is 1.
-  if (Attr.getNumArgs() == 0) argValue = 1;
+  // Default value is 0 (full unroll).
+  if (Attr.getNumArgs() == 0) argValue = 0;
   return ::new (S.Context) HLSLUnrollAttr(Attr.getRange(), S.Context,
     argValue, Attr.getAttributeSpellingListIndex());
 }
@@ -10990,6 +11291,56 @@ void Sema::TransferUnusualAttributes(Declarator &D, NamedDecl *NewDecl) {
         D.UnusualAnnotations.size()));
     D.UnusualAnnotations.clear();
   }
+  // pragma pack_matrix.
+  // Do this for struct member also.
+  if (ValueDecl *VD = dyn_cast<ValueDecl>(NewDecl)) {
+    QualType Ty = VD->getType();
+    QualType EltTy = Ty;
+    while (EltTy->isArrayType()) {
+      EltTy = EltTy->getAsArrayTypeUnsafe()->getElementType();
+    }
+    if (hlsl::IsHLSLMatType(EltTy)) {
+      bool bRowMajor = false;
+      if (!hlsl::HasHLSLMatOrientation(EltTy, &bRowMajor)) {
+        if (PackMatrixColMajorPragmaOn || PackMatrixRowMajorPragmaOn) {
+          // Add major.
+          QualType NewEltTy = Context.getAttributedType(
+              PackMatrixRowMajorPragmaOn
+                  ? AttributedType::attr_hlsl_row_major
+                  : AttributedType::attr_hlsl_column_major,
+              EltTy, EltTy);
+
+          QualType NewTy = NewEltTy;
+          if (Ty->isArrayType()) {
+            // Build new array type.
+            SmallVector<const ArrayType *, 2> arrayTys;
+            while (EltTy->isArrayType()) {
+              const ArrayType *AT = EltTy->getAsArrayTypeUnsafe();
+              arrayTys.emplace_back(AT);
+            }
+            for (auto rit = arrayTys.rbegin(); rit != arrayTys.rend(); rit++) {
+              // Create array type with NewTy.
+              const ArrayType *AT = *rit;
+              if (const ConstantArrayType *CAT =
+                      dyn_cast<ConstantArrayType>(AT)) {
+                NewTy = Context.getConstantArrayType(
+                    NewTy, CAT->getSize(), CAT->getSizeModifier(),
+                    CAT->getIndexTypeCVRQualifiers());
+              } else if (const IncompleteArrayType *IAT =
+                             dyn_cast<IncompleteArrayType>(AT)) {
+                NewTy = Context.getIncompleteArrayType(NewTy, IAT->getSizeModifier(),
+                    IAT->getIndexTypeCVRQualifiers());
+              } else {
+                DXASSERT(false, "");
+              }
+            }
+          }
+          // Update Type.
+          VD->setType(NewTy);
+        }
+      }
+    }
+  }
 }
 
 /// Checks whether a usage attribute is compatible with those seen so far and
@@ -11018,7 +11369,7 @@ static bool IsUsageAttributeCompatible(AttributeList::Kind kind, bool &usageIn,
 }
 
 // Diagnose valid/invalid modifiers for HLSL.
-bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
+bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC, Expr *BitWidth,
                             TypeSourceInfo *TInfo, bool isParameter) {
   assert(getLangOpts().HLSL &&
          "otherwise this is called without checking language first");
@@ -11064,6 +11415,7 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
   // case of a function (or method).
   QualType qt = TInfo->getType();
   const Type* pType = qt.getTypePtrOrNull();
+  HLSLExternalSource *hlslSource = HLSLExternalSource::FromSema(this);
 
   // Early checks - these are not simple attribution errors, but constructs that
   // are fundamentally unsupported,
@@ -11085,6 +11437,30 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
     }
   }
 
+  // String and subobject declarations are supported only as top level global variables.
+  // Const and static modifiers are implied - add them if missing.
+  if ((hlsl::IsStringType(qt) || hlslSource->IsSubobjectType(qt)) && !D.isInvalidType()) {
+    // string are supported only as top level global variables
+    if (!DC->isTranslationUnit()) {
+      Diag(D.getLocStart(), diag::err_hlsl_object_not_global) << (int)hlsl::IsStringType(qt);
+      result = false;
+    }
+    if (isExtern) {
+      Diag(D.getLocStart(), diag::err_hlsl_object_extern_not_supported) << (int)hlsl::IsStringType(qt);
+      result = false;
+    }
+    const char *PrevSpec = nullptr;
+    unsigned DiagID = 0;
+    if (!isStatic) {
+      D.getMutableDeclSpec().SetStorageClassSpec(*this, DeclSpec::SCS_static, D.getLocStart(), PrevSpec, DiagID, Context.getPrintingPolicy());
+      isStatic = true;
+    }
+    if (!isConst) {
+      D.getMutableDeclSpec().SetTypeQual(DeclSpec::TQ_const, D.getLocStart(), PrevSpec, DiagID, getLangOpts());
+      isConst = true;
+    }
+  }
+
   const char* declarationType =
     (isLocalVar) ? "local variable" :
     (isTypedef) ? "typedef" :
@@ -11099,6 +11475,13 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
     if (pFP) {
       qt = pFP->getReturnType();
       pType = qt.getTypePtrOrNull();
+
+      // prohibit string as a return type
+      if (hlsl::IsStringType(qt)) {
+        static const unsigned selectReturnValueIdx = 2;
+        Diag(D.getLocStart(), diag::err_hlsl_unsupported_string_decl) << selectReturnValueIdx;
+        D.setInvalidType();
+      }
     }
   }
 
@@ -11113,7 +11496,6 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
       return false;
     }
     // Add methods if not ready.
-    HLSLExternalSource *hlslSource = HLSLExternalSource::FromSema(this);
     hlslSource->AddHLSLObjectMethodsIfNotReady(qt);
   } else if (qt->isArrayType()) {
     QualType eltQt(qt->getArrayElementTypeNoTypeQual(), 0);
@@ -11122,7 +11504,6 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
 
     if (hlsl::IsObjectType(this, eltQt, &bDeprecatedEffectObject)) {
       // Add methods if not ready.
-      HLSLExternalSource *hlslSource = HLSLExternalSource::FromSema(this);
       hlslSource->AddHLSLObjectMethodsIfNotReady(eltQt);
     }
   }
@@ -11159,7 +11540,6 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
     }
   }
 
-  HLSLExternalSource *hlslSource = HLSLExternalSource::FromSema(this);
   ArBasicKind basicKind = hlslSource->GetTypeElementKind(qt);
 
   if (hasSignSpec) {
@@ -11447,6 +11827,12 @@ bool Sema::DiagnoseHLSLDecl(Declarator &D, DeclContext *DC,
   }
 #endif // ENABLE_SPIRV_CODEGEN
   // SPIRV change ends
+
+  // Disallow bitfields
+  if (BitWidth) {
+    Diag(BitWidth->getExprLoc(), diag::err_hlsl_bitfields);
+    result = false;
+  }
 
   // Validate unusual annotations.
   hlsl::DiagnoseUnusualAnnotationsForHLSL(*this, D.UnusualAnnotations);
@@ -11889,7 +12275,10 @@ void hlsl::CustomPrintHLSLAttr(const clang::Attr *A, llvm::raw_ostream &Out, con
     Attr * noconst = const_cast<Attr*>(A);
     HLSLUnrollAttr *ACast = static_cast<HLSLUnrollAttr*>(noconst);
     Indent(Indentation, Out);
-    Out << "[unroll(" << ACast->getCount() << ")]\n";
+    if (ACast->getCount() == 0)
+      Out << "[unroll]\n";
+    else
+      Out << "[unroll(" << ACast->getCount() << ")]\n";
     break;
   }
   

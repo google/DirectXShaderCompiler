@@ -333,6 +333,12 @@ public:
   LangOptions::PragmaMSPointersToMembersKind
       MSPointerToMemberRepresentationMethod;
 
+  // HLSL Change Begin - pragma pack_matrix.
+  // Add both row/col to identify the default case which no pragma.
+  bool PackMatrixRowMajorPragmaOn = false; // True when \#pragma pack_matrix(row_major) on.
+  bool PackMatrixColMajorPragmaOn = false; // True when \#pragma pack_matrix(column_major) on.
+  // HLSL Change End.
+
   enum PragmaVtorDispKind {
     PVDK_Push,          ///< #pragma vtordisp(push, mode)
     PVDK_Set,           ///< #pragma vtordisp(mode)
@@ -7554,6 +7560,9 @@ public:
                        SourceLocation LParenLoc,
                        SourceLocation RParenLoc);
 
+  /// ActOnPragmaPackMatrix - Called on well formed \#pragma pack_matrix(...).
+  void ActOnPragmaPackMatrix(bool bRowMajor, SourceLocation PragmaLoc);
+
   /// ActOnPragmaMSStruct - Called on well formed \#pragma ms_struct [on|off].
   void ActOnPragmaMSStruct(PragmaMSStructKind Kind);
 
@@ -8986,7 +8995,7 @@ private:
   mutable IdentifierInfo *Ident___float128;
 
   // HLSL Change Starts
-  bool DiagnoseHLSLDecl(Declarator& D, DeclContext* DC, TypeSourceInfo* TInfo, bool isParameter);
+  bool DiagnoseHLSLDecl(Declarator& D, DeclContext* DC, Expr *BitWidth, TypeSourceInfo* TInfo, bool isParameter);
   bool DiagnoseHLSLLookup(const LookupResult &R);
   void TransferUnusualAttributes(Declarator& D, NamedDecl* NewDecl);
   // HLSL Change Ends

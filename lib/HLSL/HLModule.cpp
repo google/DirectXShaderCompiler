@@ -14,7 +14,6 @@
 #include "dxc/DXIL/DxilCBuffer.h"
 #include "dxc/HLSL/HLModule.h"
 #include "dxc/DXIL/DxilTypeSystem.h"
-#include "dxc/HLSL/DxilRootSignature.h"
 #include "dxc/Support/WinAdapter.h"
 
 #include "llvm/ADT/STLExtras.h"
@@ -36,6 +35,21 @@ using std::unique_ptr;
 
 namespace hlsl {
 
+// Avoid dependency on HLModule from llvm::Module using this:
+void HLModule_RemoveGlobal(llvm::Module* M, llvm::GlobalObject* G) {
+  if (M && G && M->HasHLModule()) {
+    if (llvm::GlobalVariable *GV = dyn_cast<llvm::GlobalVariable>(G))
+      M->GetHLModule().RemoveGlobal(GV);
+    else if (llvm::Function *F = dyn_cast<llvm::Function>(G))
+      M->GetHLModule().RemoveFunction(F);
+  }
+}
+void HLModule_ResetModule(llvm::Module* M) {
+  if (M && M->HasHLModule())
+    delete &M->GetHLModule();
+  M->SetHLModule(nullptr);
+}
+
 //------------------------------------------------------------------------------
 //
 //  HLModule methods.
@@ -51,9 +65,16 @@ HLModule::HLModule(Module *pModule)
     , m_pSM(nullptr)
     , m_DxilMajor(DXIL::kDxilMajor)
     , m_DxilMinor(DXIL::kDxilMinor)
+    , m_ValMajor(0)
+    , m_ValMinor(0)
+    , m_Float32DenormMode(DXIL::Float32DenormMode::Any)
     , m_pOP(llvm::make_unique<OP>(pModule->getContext(), pModule))
+    , m_AutoBindingSpace(UINT_MAX)
+    , m_DefaultLinkage(DXIL::DefaultLinkage::Default)
     , m_pTypeSystem(llvm::make_unique<DxilTypeSystem>(pModule)) {
   DXASSERT_NOMSG(m_pModule != nullptr);
+  m_pModule->pfnRemoveGlobal = &HLModule_RemoveGlobal;
+  m_pModule->pfnResetHLModule = &HLModule_ResetModule;
 
   // Pin LLVM dump methods. TODO: make debug-only.
   void (__thiscall Module::*pfnModuleDump)() const = &Module::dump;
@@ -62,6 +83,8 @@ HLModule::HLModule(Module *pModule)
 }
 
 HLModule::~HLModule() {
+  if (m_pModule->pfnRemoveGlobal == &HLModule_RemoveGlobal)
+    m_pModule->pfnRemoveGlobal = nullptr;
 }
 
 LLVMContext &HLModule::GetCtx() const { return m_Ctx; }
@@ -84,7 +107,7 @@ void HLModule::SetShaderModel(const ShaderModel *pSM) {
   m_pSM = pSM;
   m_pSM->GetDxilVersion(m_DxilMajor, m_DxilMinor);
   m_pMDHelper->SetShaderModel(m_pSM);
-  m_RootSignature = llvm::make_unique<RootSignatureHandle>();
+  m_SerializedRootSignature.clear();
 }
 
 const ShaderModel *HLModule::GetShaderModel() const {
@@ -232,57 +255,52 @@ void HLModule::RemoveFunction(llvm::Function *F) {
   m_pOP->RemoveFunction(F);
 }
 
-template <typename TResource>
-bool RemoveResource(std::vector<std::unique_ptr<TResource>> &vec,
-                    GlobalVariable *pVariable) {
-  for (auto p = vec.begin(), e = vec.end(); p != e; ++p) {
-    if ((*p)->GetGlobalSymbol() == pVariable) {
-      p = vec.erase(p);
-      // Update ID.
-      for (e = vec.end();p != e; ++p) {
-        unsigned ID = (*p)->GetID()-1;
-        (*p)->SetID(ID);
+namespace {
+  template <typename TResource>
+  bool RemoveResource(std::vector<std::unique_ptr<TResource>> &vec,
+    GlobalVariable *pVariable, bool keepAllocated) {
+    for (auto p = vec.begin(), e = vec.end(); p != e; ++p) {
+      if ((*p)->GetGlobalSymbol() != pVariable)
+        continue;
+
+      if (keepAllocated && (*p)->IsAllocated()) {
+        // Keep the resource, but it has no more symbol.
+        (*p)->SetGlobalSymbol(UndefValue::get(pVariable->getType()));
+      } else {
+        // Erase the resource alltogether and update IDs of subsequent ones
+        p = vec.erase(p);
+        for (e = vec.end(); p != e; ++p) {
+          unsigned ID = (*p)->GetID() - 1;
+          (*p)->SetID(ID);
+        }
       }
+
       return true;
     }
+    return false;
   }
-  return false;
-}
-bool RemoveResource(std::vector<GlobalVariable *> &vec,
-                    llvm::GlobalVariable *pVariable) {
-  for (auto p = vec.begin(), e = vec.end(); p != e; ++p) {
-    if (*p == pVariable) {
-      vec.erase(p);
-      return true;
-    }
-  }
-  return false;
 }
 
 void HLModule::RemoveGlobal(llvm::GlobalVariable *GV) {
-  RemoveResources(&GV, 1);
-}
+  DXASSERT_NOMSG(GV != nullptr);
 
-void HLModule::RemoveResources(llvm::GlobalVariable **ppVariables,
-                               unsigned count) {
-  DXASSERT_NOMSG(count == 0 || ppVariables != nullptr);
-  unsigned resourcesRemoved = count;
-  for (unsigned i = 0; i < count; ++i) {
-    GlobalVariable *pVariable = ppVariables[i];
-    // This could be considerably faster - check variable type to see which
-    // resource type this is rather than scanning all lists, and look for
-    // usage and removal patterns.
-    if (RemoveResource(m_CBuffers, pVariable))
-      continue;
-    if (RemoveResource(m_SRVs, pVariable))
-      continue;
-    if (RemoveResource(m_UAVs, pVariable))
-      continue;
-    if (RemoveResource(m_Samplers, pVariable))
-      continue;
-    // TODO: do m_TGSMVariables and m_StreamOutputs need maintenance?
-    --resourcesRemoved; // Global variable is not a resource?
-  }
+  // With legacy resource reservation, we must keep unused resources around
+  // when they have a register allocation because they prevent that
+  // register range from being allocated to other resources.
+  bool keepAllocated = GetHLOptions().bLegacyResourceReservation;
+
+  // This could be considerably faster - check variable type to see which
+  // resource type this is rather than scanning all lists, and look for
+  // usage and removal patterns.
+  if (RemoveResource(m_CBuffers, GV, keepAllocated))
+    return;
+  if (RemoveResource(m_SRVs, GV, keepAllocated))
+    return;
+  if (RemoveResource(m_UAVs, GV, keepAllocated))
+    return;
+  if (RemoveResource(m_Samplers, GV, keepAllocated))
+    return;
+  // TODO: do m_TGSMVariables and m_StreamOutputs need maintenance?
 }
 
 HLModule::tgsm_iterator HLModule::tgsm_begin() {
@@ -297,8 +315,14 @@ void HLModule::AddGroupSharedVariable(GlobalVariable *GV) {
   m_TGSMVariables.emplace_back(GV);
 }
 
-RootSignatureHandle &HLModule::GetRootSignature() {
-  return *m_RootSignature;
+std::vector<uint8_t> &HLModule::GetSerializedRootSignature() {
+  return m_SerializedRootSignature;
+}
+
+void HLModule::SetSerializedRootSignature(const uint8_t *pData, unsigned size) {
+  m_SerializedRootSignature.clear();
+  m_SerializedRootSignature.resize(size);
+  memcpy(m_SerializedRootSignature.data(), pData, size);
 }
 
 DxilTypeSystem &HLModule::GetTypeSystem() {
@@ -311,10 +335,6 @@ DxilTypeSystem *HLModule::ReleaseTypeSystem() {
 
 hlsl::OP *HLModule::ReleaseOP() {
   return m_pOP.release();
-}
-
-RootSignatureHandle *HLModule::ReleaseRootSignature() {
-  return m_RootSignature.release();
 }
 
 DxilFunctionPropsMap &&HLModule::ReleaseFunctionPropsMap() {
@@ -475,8 +495,13 @@ void HLModule::EmitHLMetadata() {
     resTyAnnotations->addOperand(EmitResTyAnnotations());
   }
 
-  if (!m_RootSignature->IsEmpty()) {
-    m_pMDHelper->EmitRootSignature(*m_RootSignature.get());
+  if (!m_SerializedRootSignature.empty()) {
+    m_pMDHelper->EmitRootSignature(m_SerializedRootSignature);
+  }
+
+  // Save Subobjects
+  if (GetSubobjects()) {
+    m_pMDHelper->EmitSubobjects(*GetSubobjects());
   }
 }
 
@@ -484,7 +509,7 @@ void HLModule::LoadHLMetadata() {
   m_pMDHelper->LoadDxilVersion(m_DxilMajor, m_DxilMinor);
   m_pMDHelper->LoadValidatorVersion(m_ValMajor, m_ValMinor);
   m_pMDHelper->LoadDxilShaderModel(m_pSM);
-  m_RootSignature = llvm::make_unique<RootSignatureHandle>();
+  m_SerializedRootSignature.clear();
 
   const llvm::NamedMDNode *pEntries = m_pMDHelper->GetDxilEntryPoints();
 
@@ -531,7 +556,14 @@ void HLModule::LoadHLMetadata() {
       LoadResTyAnnotations(MDResTyAnnotations->getOperand(0));
   }
 
-  m_pMDHelper->LoadRootSignature(*m_RootSignature.get());
+  m_pMDHelper->LoadRootSignature(m_SerializedRootSignature);
+
+  // Load Subobjects
+  std::unique_ptr<DxilSubobjects> pSubobjects(new DxilSubobjects());
+  m_pMDHelper->LoadSubobjects(*pSubobjects);
+  if (pSubobjects->GetSubobjects().size()) {
+    ResetSubobjects(pSubobjects.release());
+  }
 }
 
 void HLModule::ClearHLMetadata(llvm::Module &M) {
@@ -1234,6 +1266,24 @@ DebugInfoFinder &HLModule::GetOrCreateDebugInfoFinder() {
   }
   return *m_pDebugInfoFinder;
 }
+
+//------------------------------------------------------------------------------
+//
+// Subobject methods.
+//
+DxilSubobjects *HLModule::GetSubobjects() {
+  return m_pSubobjects.get();
+}
+const DxilSubobjects *HLModule::GetSubobjects() const {
+  return m_pSubobjects.get();
+}
+DxilSubobjects *HLModule::ReleaseSubobjects() {
+  return m_pSubobjects.release();
+}
+void HLModule::ResetSubobjects(DxilSubobjects *subobjects) {
+  m_pSubobjects.reset(subobjects);
+}
+
 //------------------------------------------------------------------------------
 //
 // Signature methods.
@@ -1266,13 +1316,6 @@ hlsl::HLModule &Module::GetOrCreateHLModule(bool skipInit) {
     SetHLModule(M.release());
   }
   return GetHLModule();
-}
-
-void Module::ResetHLModule() {
-  if (HasHLModule()) {
-    delete TheHLModule;
-    TheHLModule = nullptr;
-  }
 }
 
 }

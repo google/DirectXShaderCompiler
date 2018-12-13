@@ -96,8 +96,6 @@ def O2 : Flag<["-", "/"], "O2">, Group<hlsloptz_Group>, Flags<[CoreOption]>,
     HelpText<"Optimization Level 2">;
 def O3 : Flag<["-", "/"], "O3">, Group<hlsloptz_Group>, Flags<[CoreOption]>,
     HelpText<"Optimization Level 3 (Default)">;
-def O4 : Flag<["-", "/"], "O4">, Group<hlsloptz_Group>, Flags<[CoreOption]>,
-    HelpText<"Optimization Level 4">;
 def Odump : Flag<["-", "/"], "Odump">, Group<hlslcomp_Group>, Flags<[CoreOption]>,
     HelpText<"Print the optimizer commands.">;
 def Qunused_arguments : Flag<["-"], "Qunused-arguments">, Group<hlslcore_Group>, Flags<[CoreOption]>,
@@ -217,6 +215,10 @@ def external_fn : Separate<["-", "/"], "external-fn">, Group<hlslcore_Group>, Fl
   HelpText<"External function name to load for compiler support">;
 def fcgl : Flag<["-", "/"], "fcgl">, Group<hlslcore_Group>, Flags<[CoreOption, HelpHidden]>,
   HelpText<"Generate high-level code only">;
+def flegacy_macro_expansion : Flag<["-", "/"], "flegacy-macro-expansion">, Group<hlslcomp_Group>, Flags<[CoreOption, DriverOption]>,
+    HelpText<"Expand the operands before performing token-pasting operation (fxc behavior)">;
+def flegacy_resource_reservation : Flag<["-", "/"], "flegacy-resource-reservation">, Group<hlslcomp_Group>, Flags<[CoreOption, DriverOption]>,
+    HelpText<"Reserve unused explicit register assignments for compatibility with shader model 5.0 and below">;
 def not_use_legacy_cbuf_load : Flag<["-", "/"], "not_use_legacy_cbuf_load">, Group<hlslcomp_Group>, Flags<[CoreOption]>,
   HelpText<"Do not use legacy cbuffer load">;
 def pack_prefix_stable : Flag<["-", "/"], "pack_prefix_stable">, Group<hlslcomp_Group>, Flags<[CoreOption]>,
@@ -265,6 +267,8 @@ def fvk_use_gl_layout: Flag<["-"], "fvk-use-gl-layout">, Group<spirv_Group>, Fla
   HelpText<"Use strict OpenGL std140/std430 memory layout for Vulkan resources">;
 def fvk_use_dx_layout: Flag<["-"], "fvk-use-dx-layout">, Group<spirv_Group>, Flags<[CoreOption, DriverOption]>,
   HelpText<"Use DirectX memory layout for Vulkan resources">;
+def fvk_use_scalar_layout: Flag<["-"], "fvk-use-scalar-layout">, Group<spirv_Group>, Flags<[CoreOption, DriverOption]>,
+  HelpText<"Use scalar memory layout for Vulkan resources">;
 def fspv_reflect: Flag<["-"], "fspv-reflect">, Group<spirv_Group>, Flags<[CoreOption, DriverOption]>,
   HelpText<"Emit additional SPIR-V instructions to aid reflection">;
 def fspv_debug_EQ : Joined<["-"], "fspv-debug=">, Group<spirv_Group>, Flags<[CoreOption, DriverOption]>,
@@ -285,7 +289,7 @@ def Oconfig : CommaJoined<["-"], "Oconfig=">, Group<spirv_Group>, Flags<[CoreOpt
 // fxc-based flags that don't match those previously defined.
 
 def target_profile : JoinedOrSeparate<["-", "/"], "T">, Flags<[CoreOption]>, Group<hlslcomp_Group>, MetaVarName<"<profile>">,
-  HelpText<"Set target profile. \n\t<profile>: ps_6_0, ps_6_1, ps_6_2, ps_6_3, \n\t\t vs_6_0, vs_6_1, vs_6_2, vs_6_3, \n\t\t cs_6_0, cs_6_1, cs_6_2, cs_6_3, \n\t\t gs_6_0, gs_6_1, gs_6_2, gs_6_3, \n\t\t ds_6_0, ds_6_1, ds_6_2, ds_6_3, \n\t\t hs_6_0, hs_6_1, hs_6_2, hs_6_3, \n\t\t lib_6_3">;
+  HelpText<"Set target profile. \n\t<profile>: ps_6_0, ps_6_1, ps_6_2, ps_6_3, ps_6_4, \n\t\t vs_6_0, vs_6_1, vs_6_2, vs_6_3, vs_6_4, \n\t\t cs_6_0, cs_6_1, cs_6_2, cs_6_3, cs_6_4, \n\t\t gs_6_0, gs_6_1, gs_6_2, gs_6_3, gs_6_4, \n\t\t ds_6_0, ds_6_1, ds_6_2, ds_6_3, ds_6_4, \n\t\t hs_6_0, hs_6_1, hs_6_2, hs_6_3, hs_6_4, \n\t\t lib_6_3, lib_6_4">;
 def entrypoint :  JoinedOrSeparate<["-", "/"], "E">, Flags<[CoreOption]>, Group<hlslcomp_Group>,
   HelpText<"Entry point name">;
 // /I <include> - already defined above
@@ -379,6 +383,3 @@ def nologo : Flag<["-", "/"], "nologo">, Group<hlslcore_Group>, Flags<[DriverOpt
 
 // Also removed: compress, decompress, /Gch (child effect), /Gpp (partial precision)
 // /Op - no support for preshaders.
-
-def flegacy_macro_expansion : Flag<["-"], "flegacy-macro-expansion">, Group<hlslcomp_Group>, Flags<[CoreOption, DriverOption]>,
-    HelpText<"Expand the operands before performing token-pasting operation (fxc behavior)">;

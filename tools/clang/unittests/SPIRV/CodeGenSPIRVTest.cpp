@@ -72,6 +72,9 @@ TEST_F(FileTest, BufferTypeStructError2) {
 TEST_F(FileTest, BufferTypeStructError3) {
   runFileTest("type.buffer.struct.error3.hlsl", Expect::Failure);
 }
+TEST_F(FileTest, RWBufferTypeHalfElementType) {
+  runFileTest("type.rwbuffer.half.hlsl");
+}
 TEST_F(FileTest, RWBufferTypeStructError) {
   runFileTest("type.rwbuffer.struct.error.hlsl", Expect::Failure);
 }
@@ -85,6 +88,7 @@ TEST_F(FileTest, StructuredBufferType) {
   runFileTest("type.structured-buffer.hlsl");
 }
 TEST_F(FileTest, StructuredByteBufferArray) {
+  setRelaxLogicalPointer();
   runFileTest("type.structured-buffer.array.hlsl");
 }
 TEST_F(FileTest, StructuredByteBufferArrayError) {
@@ -382,6 +386,9 @@ TEST_F(FileTest, CastFlatConversionNoOp) {
 }
 TEST_F(FileTest, CastFlatConversionLiteralInitializer) {
   runFileTest("cast.flat-conversion.literal-initializer.hlsl");
+}
+TEST_F(FileTest, CastFlatConversionDecomposeVector) {
+  runFileTest("cast.flat-conversion.vector.hlsl");
 }
 TEST_F(FileTest, CastExplicitVecToMat) {
   runFileTest("cast.vec-to-mat.explicit.hlsl");
@@ -1265,9 +1272,6 @@ TEST_F(FileTest, SpirvOptOconfigAndO2) {
 TEST_F(FileTest, SpirvOptOconfigAndO3) {
   runFileTest("spirv.opt.with-O3.cl.oconfig.hlsl", Expect::Failure);
 }
-TEST_F(FileTest, SpirvOptOconfigAndO4) {
-  runFileTest("spirv.opt.with-O4.cl.oconfig.hlsl", Expect::Failure);
-}
 TEST_F(FileTest, SpirvOptOconfigInvalidFlag) {
   runFileTest("spirv.opt.invalid-flag.cl.oconfig.hlsl", Expect::Failure);
 }
@@ -1289,6 +1293,10 @@ TEST_F(FileTest, SpirvStageIOInterfaceGS) {
 }
 TEST_F(FileTest, SpirvStageIOInterfacePS) {
   runFileTest("spirv.interface.ps.hlsl");
+}
+
+TEST_F(FileTest, SpirvStageIOAliasBuiltIn) {
+  runFileTest("spirv.interface.alias-builtin.hlsl");
 }
 
 TEST_F(FileTest, SpirvStageIO16bitTypes) {
@@ -1616,6 +1624,12 @@ TEST_F(FileTest, VulkanLayoutFxcRulesCBuffer1) {
   runFileTest("vk.layout.cbuffer.fxc.1.hlsl");
 }
 
+TEST_F(FileTest, VulkanLayoutCBufferScalar) {
+  // VK_EXT_scalar_block_layout
+  setScalarLayout();
+  runFileTest("vk.layout.cbuffer.scalar.hlsl");
+}
+
 TEST_F(FileTest, VulkanSubpassInput) { runFileTest("vk.subpass-input.hlsl"); }
 TEST_F(FileTest, VulkanSubpassInputBinding) {
   runFileTest("vk.subpass-input.binding.hlsl");
@@ -1706,9 +1720,8 @@ TEST_F(FileTest, LegalizationExample11) {
   runFileTest("legal-examples/11-if-stmt-const-ok.hlsl");
 }
 TEST_F(FileTest, LegalizationExample12) {
-  // TODO: this is expected to trigger ValFailure! Validator is not
-  // checking this case yet.
-  runFileTest("legal-examples/12-switch-stmt-select-fail.hlsl");
+  runFileTest("legal-examples/12-switch-stmt-select-fail.hlsl",
+              Expect::ValFailure);
 }
 TEST_F(FileTest, LegalizationExample13) {
   runFileTest("legal-examples/13-switch-stmt-const-ok.hlsl");

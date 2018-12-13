@@ -219,6 +219,10 @@ static void addHLSLPasses(bool HLSLHighLevel, unsigned OptLevel, hlsl::HLSLExten
     MPM.add(createHLDeadFunctionEliminationPass());
   }
 
+  // Passes to handle [unroll]
+  MPM.add(createLoopRotatePass());
+  MPM.add(createDxilLoopUnrollPass(/*MaxIterationAttempt*/ 128));
+
   // Split struct and array of parameter.
   MPM.add(createSROA_Parameter_HLSL());
 
@@ -268,7 +272,6 @@ static void addHLSLPasses(bool HLSLHighLevel, unsigned OptLevel, hlsl::HLSLExten
   MPM.add(createFailUndefResourcePass());
 
   MPM.add(createDxilGenerationPass(NoOpt, ExtHelper));
-  MPM.add(createDxilLoadMetadataPass()); // Ensure DxilModule is loaded for optimizations.
 
   // Propagate precise attribute.
   MPM.add(createDxilPrecisePropagatePass());
@@ -596,12 +599,17 @@ void PassManagerBuilder::populateModulePassManager(
   // HLSL Change Begins.
   if (!HLSLHighLevel) {
     MPM.add(createDxilConvergentClearPass());
+    MPM.add(createDeadCodeEliminationPass()); // DCE needed after clearing convergence
+                                              // annotations before CreateHandleForLib
+                                              // so no unused resources get re-added to
+                                              // DxilModule.
     MPM.add(createMultiDimArrayToOneDimArrayPass());
     MPM.add(createDxilLowerCreateHandleForLibPass());
     MPM.add(createDxilTranslateRawBuffer());
     MPM.add(createDeadCodeEliminationPass());
-    if (DisableUnrollLoops)
-      MPM.add(createDxilLegalizeSampleOffsetPass());
+    // Always try to legalize sample offsets as loop unrolling
+    // is not guaranteed for higher opt levels.
+    MPM.add(createDxilLegalizeSampleOffsetPass());
     MPM.add(createDxilFinalizeModulePass());
     MPM.add(createComputeViewIdStatePass());
     MPM.add(createDxilDeadFunctionEliminationPass());

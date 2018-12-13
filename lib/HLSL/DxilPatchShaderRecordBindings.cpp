@@ -24,7 +24,7 @@
 #include "dxc/DXIL/DxilConstants.h"
 #include "dxc/DXIL/DxilInstructions.h"
 #include "dxc/HLSL/DxilSpanAllocator.h"
-#include "dxc/HLSL/DxilRootSignature.h"
+#include "dxc/DxilRootSignature/DxilRootSignature.h"
 #include "dxc/DXIL/DxilUtil.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
@@ -783,7 +783,7 @@ bool DxilPatchShaderRecordBindings::GetHandleInfo(
     shaderRegister = Resource->GetLowerBound();
     kind = Resource->GetKind();
     resClass = Resource->GetClass();
-    resType = cast<GlobalVariable>(Resource->GetGlobalSymbol())->getType()->getPointerElementType();
+    resType = Resource->GetGlobalSymbol()->getType()->getPointerElementType();
   }
   return Resource != nullptr;
 }
@@ -834,7 +834,7 @@ void DxilPatchShaderRecordBindings::InitializeViewTable() {
     // manually add it to the list of UAV register spaces used
     if (*pInputShaderInfo->pNumUAVSpaces == 0)
     {
-        ViewKey key = { (unsigned int)hlsl::DXIL::ResourceKind::RawBuffer, 0 };
+        ViewKey key = { (unsigned int)hlsl::DXIL::ResourceKind::RawBuffer, {0} };
         unsigned int index = FindOrInsertViewIntoList(
           key, 
           pInputShaderInfo->pUAVRegisterSpaceArray, 

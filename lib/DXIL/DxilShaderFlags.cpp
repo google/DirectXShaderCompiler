@@ -7,7 +7,6 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "dxc/DXIL/DxilContainer.h"
 #include "dxc/DXIL/DxilModule.h"
 #include "dxc/DXIL/DxilShaderFlags.h"
 #include "dxc/DXIL/DxilOperations.h"
@@ -17,6 +16,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/Support/Casting.h"
+#include "dxc/DXIL/DxilEntryProps.h"
 
 using namespace hlsl;
 using namespace llvm;
@@ -37,40 +37,62 @@ ShaderFlags::ShaderFlags():
 , m_bTiledResources(false)
 , m_bUAVLoadAdditionalFormats(false)
 , m_bLevel9ComparisonFiltering(false)
-, m_bCSRawAndStructuredViaShader4X(false)
 , m_b64UAVs(false)
 , m_UAVsAtEveryStage(false)
+, m_bCSRawAndStructuredViaShader4X(false)
 , m_bROVS(false)
 , m_bWaveOps(false)
 , m_bInt64Ops(false)
 , m_bViewID(false)
 , m_bBarycentrics(false)
 , m_bUseNativeLowPrecision(false)
+, m_bShadingRate(false)
 , m_align0(0)
 , m_align1(0)
 {}
 
 uint64_t ShaderFlags::GetFeatureInfo() const {
   uint64_t Flags = 0;
-  Flags |= m_bEnableDoublePrecision ? hlsl::ShaderFeatureInfo_Doubles : 0;
-  Flags |= m_bLowPrecisionPresent && !m_bUseNativeLowPrecision ? hlsl::ShaderFeatureInfo_MinimumPrecision: 0;
-  Flags |= m_bLowPrecisionPresent && m_bUseNativeLowPrecision ? hlsl::ShaderFeatureInfo_NativeLowPrecision : 0;
-  Flags |= m_bEnableDoubleExtensions ? hlsl::ShaderFeatureInfo_11_1_DoubleExtensions : 0;
-  Flags |= m_bWaveOps ? hlsl::ShaderFeatureInfo_WaveOps : 0;
-  Flags |= m_bInt64Ops ? hlsl::ShaderFeatureInfo_Int64Ops : 0;
-  Flags |= m_bROVS ? hlsl::ShaderFeatureInfo_ROVs : 0;
-  Flags |= m_bViewportAndRTArrayIndex ? hlsl::ShaderFeatureInfo_ViewportAndRTArrayIndexFromAnyShaderFeedingRasterizer : 0;
-  Flags |= m_bInnerCoverage ? hlsl::ShaderFeatureInfo_InnerCoverage : 0;
-  Flags |= m_bStencilRef ? hlsl::ShaderFeatureInfo_StencilRef : 0;
-  Flags |= m_bTiledResources ? hlsl::ShaderFeatureInfo_TiledResources : 0;
-  Flags |= m_bEnableMSAD ? hlsl::ShaderFeatureInfo_11_1_ShaderExtensions : 0;
-  Flags |= m_bCSRawAndStructuredViaShader4X ? hlsl::ShaderFeatureInfo_ComputeShadersPlusRawAndStructuredBuffersViaShader4X : 0;
-  Flags |= m_UAVsAtEveryStage ? hlsl::ShaderFeatureInfo_UAVsAtEveryStage : 0;
-  Flags |= m_b64UAVs ? hlsl::ShaderFeatureInfo_64UAVs : 0;
-  Flags |= m_bLevel9ComparisonFiltering ? hlsl::ShaderFeatureInfo_LEVEL9ComparisonFiltering : 0;
-  Flags |= m_bUAVLoadAdditionalFormats ? hlsl::ShaderFeatureInfo_TypedUAVLoadAdditionalFormats : 0;
-  Flags |= m_bViewID ? hlsl::ShaderFeatureInfo_ViewID : 0;
-  Flags |= m_bBarycentrics ? hlsl::ShaderFeatureInfo_Barycentrics : 0;
+  Flags |= m_bEnableDoublePrecision ? hlsl::DXIL::ShaderFeatureInfo_Doubles : 0;
+  Flags |= m_bLowPrecisionPresent && !m_bUseNativeLowPrecision
+               ? hlsl::DXIL::ShaderFeatureInfo_MinimumPrecision
+               : 0;
+  Flags |= m_bLowPrecisionPresent && m_bUseNativeLowPrecision
+               ? hlsl::DXIL::ShaderFeatureInfo_NativeLowPrecision
+               : 0;
+  Flags |= m_bEnableDoubleExtensions
+               ? hlsl::DXIL::ShaderFeatureInfo_11_1_DoubleExtensions
+               : 0;
+  Flags |= m_bWaveOps ? hlsl::DXIL::ShaderFeatureInfo_WaveOps : 0;
+  Flags |= m_bInt64Ops ? hlsl::DXIL::ShaderFeatureInfo_Int64Ops : 0;
+  Flags |= m_bROVS ? hlsl::DXIL::ShaderFeatureInfo_ROVs : 0;
+  Flags |=
+      m_bViewportAndRTArrayIndex
+          ? hlsl::DXIL::
+                ShaderFeatureInfo_ViewportAndRTArrayIndexFromAnyShaderFeedingRasterizer
+          : 0;
+  Flags |= m_bInnerCoverage ? hlsl::DXIL::ShaderFeatureInfo_InnerCoverage : 0;
+  Flags |= m_bStencilRef ? hlsl::DXIL::ShaderFeatureInfo_StencilRef : 0;
+  Flags |= m_bTiledResources ? hlsl::DXIL::ShaderFeatureInfo_TiledResources : 0;
+  Flags |=
+      m_bEnableMSAD ? hlsl::DXIL::ShaderFeatureInfo_11_1_ShaderExtensions : 0;
+  Flags |=
+      m_bCSRawAndStructuredViaShader4X
+          ? hlsl::DXIL::
+                ShaderFeatureInfo_ComputeShadersPlusRawAndStructuredBuffersViaShader4X
+          : 0;
+  Flags |=
+      m_UAVsAtEveryStage ? hlsl::DXIL::ShaderFeatureInfo_UAVsAtEveryStage : 0;
+  Flags |= m_b64UAVs ? hlsl::DXIL::ShaderFeatureInfo_64UAVs : 0;
+  Flags |= m_bLevel9ComparisonFiltering
+               ? hlsl::DXIL::ShaderFeatureInfo_LEVEL9ComparisonFiltering
+               : 0;
+  Flags |= m_bUAVLoadAdditionalFormats
+               ? hlsl::DXIL::ShaderFeatureInfo_TypedUAVLoadAdditionalFormats
+               : 0;
+  Flags |= m_bViewID ? hlsl::DXIL::ShaderFeatureInfo_ViewID : 0;
+  Flags |= m_bBarycentrics ? hlsl::DXIL::ShaderFeatureInfo_Barycentrics : 0;
+  Flags |= m_bShadingRate ? hlsl::DXIL::ShaderFeatureInfo_ShadingRate : 0;
 
   return Flags;
 }
@@ -122,6 +144,7 @@ uint64_t ShaderFlags::GetShaderFlagsRawForCollection() {
   Flags.SetCSRawAndStructuredViaShader4X(true);
   Flags.SetViewID(true);
   Flags.SetBarycentrics(true);
+  Flags.SetShadingRate(true);
   return Flags.GetShaderFlagsRaw();
 }
 
@@ -218,13 +241,18 @@ ShaderFlags ShaderFlags::CollectShaderFlags(const Function *F,
   bool hasWaveOps = false;
   bool hasCheckAccessFully = false;
   bool hasMSAD = false;
+  bool hasStencilRef = false;
   bool hasInnerCoverage = false;
   bool hasViewID = false;
   bool hasMulticomponentUAVLoads = false;
+  bool hasViewportOrRTArrayIndex = false;
+  bool hasShadingRate = false;
+
   // Try to maintain compatibility with a v1.0 validator if that's what we have.
   uint32_t valMajor, valMinor;
   M->GetValidatorVersion(valMajor, valMinor);
   bool hasMulticomponentUAVLoadsBackCompat = valMajor == 1 && valMinor == 0;
+  bool hasViewportOrRTArrayIndexBackCombat = valMajor == 1 && valMinor < 4;
 
   Type *int16Ty = Type::getInt16Ty(F->getContext());
   Type *int64Ty = Type::getInt64Ty(F->getContext());
@@ -360,8 +388,67 @@ ShaderFlags ShaderFlags::CollectShaderFlags(const Function *F,
       }
     }
   }
-    
+
+  // If this function is a shader, add flags based on signatures
+  if (M->HasDxilEntryProps(F)) {
+    const DxilEntryProps &entryProps = M->GetDxilEntryProps(F);
+
+    // Val ver < 1.4 has a bug where input case was always clobbered by the
+    // output check.  The only case where it made a difference such that an
+    // incorrect flag would be set was for the HS and DS input cases.
+    // It was also checking PS input and output, but PS output could not have
+    // the semantic, and since it was clobbering the result, it would always
+    // clear it.  Since this flag should not be set for PS at all,
+    // it produced the correct result for PS by accident.
+    bool checkInputRTArrayIndex = entryProps.props.IsGS();
+    if (!hasViewportOrRTArrayIndexBackCombat)
+      checkInputRTArrayIndex |= entryProps.props.IsDS() ||
+                                entryProps.props.IsHS();
+    bool checkOutputRTArrayIndex =
+      entryProps.props.IsVS() || entryProps.props.IsDS() ||
+      entryProps.props.IsHS();
+
+    for (auto &&E : entryProps.sig.InputSignature.GetElements()) {
+      switch (E->GetKind()) {
+      case Semantic::Kind::ViewPortArrayIndex:
+      case Semantic::Kind::RenderTargetArrayIndex:
+        if (checkInputRTArrayIndex)
+          hasViewportOrRTArrayIndex = true;
+        break;
+      case Semantic::Kind::ShadingRate:
+        hasShadingRate = true;
+        break;
+      default:
+        break;
+      }
+    }
+
+    for (auto &&E : entryProps.sig.OutputSignature.GetElements()) {
+      switch (E->GetKind()) {
+      case Semantic::Kind::ViewPortArrayIndex:
+      case Semantic::Kind::RenderTargetArrayIndex:
+        if (checkOutputRTArrayIndex)
+          hasViewportOrRTArrayIndex = true;
+        break;
+      case Semantic::Kind::StencilRef:
+        if (entryProps.props.IsPS())
+          hasStencilRef = true;
+        break;
+      case Semantic::Kind::InnerCoverage:
+        if (entryProps.props.IsPS())
+          hasInnerCoverage = true;
+        break;
+      case Semantic::Kind::ShadingRate:
+        hasShadingRate = true;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
   flag.SetEnableDoublePrecision(hasDouble);
+  flag.SetStencilRef(hasStencilRef);
   flag.SetInnerCoverage(hasInnerCoverage);
   flag.SetInt64Ops(has64Int);
   flag.SetLowPrecisionPresent(has16);
@@ -371,6 +458,8 @@ ShaderFlags ShaderFlags::CollectShaderFlags(const Function *F,
   flag.SetEnableMSAD(hasMSAD);
   flag.SetUAVLoadAdditionalFormats(hasMulticomponentUAVLoads);
   flag.SetViewID(hasViewID);
+  flag.SetViewportAndRTArrayIndex(hasViewportOrRTArrayIndex);
+  flag.SetShadingRate(hasShadingRate);
 
   return flag;
 }
