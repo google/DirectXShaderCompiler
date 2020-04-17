@@ -1447,6 +1447,24 @@ bool EmitVisitor::visit(SpirvDebugDeclare *inst) {
   return true;
 }
 
+bool EmitVisitor::visit(SpirvDebugValue *inst) {
+  initInstruction(inst);
+  curInst.push_back(inst->getResultTypeId());
+  curInst.push_back(getOrAssignResultId<SpirvInstruction>(inst));
+  curInst.push_back(
+      getOrAssignResultId<SpirvInstruction>(inst->getInstructionSet()));
+  curInst.push_back(inst->getDebugOpcode());
+  curInst.push_back(
+      getOrAssignResultId<SpirvInstruction>(inst->getDebugLocalVariable()));
+  curInst.push_back(getOrAssignResultId<SpirvInstruction>(inst->getValue()));
+  curInst.push_back(
+      getOrAssignResultId<SpirvInstruction>(inst->getDebugExpression()));
+  for (auto *i : inst->getIndices())
+    curInst.push_back(getOrAssignResultId<SpirvInstruction>(i));
+  finalizeInstruction(&mainBinary);
+  return true;
+}
+
 bool EmitVisitor::visit(SpirvDebugGlobalVariable *inst) {
   uint32_t nameId = getOrCreateOpString(inst->getDebugName());
   uint32_t linkageNameId = getOrCreateOpString(inst->getLinkageName());

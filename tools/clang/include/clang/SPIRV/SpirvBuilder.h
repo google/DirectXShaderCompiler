@@ -446,6 +446,10 @@ public:
       SpirvDebugLocalVariable *dbgVar, SpirvInstruction *var,
       llvm::Optional<SpirvDebugExpression *> dbgExpr = llvm::None);
 
+  SpirvDebugValue *
+  createDebugValue(SpirvDebugLocalVariable *dbgVar, SpirvInstruction *var,
+                   llvm::Optional<SpirvDebugExpression *> dbgExpr = llvm::None);
+
   SpirvDebugFunction *createDebugFunction(llvm::StringRef name,
                                           SpirvDebugSource *src,
                                           uint32_t fnLine, uint32_t fnColumn,

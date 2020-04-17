@@ -268,6 +268,7 @@ public:
   bool visit(SpirvDebugFunction *);
   bool visit(SpirvDebugLocalVariable *);
   bool visit(SpirvDebugDeclare *);
+  bool visit(SpirvDebugValue *);
   bool visit(SpirvDebugGlobalVariable *);
   bool visit(SpirvDebugExpression *);
   bool visit(SpirvDebugTypeBasic *);

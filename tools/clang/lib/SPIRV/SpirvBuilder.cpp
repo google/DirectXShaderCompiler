@@ -859,30 +859,31 @@ SpirvDebugExpression *SpirvBuilder::getOrCreateNullDebugExpression() {
 SpirvDebugDeclare *SpirvBuilder::createDebugDeclare(
     SpirvDebugLocalVariable *dbgVar, SpirvInstruction *var,
     llvm::Optional<SpirvDebugExpression *> dbgExpr) {
-  if (auto *localVar = dyn_cast<SpirvVariable>(var)) {
-    auto *decl = new (context) SpirvDebugDeclare(
-        dbgVar, var,
-        dbgExpr.hasValue() ? dbgExpr.getValue()
-                           : getOrCreateNullDebugExpression());
-    assert(!localVar->getDebugDeclare() &&
-           "Debug info for local variable already exists!");
-    localVar->setDebugDeclare(decl);
-    return decl;
+  auto *decl = new (context)
+      SpirvDebugDeclare(dbgVar, var,
+                        dbgExpr.hasValue() ? dbgExpr.getValue()
+                                           : getOrCreateNullDebugExpression());
+  if (isa<SpirvFunctionParameter>(var)) {
+    assert(function && "found detached parameter");
+    function->addParameterDebugDeclare(decl);
+  } else {
+    assert(insertPoint && "null insert point");
+    insertPoint->addInstruction(decl);
   }
+  return decl;
+}
 
-  if (auto *param = dyn_cast<SpirvFunctionParameter>(var)) {
-    auto *decl = new (context) SpirvDebugDeclare(
-        dbgVar, var,
-        dbgExpr.hasValue() ? dbgExpr.getValue()
-                           : getOrCreateNullDebugExpression());
-    assert(!param->getDebugDeclare() &&
-           "Debug info for function param already exists!");
-    param->setDebugDeclare(decl);
-    return decl;
-  }
-
-  assert(false && "var must be SpirvVariable or SpirvFunctionParameter!");
-  return nullptr;
+SpirvDebugValue *
+SpirvBuilder::createDebugValue(SpirvDebugLocalVariable *dbgVar,
+                               SpirvInstruction *var,
+                               llvm::Optional<SpirvDebugExpression *> dbgExpr) {
+  auto *value = new (context)
+      SpirvDebugValue(dbgVar, var,
+                      dbgExpr.hasValue() ? dbgExpr.getValue()
+                                         : getOrCreateNullDebugExpression(),
+                      llvm::ArrayRef<SpirvInstruction *>());
+  insertPoint->addInstruction(value);
+  return value;
 }
 
 SpirvDebugFunction *SpirvBuilder::createDebugFunction(
