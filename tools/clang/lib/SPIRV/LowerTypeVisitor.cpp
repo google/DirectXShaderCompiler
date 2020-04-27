@@ -87,6 +87,15 @@ bool LowerTypeVisitor::visitInstruction(SpirvInstruction *instr) {
           lowerType(debugQualType, instr->getLayoutRule(),
                     /*isRowMajor*/ llvm::None, instr->getSourceLocation());
       debugInstruction->setDebugSpirvType(spirvType);
+    } else if (auto *debugGlobalVar =
+                   dyn_cast<SpirvDebugGlobalVariable>(instr)) {
+      auto *varType = dyn_cast<SpirvPointerType>(
+          debugGlobalVar->getVariable()->getResultType());
+      auto *actualType = varType->getPointeeType();
+      debugGlobalVar->setDebugSpirvType(actualType);
+      if (auto *structType = dyn_cast<StructType>(actualType))
+        lowerDebugTypeComposite(structType, structType->getFields(), false,
+                                instr->getSourceLocation());
     }
   }
 
@@ -970,6 +979,66 @@ LowerTypeVisitor::generateFunctionInfo(const CXXMethodDecl *decl,
                          funcName, flags, scopeLine, nullptr);
   fn->setFunctionType(fnType);
   return fn;
+}
+
+SpirvDebugTypeComposite *LowerTypeVisitor::lowerDebugTypeComposite(
+    const SpirvType *type, llvm::ArrayRef<StructType::FieldInfo> fields,
+    bool isResourceType, const SourceLocation &loc) {
+  const auto &sm = astContext.getSourceManager();
+  uint32_t line = sm.getPresumedLineNumber(loc);
+  uint32_t column = sm.getPresumedColumnNumber(loc);
+  StringRef linkageName = type->getName();
+
+  // TODO: Update linkageName using astContext.createMangleContext().
+  std::string name = type->getName();
+  if (isResourceType)
+    name = "@" + name;
+
+  // TODO: Update parent, size, flags, and tag information correctly.
+  RichDebugInfo *debugInfo = &spvContext.getDebugInfo().begin()->second;
+  const char *file = sm.getPresumedLoc(loc).getFilename();
+  if (file)
+    debugInfo = &spvContext.getDebugInfo()[file];
+  auto *dbgTyComposite =
+      dyn_cast<SpirvDebugTypeComposite>(spvContext.getDebugTypeComposite(
+          type, name, debugInfo->source, line, column,
+          /* parent */ debugInfo->compilationUnit, linkageName,
+          /* size */ 0, /* flags */ 3u, /* tag */ 1u));
+
+  // If we already visited this composite type and its members,
+  // we should skip it.
+  auto &members = dbgTyComposite->getMembers();
+  if (!members.empty())
+    return dbgTyComposite;
+
+  dbgTyComposite->setAstResultType(astContext.VoidTy);
+  dbgTyComposite->setResultType(spvContext.getVoidType());
+  dbgTyComposite->setInstructionSet(debugExtInstSet);
+
+  if (isResourceType) {
+    dbgTyComposite->setDebugInfoNone(spvBuilder.getOrCreateDebugInfoNone());
+    return dbgTyComposite;
+  }
+
+  for (auto &field : fields) {
+    uint32_t offset = UINT32_MAX;
+    if (field.offset.hasValue())
+      offset = *field.offset;
+
+    // TODO: Replace 2u and 3u with valid flags when debug info extension is
+    // placed in SPIRV-Header.
+    auto *debugInstr =
+        dyn_cast<SpirvDebugInstruction>(spvContext.getDebugTypeMember(
+            field.name, field.type, debugInfo->source, line, column,
+            dbgTyComposite,
+            /* flags */ 3u, offset, /* value */ nullptr));
+    assert(debugInstr && "We expect SpirvDebugInstruction for DebugTypeMember");
+    debugInstr->setAstResultType(astContext.VoidTy);
+    debugInstr->setResultType(spvContext.getVoidType());
+    debugInstr->setInstructionSet(debugExtInstSet);
+    members.push_back(debugInstr);
+  }
+  return dbgTyComposite;
 }
 
 SpirvDebugTypeComposite *LowerTypeVisitor::lowerDebugTypeComposite(

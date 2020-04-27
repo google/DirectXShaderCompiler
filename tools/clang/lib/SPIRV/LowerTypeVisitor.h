@@ -98,6 +98,10 @@ private:
   SpirvDebugTypeComposite *lowerDebugTypeComposite(
       const RecordType *structType, const SpirvType *spirvType,
       llvm::SmallVector<StructType::FieldInfo, 4> &fields, bool isResourceType);
+  SpirvDebugTypeComposite *
+  lowerDebugTypeComposite(const SpirvType *type,
+                          llvm::ArrayRef<StructType::FieldInfo> fields,
+                          bool isResourceType, const SourceLocation &loc);
 
 private:
   ASTContext &astContext;                /// AST context
