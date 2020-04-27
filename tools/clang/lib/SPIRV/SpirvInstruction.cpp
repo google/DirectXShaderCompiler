@@ -92,7 +92,6 @@ DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugGlobalVariable)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugOperation)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugExpression)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugDeclare)
-DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugValue)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugLexicalBlock)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugScope)
 DEFINE_INVOKE_VISITOR_FOR_CLASS(SpirvDebugTypeBasic)
@@ -869,13 +868,6 @@ SpirvDebugDeclare::SpirvDebugDeclare(SpirvDebugLocalVariable *debugVar_,
                                      SpirvDebugExpression *expr)
     : SpirvDebugInstruction(IK_DebugDeclare, /*opcode*/ 28u),
       debugVar(debugVar_), var(var_), expression(expr) {}
-
-SpirvDebugValue::SpirvDebugValue(SpirvDebugLocalVariable *var,
-                                 SpirvInstruction *val,
-                                 SpirvDebugExpression *expr,
-                                 llvm::ArrayRef<SpirvInstruction *> idx)
-    : SpirvDebugInstruction(IK_DebugValue, /*opcode*/ 29u), debugVar(var),
-      value(val), expression(expr), indices(idx.begin(), idx.end()) {}
 
 SpirvDebugLexicalBlock::SpirvDebugLexicalBlock(SpirvDebugSource *source_,
                                                uint32_t line_, uint32_t column_,

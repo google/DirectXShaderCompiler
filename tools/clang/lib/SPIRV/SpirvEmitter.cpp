@@ -1442,7 +1442,6 @@ void SpirvEmitter::doVarDecl(const VarDecl *decl) {
 
     // TODO: if no initializer exists, just emit DebugDeclare for OpVariable.
     // If initializer exists and use OpStore, emit DebugDeclare for OpStore.
-    // If OpFunctionParameter exists, emit DebugValue for OpFunctionParameter.
     if (isFileScopeVar)
       var = declIdMapper.createFileVar(decl, llvm::None);
     else

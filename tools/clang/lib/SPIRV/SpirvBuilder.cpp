@@ -873,19 +873,6 @@ SpirvDebugDeclare *SpirvBuilder::createDebugDeclare(
   return decl;
 }
 
-SpirvDebugValue *
-SpirvBuilder::createDebugValue(SpirvDebugLocalVariable *dbgVar,
-                               SpirvInstruction *var,
-                               llvm::Optional<SpirvDebugExpression *> dbgExpr) {
-  auto *value = new (context)
-      SpirvDebugValue(dbgVar, var,
-                      dbgExpr.hasValue() ? dbgExpr.getValue()
-                                         : getOrCreateNullDebugExpression(),
-                      llvm::ArrayRef<SpirvInstruction *>());
-  insertPoint->addInstruction(value);
-  return value;
-}
-
 SpirvDebugFunction *SpirvBuilder::createDebugFunction(
     llvm::StringRef name, SpirvDebugSource *src, uint32_t line, uint32_t column,
     SpirvDebugInstruction *parentScope, llvm::StringRef linkageName,

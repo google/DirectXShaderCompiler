@@ -154,7 +154,7 @@ private:
   /// DebugScope that groups all instructions in this function.
   SpirvDebugScope *debugScope;
 
-  /// DebugValue instructions for parameters to this function.
+  /// DebugDeclare instructions for parameters to this function.
   llvm::SmallVector<SpirvDebugDeclare *, 8> debugDeclares;
 };
 

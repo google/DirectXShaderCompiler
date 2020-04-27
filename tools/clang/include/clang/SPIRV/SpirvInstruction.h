@@ -133,7 +133,6 @@ public:
     IK_DebugOperation,
     IK_DebugExpression,
     IK_DebugDeclare,
-    IK_DebugValue,
     IK_DebugLexicalBlock,
     IK_DebugScope,
     IK_DebugTypeBasic,
@@ -2118,32 +2117,6 @@ private:
   SpirvDebugLocalVariable *debugVar;
   SpirvInstruction *var;
   SpirvDebugExpression *expression;
-};
-
-class SpirvDebugValue : public SpirvDebugInstruction {
-public:
-  SpirvDebugValue(SpirvDebugLocalVariable *debugVar, SpirvInstruction *value,
-                  SpirvDebugExpression *expr,
-                  llvm::ArrayRef<SpirvInstruction *> indices);
-
-  static bool classof(const SpirvInstruction *inst) {
-    return inst->getKind() == IK_DebugValue;
-  }
-
-  bool invokeVisitor(Visitor *v) override;
-
-  SpirvDebugLocalVariable *getDebugLocalVariable() const { return debugVar; }
-  SpirvInstruction *getValue() const { return value; }
-  SpirvDebugExpression *getDebugExpression() const { return expression; }
-  llvm::SmallVector<SpirvInstruction *, 4> getIndices() const {
-    return indices;
-  };
-
-private:
-  SpirvDebugLocalVariable *debugVar;
-  SpirvInstruction *value;
-  SpirvDebugExpression *expression;
-  llvm::SmallVector<SpirvInstruction *, 4> indices;
 };
 
 class SpirvDebugLexicalBlock : public SpirvDebugInstruction {
