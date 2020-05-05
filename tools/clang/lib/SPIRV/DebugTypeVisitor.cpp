@@ -169,6 +169,7 @@ DebugTypeVisitor::lowerToDebugType(const SpirvType *spirvType) {
     break;
   }
   case SpirvType::TK_Image:
+  case SpirvType::TK_Sampler:
   case SpirvType::TK_Struct: {
     debugType = lowerToDebugTypeComposite(spirvType);
     break;
@@ -269,6 +270,14 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
       if (spirvType) {
         SpirvDebugInstruction *debugType = lowerToDebugType(spirvType);
         debugInstr->setDebugType(debugType);
+        if (auto *compositeInfo =
+                dyn_cast<SpirvDebugTypeComposite>(debugType)) {
+          if (auto *tempType = compositeInfo->getTypeTemplate()) {
+            for (auto *param : tempType->getParams()) {
+              setDefaultDebugInfo(param);
+            }
+          }
+        }
       }
     }
     if (auto *debugFunction = dyn_cast<SpirvDebugFunction>(debugInstr)) {
