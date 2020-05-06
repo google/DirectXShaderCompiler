@@ -895,16 +895,6 @@ SpirvVariable *DeclResultIdMapper::createCTBuffer(const HLSLBufferDecl *decl) {
       decl->getAttr<VKBindingAttr>(), decl->getAttr<VKCounterBindingAttr>());
 
   if (spirvOptions.debugInfoRich) {
-    llvm::SmallVector<HybridStructType::FieldInfo, 4> fields;
-    for (const auto *subDecl : decl->decls()) {
-      if (shouldSkipInStructLayout(subDecl))
-        continue;
-
-      const auto *varDecl = cast<VarDecl>(subDecl);
-      assert(varDecl && "Sub-Decls of HLSLBufferDecl must be VarDecls");
-
-      fields.emplace_back(varDecl->getType(), varDecl->getName());
-    }
     createDebugGlobalVariable(bufferVar, QualType(), decl->getLocation(),
                               decl->getName());
   }

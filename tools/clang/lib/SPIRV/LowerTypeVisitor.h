@@ -94,14 +94,15 @@ private:
   populateLayoutInformation(llvm::ArrayRef<HybridStructType::FieldInfo> fields,
                             SpirvLayoutRule rule);
 
-  /// Generate rich debug info for composite type.
+  /// Generate rich debug info of a composite type from a QualType (RecordType).
   SpirvDebugTypeComposite *lowerDebugTypeComposite(
       const RecordType *structType, const SpirvType *spirvType,
       llvm::SmallVector<StructType::FieldInfo, 4> &fields, bool isResourceType);
-  SpirvDebugTypeComposite *
-  lowerDebugTypeComposite(const SpirvType *type,
-                          llvm::ArrayRef<StructType::FieldInfo> fields,
-                          bool isResourceType, const SourceLocation &loc);
+
+  /// Generate rich debug info of a composite type from a SpirvType
+  /// (StructType).
+  SpirvDebugTypeComposite *lowerDebugTypeCompositeFromSpirvType(
+      const StructType *type, bool isResourceType, const SourceLocation &loc);
 
 private:
   ASTContext &astContext;                /// AST context

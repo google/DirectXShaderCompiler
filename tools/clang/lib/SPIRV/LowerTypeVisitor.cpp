@@ -89,13 +89,17 @@ bool LowerTypeVisitor::visitInstruction(SpirvInstruction *instr) {
       debugInstruction->setDebugSpirvType(spirvType);
     } else if (auto *debugGlobalVar =
                    dyn_cast<SpirvDebugGlobalVariable>(instr)) {
-      auto *varType = dyn_cast<SpirvPointerType>(
-          debugGlobalVar->getVariable()->getResultType());
-      auto *actualType = varType->getPointeeType();
+      auto *varType = debugGlobalVar->getVariable()->getResultType();
+      assert(varType &&
+             "Global variable must be visited before any debug instruction");
+      auto *ptrType = dyn_cast<SpirvPointerType>(varType);
+      assert(ptrType && "OpVariable must have a pointer type");
+      auto *actualType = ptrType->getPointeeType();
       debugGlobalVar->setDebugSpirvType(actualType);
-      if (auto *structType = dyn_cast<StructType>(actualType))
-        lowerDebugTypeComposite(structType, structType->getFields(), false,
-                                instr->getSourceLocation());
+      if (auto *structType = dyn_cast<StructType>(actualType)) {
+        lowerDebugTypeCompositeFromSpirvType(structType, false,
+                                             instr->getSourceLocation());
+      }
     }
   }
 
@@ -981,13 +985,13 @@ LowerTypeVisitor::generateFunctionInfo(const CXXMethodDecl *decl,
   return fn;
 }
 
-SpirvDebugTypeComposite *LowerTypeVisitor::lowerDebugTypeComposite(
-    const SpirvType *type, llvm::ArrayRef<StructType::FieldInfo> fields,
-    bool isResourceType, const SourceLocation &loc) {
+SpirvDebugTypeComposite *LowerTypeVisitor::lowerDebugTypeCompositeFromSpirvType(
+    const StructType *type, bool isResourceType, const SourceLocation &loc) {
   const auto &sm = astContext.getSourceManager();
   uint32_t line = sm.getPresumedLineNumber(loc);
   uint32_t column = sm.getPresumedColumnNumber(loc);
   StringRef linkageName = type->getName();
+  llvm::ArrayRef<StructType::FieldInfo> fields = type->getFields();
 
   // TODO: Update linkageName using astContext.createMangleContext().
   std::string name = type->getName();
