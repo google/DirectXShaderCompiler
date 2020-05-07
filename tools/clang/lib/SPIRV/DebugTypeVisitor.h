@@ -66,6 +66,9 @@ private:
   // OpExtInst with result type of void.
   void setDefaultDebugInfo(SpirvDebugInstruction *instr);
 
+  SpirvDebugTypeComposite *prepareDebugTypeComposite(const StructType *type,
+                                                     const SourceLocation &loc);
+
 private:
   ASTContext &astContext;   /// AST context
   SpirvContext &spvContext; /// SPIR-V context

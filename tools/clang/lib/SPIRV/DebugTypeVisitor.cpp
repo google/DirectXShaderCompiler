@@ -33,6 +33,50 @@ void DebugTypeVisitor::setDefaultDebugInfo(SpirvDebugInstruction *instr) {
   instr->setInstructionSet(spvBuilder.getOpenCLDebugInfoExtInstSet());
 }
 
+SpirvDebugTypeComposite *
+DebugTypeVisitor::prepareDebugTypeComposite(const StructType *type,
+                                            const SourceLocation &loc) {
+  const auto &sm = astContext.getSourceManager();
+  uint32_t line = sm.getPresumedLineNumber(loc);
+  uint32_t column = sm.getPresumedColumnNumber(loc);
+  StringRef linkageName = type->getName();
+
+  // TODO: Update linkageName using astContext.createMangleContext().
+  std::string name = type->getName();
+
+  // TODO: Update parent, size, flags, and tag information correctly.
+  RichDebugInfo *debugInfo = &spvContext.getDebugInfo().begin()->second;
+  const char *file = sm.getPresumedLoc(loc).getFilename();
+  if (file)
+    debugInfo = &spvContext.getDebugInfo()[file];
+  auto *dbgTyComposite =
+      dyn_cast<SpirvDebugTypeComposite>(spvContext.getDebugTypeComposite(
+          type, name, debugInfo->source, line, column,
+          /* parent */ debugInfo->compilationUnit, linkageName,
+          /* size */ 0, 3u, 1u));
+
+  auto &members = dbgTyComposite->getMembers();
+  for (auto &field : type->getFields()) {
+    uint32_t offset = UINT32_MAX;
+    if (field.offset.hasValue())
+      offset = *field.offset;
+
+    // TODO: Replace 2u and 3u with valid flags when debug info extension is
+    // placed in SPIRV-Header.
+    auto *debugInstr =
+        dyn_cast<SpirvDebugInstruction>(spvContext.getDebugTypeMember(
+            field.name, field.type, debugInfo->source, line, column,
+            dbgTyComposite,
+            /* flags */ 3u, offset, /* value */ nullptr));
+    assert(debugInstr);
+    setDefaultDebugInfo(debugInstr);
+    members.push_back(debugInstr);
+  }
+
+  setDefaultDebugInfo(dbgTyComposite);
+  return dbgTyComposite;
+}
+
 SpirvDebugInstruction *
 DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
   // DebugTypeComposite is already lowered by LowerTypeVisitor,
@@ -260,12 +304,28 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
     // DebugGlobalVariable
     // DebugLocalVariable
     // DebugFunction
-    // DebugFunctionDeclaration
-    // TODO: We currently don't have a SpirvDebugFunctionDeclaration class. Add
-    // one if needed.
     if (isa<SpirvDebugGlobalVariable>(debugInstr) ||
         isa<SpirvDebugLocalVariable>(debugInstr)) {
       const SpirvType *spirvType = debugInstr->getDebugSpirvType();
+      if (!spirvType) {
+        // If a debug instruction does not have QualType, LowerTypeVisitor
+        // does not invoke lowerDebugTypeComposite() even though the type is a
+        // composite type. For example, cbuffer does not have QualType, but it
+        // has StructType. We have to prepare a DebugTypeComposite for such
+        // StructType before calling
+        // DebugTypeVisitor::lowerToDebugTypeComposite().
+        if (auto *debugGlobalVar = dyn_cast<SpirvDebugGlobalVariable>(instr)) {
+          auto *varType = debugGlobalVar->getVariable()->getResultType();
+          assert(varType &&
+                 "Global variables must be lowered by LowerTypeVisitor");
+          auto *ptrType = dyn_cast<SpirvPointerType>(varType);
+          assert(ptrType && "OpVariable must have a pointer type");
+          spirvType = ptrType->getPointeeType();
+          debugGlobalVar->setDebugSpirvType(spirvType);
+          if (auto *structType = dyn_cast<StructType>(spirvType))
+            prepareDebugTypeComposite(structType, instr->getSourceLocation());
+        }
+      }
       if (spirvType) {
         SpirvDebugInstruction *debugType = lowerToDebugType(spirvType);
         debugInstr->setDebugType(debugType);

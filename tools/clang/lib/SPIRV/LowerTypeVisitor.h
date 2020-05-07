@@ -99,11 +99,6 @@ private:
       const RecordType *structType, const SpirvType *spirvType,
       llvm::SmallVector<StructType::FieldInfo, 4> &fields, bool isResourceType);
 
-  /// Generate rich debug info of a composite type from a SpirvType
-  /// (StructType).
-  SpirvDebugTypeComposite *lowerDebugTypeCompositeFromSpirvType(
-      const StructType *type, bool isResourceType, const SourceLocation &loc);
-
 private:
   ASTContext &astContext;                /// AST context
   SpirvContext &spvContext;              /// SPIR-V context
