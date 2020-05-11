@@ -8,11 +8,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "EmitVisitor.h"
-#include "dxc/Support/FileIOHelper.h"
 #include "dxc/Support/Global.h"
-#include "dxc/Support/HLSLOptions.h"
 #include "dxc/Support/WinIncludes.h"
 #include "dxc/Support/dxcapi.use.h"
+#include "dxc/Support/HLSLOptions.h"
+#include "dxc/Support/FileIOHelper.h"
 #include "clang/SPIRV/BitwiseCast.h"
 #include "clang/SPIRV/SpirvBasicBlock.h"
 #include "clang/SPIRV/SpirvFunction.h"
