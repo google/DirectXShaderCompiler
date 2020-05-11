@@ -33,9 +33,15 @@ void DebugTypeVisitor::setDefaultDebugInfo(SpirvDebugInstruction *instr) {
   instr->setInstructionSet(spvBuilder.getOpenCLDebugInfoExtInstSet());
 }
 
+SpirvDebugInfoNone *DebugTypeVisitor::getDebugInfoNone() {
+  auto *debugNone = spvBuilder.getOrCreateDebugInfoNone();
+  setDefaultDebugInfo(debugNone);
+  return debugNone;
+}
+
 SpirvDebugTypeComposite *
-DebugTypeVisitor::prepareDebugTypeComposite(const StructType *type,
-                                            const SourceLocation &loc) {
+DebugTypeVisitor::lowerCbufferDebugType(const StructType *type,
+                                        const SourceLocation &loc) {
   const auto &sm = astContext.getSourceManager();
   uint32_t line = sm.getPresumedLineNumber(loc);
   uint32_t column = sm.getPresumedColumnNumber(loc);
@@ -77,6 +83,80 @@ DebugTypeVisitor::prepareDebugTypeComposite(const StructType *type,
   return dbgTyComposite;
 }
 
+bool DebugTypeVisitor::lowerDebugTypeTemplate(SpirvDebugTypeComposite *instr) {
+  if (instr == nullptr)
+    return false;
+
+  auto *tempType = instr->getTypeTemplate();
+  // It is not a composite type for a resource. It is not an error.
+  if (tempType == nullptr)
+    return true;
+
+  auto &tempParams = tempType->getParams();
+  for (auto &t : tempParams) {
+    auto *loweredParam = lowerToDebugType(t->getSpirvType());
+    if (loweredParam == nullptr)
+      return false;
+    t->setActualType(dyn_cast<SpirvDebugType>(loweredParam));
+    if (!t->getValue()) {
+      auto *debugNone = getDebugInfoNone();
+      if (debugNone == nullptr)
+        return false;
+      t->setValue(debugNone);
+    }
+    setDefaultDebugInfo(t);
+  }
+  setDefaultDebugInfo(tempType);
+
+  return true;
+}
+
+bool DebugTypeVisitor::lowerDebugTypeFunctionForMemberFunction(
+    SpirvDebugInstruction *instr) {
+  auto *fn = dyn_cast<SpirvDebugFunction>(instr);
+  if (fn == nullptr) {
+    emitError("Debug instruction %0 is not a DebugFunction")
+        << instr->getDebugName();
+    return false;
+  }
+
+  if (const auto *fnType = fn->getFunctionType()) {
+    fn->setDebugType(lowerToDebugType(fnType));
+    setDefaultDebugInfo(fn);
+  }
+  if (!fn->getSpirvFunction()) {
+    auto *debugNone = getDebugInfoNone();
+    fn->setDebugInfoNone(debugNone);
+  }
+  return true;
+}
+
+bool DebugTypeVisitor::lowerDebugTypeMember(SpirvDebugTypeMember *debugMember,
+                                            uint32_t *sizeInBits,
+                                            uint32_t *offsetInBits) {
+  assert(sizeInBits);
+  assert(offsetInBits);
+
+  auto *ty = lowerToDebugType(debugMember->getSpirvType());
+  if (ty == nullptr)
+    return false;
+
+  SpirvDebugType *memberTy = dyn_cast<SpirvDebugType>(ty);
+  debugMember->setType(memberTy);
+
+  uint32_t memberSizeInBits = memberTy->getSizeInBits();
+  uint32_t memberOffset = debugMember->getOffset();
+  if (memberOffset == UINT32_MAX)
+    memberOffset = *offsetInBits;
+  debugMember->updateOffsetAndSize(memberOffset, memberSizeInBits);
+
+  *offsetInBits = memberOffset + memberSizeInBits;
+  if (*sizeInBits < *offsetInBits)
+    *sizeInBits = *offsetInBits;
+
+  return true;
+}
+
 SpirvDebugInstruction *
 DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
   // DebugTypeComposite is already lowered by LowerTypeVisitor,
@@ -84,24 +164,8 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
   // We have to update member information including offset and size.
   auto *instr =
       dyn_cast<SpirvDebugTypeComposite>(spvContext.getDebugType(type));
-  if (instr) {
-    auto *tempType = instr->getTypeTemplate();
-    if (tempType) {
-      auto &tempParams = tempType->getParams();
-      for (auto &t : tempParams) {
-        t->setActualType(
-            dyn_cast<SpirvDebugType>(lowerToDebugType(t->getSpirvType())));
-        if (!t->getValue()) {
-          auto *debugNone = spvBuilder.getOrCreateDebugInfoNone();
-          setDefaultDebugInfo(debugNone);
-          t->setValue(debugNone);
-        }
-        setDefaultDebugInfo(t);
-      }
-      setDefaultDebugInfo(tempType);
-    }
-  } else {
-    emitError("SpirvType %0 was not lowered by LowerTypeVisitor")
+  if (!lowerDebugTypeTemplate(instr)) {
+    emitError("Lowering DebugTypeComposite for SpirvType %0 fails")
         << type->getName();
     return nullptr;
   }
@@ -114,38 +178,13 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
   for (auto *member : members) {
     auto *debugMember = dyn_cast<SpirvDebugTypeMember>(member);
     if (!debugMember) {
-      if (auto *fn = dyn_cast<SpirvDebugFunction>(member)) {
-        if (const auto *fnType = fn->getFunctionType()) {
-          fn->setDebugType(lowerToDebugType(fnType));
-          setDefaultDebugInfo(fn);
-        }
-        if (!fn->getSpirvFunction()) {
-          auto *debugNone = spvBuilder.getOrCreateDebugInfoNone();
-          setDefaultDebugInfo(debugNone);
-          fn->setDebugInfoNone(debugNone);
-        }
-      } else {
-        emitError("Members of DebugTypeComposite %0 must be DebugTypeMember "
-                  "or DebugFunction")
-            << instr->getDebugName();
+      if (!lowerDebugTypeFunctionForMemberFunction(member))
         return nullptr;
-      }
       continue;
     }
 
-    SpirvDebugType *memberTy =
-        dyn_cast<SpirvDebugType>(lowerToDebugType(debugMember->getSpirvType()));
-    debugMember->setType(memberTy);
-
-    uint32_t memberSizeInBits = memberTy->getSizeInBits();
-    uint32_t memberOffset = debugMember->getOffset();
-    if (memberOffset == UINT32_MAX)
-      memberOffset = offsetInBits;
-    debugMember->updateOffsetAndSize(memberOffset, memberSizeInBits);
-
-    offsetInBits = memberOffset + memberSizeInBits;
-    if (sizeInBits < offsetInBits)
-      sizeInBits = offsetInBits;
+    if (!lowerDebugTypeMember(debugMember, &sizeInBits, &offsetInBits))
+      return nullptr;
   }
   instr->setSizeInBits(sizeInBits);
   instr->setFullyLowered();
@@ -323,7 +362,7 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
           spirvType = ptrType->getPointeeType();
           debugGlobalVar->setDebugSpirvType(spirvType);
           if (auto *structType = dyn_cast<StructType>(spirvType))
-            prepareDebugTypeComposite(structType, instr->getSourceLocation());
+            lowerCbufferDebugType(structType, instr->getSourceLocation());
         }
       }
       if (spirvType) {
