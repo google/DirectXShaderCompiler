@@ -9,6 +9,7 @@
 #define LLVM_CLANG_SPIRV_EMITVISITOR_H
 
 #include "clang/SPIRV/SpirvContext.h"
+#include "clang/SPIRV/SpirvModule.h"
 #include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/StringMap.h"

@@ -13,226 +13,11 @@
 
 namespace clang {
 namespace spirv {
-namespace {
-
-// This function adds the given debug instruction |info| to the given map |map|.
-// The |map| maintains mapping between a lexical scope and the vector of
-// instructions inside that scope.
-//
-// If the given |info| does not have a parent lexical scope, the given |alt| is
-// used as its parent scope (e.g. for cases where the parent scope is the
-// compilation unit).
-template <class T>
-void addDebugInfoToMap(
-    llvm::DenseMap<SpirvDebugInstruction *, std::vector<T *>> &map, T *info,
-    SpirvDebugInstruction *alt) {
-  auto *parent = info->getParentScope();
-  if (!parent)
-    parent = alt;
-
-  auto it = map.find(parent);
-  if (it != map.end()) {
-    it->second.push_back(info);
-    return;
-  }
-
-  std::vector<T *> vec;
-  vec.push_back(info);
-  map[parent] = vec;
-}
-
-} // end namespace
 
 SpirvModule::SpirvModule()
     : capabilities({}), extensions({}), extInstSets({}), memoryModel(nullptr),
       entryPoints({}), executionModes({}), moduleProcesses({}), decorations({}),
-      constants({}), variables({}), functions({}), debugNone(nullptr),
-      debugOp({}), debugExpr({}), debugSources({}), debugCompUnits({}),
-      debugTypes({}), debugVariables({}), debugLexicalScopes({}),
-      debugInfo({}) {}
-
-bool SpirvModule::invokeVisitorDebugLexicalScope(Visitor *visitor,
-                                                 SpirvDebugInstruction *scope,
-                                                 bool reverseOrder) {
-  if (reverseOrder) {
-    {
-      auto it = debugLexicalScopes.find(scope);
-      if (it != debugLexicalScopes.end()) {
-        auto &children = it->second;
-        for (auto iter = children.rbegin(); iter != children.rend(); ++iter) {
-          auto *debugInstruction = *iter;
-          if (!invokeVisitorDebugLexicalScope(visitor, debugInstruction,
-                                              reverseOrder))
-            return false;
-          if (!debugInstruction->invokeVisitor(visitor))
-            return false;
-        }
-      }
-    }
-
-    {
-      auto it = debugTypes.find(scope);
-      if (it != debugTypes.end()) {
-        auto &typeVec = it->second;
-        for (auto iter = typeVec.rbegin(); iter != typeVec.rend(); ++iter) {
-          auto *type = *iter;
-          if (isa<SpirvDebugTypeComposite>(type)) {
-            if (!invokeVisitorDebugLexicalScope(visitor, type, reverseOrder))
-              return false;
-          }
-        }
-      }
-    }
-
-    {
-      auto it = debugVariables.find(scope);
-      if (it != debugVariables.end()) {
-        auto &varVec = it->second;
-        for (auto iter = varVec.rbegin(); iter != varVec.rend(); ++iter) {
-          auto *var = *iter;
-          if (!var->invokeVisitor(visitor))
-            return false;
-        }
-      }
-    }
-
-    {
-      auto it = debugTypes.find(scope);
-      if (it != debugTypes.end()) {
-        auto &typeVec = it->second;
-        for (auto iter = typeVec.rbegin(); iter != typeVec.rend(); ++iter) {
-          auto *type = *iter;
-          if (!type->invokeVisitor(visitor))
-            return false;
-        }
-      }
-    }
-  }
-  // Traverse the regular order of a SPIR-V debug info for lexical scope.
-  else {
-    {
-      auto it = debugTypes.find(scope);
-      if (it != debugTypes.end()) {
-        auto &typeVec = it->second;
-        for (auto *type : typeVec) {
-          if (!type->invokeVisitor(visitor))
-            return false;
-        }
-      }
-    }
-
-    {
-      auto it = debugVariables.find(scope);
-      if (it != debugVariables.end()) {
-        auto &varVec = it->second;
-        for (auto *var : varVec) {
-          if (!var->invokeVisitor(visitor))
-            return false;
-        }
-      }
-    }
-
-    {
-      auto it = debugTypes.find(scope);
-      if (it != debugTypes.end()) {
-        auto &typeVec = it->second;
-        for (auto *type : typeVec) {
-          if (isa<SpirvDebugTypeComposite>(type)) {
-            if (!invokeVisitorDebugLexicalScope(visitor, type, reverseOrder))
-              return false;
-          }
-        }
-      }
-    }
-
-    {
-      auto it = debugLexicalScopes.find(scope);
-      if (it != debugLexicalScopes.end()) {
-        auto &children = it->second;
-        for (auto *child : children) {
-          if (!child->invokeVisitor(visitor))
-            return false;
-          if (!invokeVisitorDebugLexicalScope(visitor, child, reverseOrder))
-            return false;
-        }
-      }
-    }
-  }
-
-  return true;
-}
-
-bool SpirvModule::invokeVisitorDebugInfo(Visitor *visitor, bool reverseOrder) {
-  if (reverseOrder) {
-    for (auto iter = debugInfo.rbegin(); iter != debugInfo.rend(); ++iter) {
-      auto *debugInstruction = *iter;
-      if (!debugInstruction->invokeVisitor(visitor))
-        return false;
-    }
-
-    for (auto iter = debugCompUnits.rbegin(); iter != debugCompUnits.rend();
-         ++iter) {
-      auto *debugInstruction = *iter;
-      if (!invokeVisitorDebugLexicalScope(visitor, debugInstruction,
-                                          reverseOrder))
-        return false;
-      if (!debugInstruction->invokeVisitor(visitor))
-        return false;
-    }
-
-    for (auto iter = debugSources.rbegin(); iter != debugSources.rend();
-         ++iter) {
-      auto *debugInstruction = *iter;
-      if (!debugInstruction->invokeVisitor(visitor))
-        return false;
-    }
-
-    for (auto iter = debugExpr.rbegin(); iter != debugExpr.rend(); ++iter) {
-      auto *debugInstruction = *iter;
-      if (!debugInstruction->invokeVisitor(visitor))
-        return false;
-    }
-
-    for (auto iter = debugOp.rbegin(); iter != debugOp.rend(); ++iter) {
-      auto *debugInstruction = *iter;
-      if (!debugInstruction->invokeVisitor(visitor))
-        return false;
-    }
-
-    if (debugNone)
-      debugNone->invokeVisitor(visitor);
-  }
-  // Traverse the regular order of a SPIR-V debug info.
-  else {
-    if (debugNone)
-      debugNone->invokeVisitor(visitor);
-
-    for (auto *opInfo : debugOp)
-      if (!opInfo->invokeVisitor(visitor))
-        return false;
-
-    for (auto *exprInfo : debugExpr)
-      if (!exprInfo->invokeVisitor(visitor))
-        return false;
-
-    for (auto *srcInfo : debugSources)
-      if (!srcInfo->invokeVisitor(visitor))
-        return false;
-
-    for (auto *cuInfo : debugCompUnits) {
-      if (!cuInfo->invokeVisitor(visitor))
-        return false;
-      if (!invokeVisitorDebugLexicalScope(visitor, cuInfo, reverseOrder))
-        return false;
-    }
-
-    for (auto *debugInstruction : debugInfo)
-      if (!debugInstruction->invokeVisitor(visitor))
-        return false;
-  }
-
-  return true;
-}
+      constants({}), variables({}), functions({}), debugInstructions({}) {}
 
 bool SpirvModule::invokeVisitor(Visitor *visitor, bool reverseOrder) {
   // Note: It is debatable whether reverse order of visiting the module should
@@ -255,8 +40,12 @@ bool SpirvModule::invokeVisitor(Visitor *visitor, bool reverseOrder) {
         return false;
     }
 
-    if (!invokeVisitorDebugInfo(visitor, reverseOrder))
-      return false;
+    for (auto iter = debugInstructions.rbegin();
+         iter != debugInstructions.rend(); ++iter) {
+      auto *debugInstruction = *iter;
+      if (!debugInstruction->invokeVisitor(visitor))
+        return false;
+    }
 
     for (auto iter = variables.rbegin(); iter != variables.rend(); ++iter) {
       auto *var = *iter;
@@ -376,8 +165,9 @@ bool SpirvModule::invokeVisitor(Visitor *visitor, bool reverseOrder) {
       if (!var->invokeVisitor(visitor))
         return false;
 
-    if (!invokeVisitorDebugInfo(visitor, reverseOrder))
-      return false;
+    for (auto *debugInstruction : debugInstructions)
+      if (!debugInstruction->invokeVisitor(visitor))
+        return false;
 
     for (auto fn : functions)
       if (!fn->invokeVisitor(visitor, reverseOrder))
@@ -459,63 +249,184 @@ void SpirvModule::addSource(SpirvSource *src) {
   sources.push_back(src);
 }
 
-void SpirvModule::addDebugInfo(SpirvDebugOperation *info) {
-  assert(info);
-  debugOp.push_back(info);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugExpression *info) {
-  assert(info);
-  debugExpr.push_back(info);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugSource *info) {
-  assert(info);
-  debugSources.push_back(info);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugCompilationUnit *info) {
-  assert(info);
-  debugCompUnits.push_back(info);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugType *type) {
-  assert(type);
-  addDebugInfoToMap<SpirvDebugType>(debugTypes, type, debugCompUnits[0]);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugGlobalVariable *info) {
-  assert(info);
-  addDebugInfoToMap<SpirvDebugInstruction>(debugVariables, info,
-                                           debugCompUnits[0]);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugFunction *info) {
-  assert(info);
-  addDebugInfoToMap<SpirvDebugInstruction>(debugLexicalScopes, info,
-                                           debugCompUnits[0]);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugLocalVariable *info) {
-  assert(info);
-  addDebugInfoToMap<SpirvDebugInstruction>(debugVariables, info,
-                                           debugCompUnits[0]);
-}
-
-void SpirvModule::addDebugInfo(SpirvDebugLexicalBlock *info) {
-  assert(info);
-  addDebugInfoToMap<SpirvDebugInstruction>(debugLexicalScopes, info,
-                                           debugCompUnits[0]);
-}
-
 void SpirvModule::addDebugInfo(SpirvDebugInstruction *info) {
   assert(info);
-  debugInfo.push_back(info);
+  debugInstructions.push_back(info);
 }
 
 void SpirvModule::addModuleProcessed(SpirvModuleProcessed *p) {
   assert(p);
   moduleProcesses.push_back(p);
+}
+
+void SpirvModule::whileEachOperandsOfDebugInstruction(
+    SpirvDebugInstruction *di,
+    llvm::function_ref<bool(SpirvDebugInstruction *)> visitor) {
+  if (di == nullptr)
+    return;
+  if (di->getDebugType() != nullptr)
+    if (!visitor(di->getDebugType()))
+      return;
+  if (di->getParentScope() != nullptr)
+    if (!visitor(di->getParentScope()))
+      return;
+
+  switch (di->getKind()) {
+  case SpirvInstruction::IK_DebugCompilationUnit: {
+    SpirvDebugCompilationUnit *inst = dyn_cast<SpirvDebugCompilationUnit>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getDebugSource()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugFunctionDecl: {
+    SpirvDebugFunctionDeclaration *inst =
+        dyn_cast<SpirvDebugFunctionDeclaration>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getSource()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugFunction: {
+    SpirvDebugFunction *inst = dyn_cast<SpirvDebugFunction>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getSource()))
+      return;
+    if (!visitor(inst->getDebugInfoNone()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugLocalVariable: {
+    SpirvDebugLocalVariable *inst = dyn_cast<SpirvDebugLocalVariable>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getSource()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugGlobalVariable: {
+    SpirvDebugGlobalVariable *inst = dyn_cast<SpirvDebugGlobalVariable>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getSource()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugExpression: {
+    SpirvDebugExpression *inst = dyn_cast<SpirvDebugExpression>(di);
+    assert(inst != nullptr);
+    for (auto *op : inst->getOperations())
+      if (!visitor(op))
+        return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugLexicalBlock: {
+    SpirvDebugLexicalBlock *inst = dyn_cast<SpirvDebugLexicalBlock>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getSource()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeArray: {
+    SpirvDebugTypeArray *inst = dyn_cast<SpirvDebugTypeArray>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getElementType()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeVector: {
+    SpirvDebugTypeVector *inst = dyn_cast<SpirvDebugTypeVector>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getElementType()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeFunction: {
+    SpirvDebugTypeFunction *inst = dyn_cast<SpirvDebugTypeFunction>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getReturnType()))
+      return;
+    for (auto *param : inst->getParamTypes())
+      if (!visitor(param))
+        return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeComposite: {
+    SpirvDebugTypeComposite *inst = dyn_cast<SpirvDebugTypeComposite>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getSource()))
+      return;
+    if (!visitor(inst->getDebugInfoNone()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeMember: {
+    SpirvDebugTypeMember *inst = dyn_cast<SpirvDebugTypeMember>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getType()))
+      return;
+    if (!visitor(inst->getSource()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeTemplate: {
+    SpirvDebugTypeTemplate *inst = dyn_cast<SpirvDebugTypeTemplate>(di);
+    assert(inst != nullptr);
+    for (auto *param : inst->getParams())
+      if (!visitor(param))
+        return;
+    if (!visitor(inst->getTarget()))
+      return;
+  }
+    return;
+  case SpirvInstruction::IK_DebugTypeTemplateParameter: {
+    SpirvDebugTypeTemplateParameter *inst =
+        dyn_cast<SpirvDebugTypeTemplateParameter>(di);
+    assert(inst != nullptr);
+    if (!visitor(inst->getActualType()))
+      return;
+    if (!visitor(inst->getSource()))
+      return;
+  }
+    return;
+  default:
+    return;
+  }
+}
+
+void SpirvModule::sortDebugInstructionsInPostOrder() {
+  llvm::SmallSet<SpirvDebugInstruction *, 32> visited;
+  for (auto *di : debugInstructions) {
+    whileEachOperandsOfDebugInstruction(
+        di, [&visited](SpirvDebugInstruction *operand) {
+          if (operand != nullptr)
+            visited.insert(operand);
+          return true;
+        });
+  }
+
+  llvm::SmallVector<SpirvDebugInstruction *, 32> stack;
+  for (auto *di : debugInstructions) {
+    if (visited.count(di) == 0)
+      stack.push_back(di);
+  }
+
+  debugInstructions.clear();
+  visited.clear();
+  while (!stack.empty()) {
+    auto *di = stack.back();
+    visited.insert(di);
+    whileEachOperandsOfDebugInstruction(
+        di, [&visited, &stack](SpirvDebugInstruction *operand) {
+          if (operand != nullptr && visited.count(operand) == 0) {
+            stack.push_back(operand);
+            return false;
+          }
+          return true;
+        });
+    if (stack.back() == di) {
+      debugInstructions.push_back(di);
+      stack.pop_back();
+    }
+  }
 }
 
 } // end namespace spirv
