@@ -259,7 +259,7 @@ void SpirvModule::addModuleProcessed(SpirvModuleProcessed *p) {
   moduleProcesses.push_back(p);
 }
 
-void SpirvModule::whileEachOperandsOfDebugInstruction(
+void SpirvModule::whileEachOperandOfDebugInstruction(
     SpirvDebugInstruction *di,
     llvm::function_ref<bool(SpirvDebugInstruction *)> visitor) {
   if (di == nullptr)
@@ -393,28 +393,32 @@ void SpirvModule::whileEachOperandsOfDebugInstruction(
 }
 
 void SpirvModule::sortDebugInstructionsInPostOrder() {
+  // Collect nodes without predecessor.
   llvm::SmallSet<SpirvDebugInstruction *, 32> visited;
   for (auto *di : debugInstructions) {
-    whileEachOperandsOfDebugInstruction(
+    whileEachOperandOfDebugInstruction(
         di, [&visited](SpirvDebugInstruction *operand) {
           if (operand != nullptr)
             visited.insert(operand);
           return true;
         });
   }
-
   llvm::SmallVector<SpirvDebugInstruction *, 32> stack;
   for (auto *di : debugInstructions) {
     if (visited.count(di) == 0)
       stack.push_back(di);
   }
 
+  // Sort debug instructions in a post order. We puts successors in the first
+  // places of `debugInstructions`. For example, `DebugInfoNone` does not have
+  // any operand, which means it does not have any successors. We have to place
+  // it earlier than the instructions using it.
   debugInstructions.clear();
   visited.clear();
   while (!stack.empty()) {
     auto *di = stack.back();
     visited.insert(di);
-    whileEachOperandsOfDebugInstruction(
+    whileEachOperandOfDebugInstruction(
         di, [&visited, &stack](SpirvDebugInstruction *operand) {
           if (operand != nullptr && visited.count(operand) == 0) {
             stack.push_back(operand);
