@@ -339,9 +339,8 @@ void EmitVisitor::encodeString(llvm::StringRef value) {
   curInst.insert(curInst.end(), words.begin(), words.end());
 }
 
-bool EmitVisitor::visit(SpirvModule *mod, Phase phase) {
-  if (phase == Visitor::Phase::Init)
-    mod->sortDebugInstructionsInPostOrder();
+bool EmitVisitor::visit(SpirvModule *, Phase) {
+  // No pre-visit operations needed for SpirvModule.
   return true;
 }
 

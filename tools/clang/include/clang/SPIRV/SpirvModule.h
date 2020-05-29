@@ -130,23 +130,14 @@ public:
   // Adds the given debug info instruction to debugInstructions.
   void addDebugInfo(SpirvDebugInstruction *);
 
-  // Sorts debug instructions in a post order to remove invalid forward
-  // references. Note that the post order guarantees a successor node is not
-  // visited before its predecessor and this property can be used to sort
-  // instructions in a valid layout without any invalid forward reference.
-  void sortDebugInstructionsInPostOrder();
+  llvm::SmallVector<SpirvDebugInstruction *, 32> &getDebugInfo() {
+    return debugInstructions;
+  }
 
   // Adds the given OpModuleProcessed to the module.
   void addModuleProcessed(SpirvModuleProcessed *);
 
   llvm::ArrayRef<SpirvVariable *> getVariables() const { return variables; }
-
-private:
-  // Invokes visitor for each operand of the debug instruction `di`. If
-  // `visitor` returns false, it stops and returns.
-  void whileEachOperandOfDebugInstruction(
-      SpirvDebugInstruction *di,
-      llvm::function_ref<bool(SpirvDebugInstruction *)> visitor);
 
 private:
   // Use a set for storing capabilities. This will ensure there are no duplicate
