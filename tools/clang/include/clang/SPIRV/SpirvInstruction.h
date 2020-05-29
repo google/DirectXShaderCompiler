@@ -2245,7 +2245,7 @@ public:
   bool invokeVisitor(Visitor *v) override;
 
   SpirvDebugType *getElementType() const { return elementType; }
-  llvm::SmallVector<uint32_t, 2> &getElementCount() { return elementCount; }
+  llvm::SmallVector<uint32_t, 2> getElementCount() { return elementCount; }
 
   uint32_t getSizeInBits() const override {
     // TODO: avoid integer overflow
