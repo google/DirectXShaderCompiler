@@ -290,9 +290,7 @@ DebugTypeVisitor::lowerToDebugType(const SpirvType *spirvType) {
     SpirvDebugInstruction *elemDebugType =
         lowerToDebugType(matType->getElementType());
     debugType = spvContext.getDebugTypeArray(
-        spirvType, elemDebugType,
-        llvm::SmallVector<uint32_t, 2>(
-            {matType->numRows(), matType->numCols()}));
+        spirvType, elemDebugType, {matType->numRows(), matType->numCols()});
     break;
   }
   case SpirvType::TK_Pointer: {
