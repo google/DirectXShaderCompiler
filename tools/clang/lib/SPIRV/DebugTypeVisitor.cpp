@@ -265,7 +265,8 @@ DebugTypeVisitor::lowerToDebugType(const SpirvType *spirvType) {
 
     llvm::SmallVector<uint32_t, 4> counts;
     if (auto *dbgArrType = dyn_cast<SpirvDebugTypeArray>(elemDebugType)) {
-      counts = dbgArrType->getElementCount();
+      counts.insert(counts.end(), dbgArrType->getElementCount().begin(),
+                    dbgArrType->getElementCount().end());
       elemDebugType = dbgArrType->getElementType();
     }
     counts.push_back(arrType->getElementCount());

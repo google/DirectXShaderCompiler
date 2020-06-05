@@ -1345,8 +1345,8 @@ bool EmitVisitor::visit(SpirvDebugTypeArray *inst) {
       getOrAssignResultId<SpirvInstruction>(inst->getElementType()));
 
   // This is a reverse order of dimensions, thereby emitting in a reverse order.
-  llvm::SmallVector<uint32_t, 2> counts = inst->getElementCount();
-  for (auto it = counts.rbegin(); it != counts.rend(); ++it) {
+  for (auto it = inst->getElementCount().rbegin();
+       it != inst->getElementCount().rend(); ++it) {
     const auto countId = typeHandler.getOrCreateConstantInt(
         llvm::APInt(32, *it), context.getUIntType(32),
         /* isSpecConst */ false);
