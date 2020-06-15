@@ -13,10 +13,8 @@ environment:
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
   ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
 
-environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-clone_folder: C:\projects\DirectXShaderCompiler
 
 for:
 -
