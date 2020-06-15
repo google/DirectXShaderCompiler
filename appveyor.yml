@@ -2,11 +2,15 @@ version: 1.0.{build}
 
 image:
   - Ubuntu
-#  - Visual Studio 2017
+  - Visual Studio 2017
+
 platform: x64
 configuration: Release
 
 clone_folder: c:\projects\DirectXShaderCompiler
+
+artifacts:
+- path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME)
 
 environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
@@ -14,24 +18,21 @@ environment:
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
   ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
 
+# Change the clone folder and artifacts path for Linux.
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-
 for:
 -
   matrix:
     only:
       - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
   clone_folder: /DirectXShaderCompiler
-
+  artifacts:
+    - path: /DirectXShaderCompiler/build/artifacts.tar.gz
 
 install:
 - git submodule update --init
 - cmd: set PATH=C:\ninja;C:\Python36;%PATH%
-#- sh: wget -q https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-mac.zip;
-#- sh: unzip -q ninja-mac.zip;
-#- sh: chmod +x ninja;
-#- sh: export PATH="$PWD:$PATH";
 
 before_build:
 - cmd: call utils\hct\hctstart %HLSL_SRC_DIR% %HLSL_BLD_DIR%
@@ -67,21 +68,9 @@ after_test:
 - sh: echo "${APPVEYOR_REPO_COMMIT}" > artifacts/GIT-COMMIT.txt
 - sh: tar -czvf artifacts.tar.gz artifacts
 
-artifacts:
-- path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME)
-
-  matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-
-for:
--
-  matrix:
-    only:
-      - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-  path: /DirectXShaderCompiler/build/artifacts.tar.gz
-
 notifications:
 - provider: GitHubPullRequest
   on_build_success: true
   on_build_failure: true
   on_build_status_changed: true
+
