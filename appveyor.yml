@@ -9,6 +9,7 @@ configuration: Release
 clone_folder: c:\projects\DirectXShaderCompiler
 
 environment:
+  APPVEYOR_YML_DISABLE_PS_LINUX: true
   HLSL_SRC_DIR: c:\projects\DirectXShaderCompiler
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
   ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
@@ -52,13 +53,32 @@ test_script:
 - sh: ./bin/clang-hlsl-tests --HlslDataDir $PWD/../tools/clang/test/HLSL/
 
 after_test:
+# Collect artifacts for Windows
 - cmd: cd build\%CONFIGURATION%
 - cmd: echo %APPVEYOR_REPO_COMMIT% > GIT-COMMIT.txt
 - cmd: xcopy "%HLSL_SRC_DIR%\include\dxc" include\dxc /s /i /y
 - cmd: 7z a %ARTIFACTS_ZIP_NAME% include lib\d*.lib bin\d*.exe bin\d*.dll bin\d*.pdb bin\HLSLHost.exe GIT-COMMIT.txt
+# Collect artifacts for Linux
+- sh: mkdir artifacts && cd artifacts
+- sh: mkdir bin && mkdir lib && mkdir include && cd ..
+- sh: cp lib/libdxcompiler.so.3.7 artifacts/lib/
+- sh: cp bin/dxc artifacts/bin/
+- sh: cp -r ../include/dxc artifacts/include
+- sh: echo "${APPVEYOR_REPO_COMMIT}" > artifacts/GIT-COMMIT.txt
+- sh: tar -czvf artifacts.tar.gz artifacts
 
 artifacts:
 - path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME)
+
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+
+for:
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+  path: /DirectXShaderCompiler/build/artifacts.tar.gz
 
 notifications:
 - provider: GitHubPullRequest
