@@ -7,16 +7,16 @@ image:
 platform: x64
 configuration: Release
 
-clone_folder: c:\projects\DirectXShaderCompiler
-
-artifacts:
-- path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME)
-
 environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
   HLSL_SRC_DIR: c:\projects\DirectXShaderCompiler
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
   ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
+
+clone_folder: c:\projects\DirectXShaderCompiler
+
+artifacts:
+- path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME)
 
 for:
 -
@@ -25,7 +25,7 @@ for:
       - image: Ubuntu
   clone_folder: /home/appveyor/projects/DirectXShaderCompiler
   artifacts:
-  - path: /home/appveyor/projects/DirectXShaderCompiler/build/artifacts.tar.gz
+  - path: build/dxc-artifacts.tar.gz
 
 install:
 - git submodule update --init
@@ -63,7 +63,7 @@ after_test:
 - sh: cp bin/dxc artifacts/bin/
 - sh: cp -r ../include/dxc artifacts/include
 - sh: echo "${APPVEYOR_REPO_COMMIT}" > artifacts/GIT-COMMIT.txt
-- sh: tar -czvf artifacts.tar.gz artifacts
+- sh: tar -czvf dxc-artifacts.tar.gz artifacts
 
 notifications:
 - provider: GitHubPullRequest
