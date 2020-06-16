@@ -60,12 +60,12 @@ after_test:
 - cmd: xcopy "%HLSL_SRC_DIR%\include\dxc" include\dxc /s /i /y
 - cmd: 7z a %ARTIFACTS_ZIP_NAME_WINDOWS% include lib\d*.lib bin\d*.exe bin\d*.dll bin\d*.pdb bin\HLSLHost.exe GIT-COMMIT.txt
 # Collect artifacts for Linux
-- sh: mkdir $(ARTIFACTS_DIR_NAME) && cd $(ARTIFACTS_DIR_NAME) && mkdir bin && mkdir lib && mkdir include && cd ..
-- sh: cp lib/libdxcompiler.so* $(ARTIFACTS_DIR_NAME)/lib/
-- sh: cp bin/dxc $(ARTIFACTS_DIR_NAME)/bin/
-- sh: cp -r ../include/dxc $(ARTIFACTS_DIR_NAME)/include
-- sh: echo "${APPVEYOR_REPO_COMMIT}" > $(ARTIFACTS_DIR_NAME)/GIT-COMMIT.txt
-- sh: tar -czvf $(ARTIFACTS_ZIP_NAME_LINUX) $(ARTIFACTS_DIR_NAME)
+- sh: mkdir "${ARTIFACTS_DIR_NAME}" && cd "${ARTIFACTS_DIR_NAME}" && mkdir bin && mkdir lib && mkdir include && cd ..
+- sh: cp lib/libdxcompiler.so* "${ARTIFACTS_DIR_NAME}"/lib/
+- sh: cp bin/dxc "${ARTIFACTS_DIR_NAME}"/bin/
+- sh: cp -r ../include/dxc "${ARTIFACTS_DIR_NAME}"/include
+- sh: echo "${APPVEYOR_REPO_COMMIT}" > "${ARTIFACTS_DIR_NAME}"/GIT-COMMIT.txt
+- sh: tar -czvf "${ARTIFACTS_ZIP_NAME_LINUX}" "${ARTIFACTS_DIR_NAME}"
 
 notifications:
 - provider: GitHubPullRequest
