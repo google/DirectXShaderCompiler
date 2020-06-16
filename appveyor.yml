@@ -2,7 +2,7 @@ version: 1.0.{build}
 
 image:
   - Ubuntu
-#  - Visual Studio 2017
+  - Visual Studio 2017
 
 platform: x64
 configuration: Release
@@ -23,9 +23,15 @@ for:
   matrix:
     only:
       - image: Ubuntu
-  clone_folder: /DirectXShaderCompiler
+  clone_folder: /home/appveyor/projects/DirectXShaderCompiler
+
+for:
+-
+  matrix:
+    only:
+      - image: Ubuntu
   artifacts:
-  - path: artifacts.tar.gz
+  - path: /home/appveyor/projects/DirectXShaderCompiler/build/artifacts.tar.gz
 
 install:
 - git submodule update --init
