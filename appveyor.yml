@@ -18,17 +18,14 @@ environment:
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
   ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
 
-# Change the clone folder and artifacts path for Linux.
-  matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
 for:
 -
   matrix:
     only:
-      - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      - image: Ubuntu
   clone_folder: /DirectXShaderCompiler
   artifacts:
-    - path: /DirectXShaderCompiler/build/artifacts.tar.gz
+  - path: /DirectXShaderCompiler/build/artifacts.tar.gz
 
 install:
 - git submodule update --init
