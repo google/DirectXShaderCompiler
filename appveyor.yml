@@ -11,13 +11,16 @@ environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
   HLSL_SRC_DIR: c:\projects\DirectXShaderCompiler
   HLSL_BLD_DIR: c:\projects\DirectXShaderCompiler\build
-  ARTIFACTS_ZIP_NAME: dxc-artifacts.zip
+  ARTIFACTS_DIR_NAME: dxc-artifacts
+  ARTIFACTS_ZIP_NAME_WINDOWS: $(ARTIFACTS_DIR_NAME).zip
+  ARTIFACTS_ZIP_NAME_LINUX:   $(ARTIFACTS_DIR_NAME).tar.gz
 
 clone_folder: c:\projects\DirectXShaderCompiler
 
 artifacts:
-- path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME)
+- path: build\$(configuration)\$(ARTIFACTS_ZIP_NAME_WINDOWS)
 
+# The clone folder and artifacts path is different for the Ubuntu image.
 for:
 -
   matrix:
@@ -25,7 +28,7 @@ for:
       - image: Ubuntu
   clone_folder: /home/appveyor/projects/DirectXShaderCompiler
   artifacts:
-  - path: build/dxc-artifacts.tar.gz
+  - path: build/$(ARTIFACTS_ZIP_NAME_LINUX)
 
 install:
 - git submodule update --init
@@ -55,15 +58,14 @@ after_test:
 - cmd: cd build\%CONFIGURATION%
 - cmd: echo %APPVEYOR_REPO_COMMIT% > GIT-COMMIT.txt
 - cmd: xcopy "%HLSL_SRC_DIR%\include\dxc" include\dxc /s /i /y
-- cmd: 7z a %ARTIFACTS_ZIP_NAME% include lib\d*.lib bin\d*.exe bin\d*.dll bin\d*.pdb bin\HLSLHost.exe GIT-COMMIT.txt
+- cmd: 7z a %ARTIFACTS_ZIP_NAME_WINDOWS% include lib\d*.lib bin\d*.exe bin\d*.dll bin\d*.pdb bin\HLSLHost.exe GIT-COMMIT.txt
 # Collect artifacts for Linux
-- sh: mkdir artifacts && cd artifacts
-- sh: mkdir bin && mkdir lib && mkdir include && cd ..
-- sh: cp lib/libdxcompiler.so.3.7 artifacts/lib/
-- sh: cp bin/dxc artifacts/bin/
-- sh: cp -r ../include/dxc artifacts/include
-- sh: echo "${APPVEYOR_REPO_COMMIT}" > artifacts/GIT-COMMIT.txt
-- sh: tar -czvf dxc-artifacts.tar.gz artifacts
+- sh: mkdir $(ARTIFACTS_DIR_NAME) && cd $(ARTIFACTS_DIR_NAME) && mkdir bin && mkdir lib && mkdir include && cd ..
+- sh: cp lib/libdxcompiler.so* $(ARTIFACTS_DIR_NAME)/lib/
+- sh: cp bin/dxc $(ARTIFACTS_DIR_NAME)/bin/
+- sh: cp -r ../include/dxc $(ARTIFACTS_DIR_NAME)/include
+- sh: echo "${APPVEYOR_REPO_COMMIT}" > $(ARTIFACTS_DIR_NAME)/GIT-COMMIT.txt
+- sh: tar -czvf $(ARTIFACTS_ZIP_NAME_LINUX) $(ARTIFACTS_DIR_NAME)
 
 notifications:
 - provider: GitHubPullRequest
