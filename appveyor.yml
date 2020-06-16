@@ -24,12 +24,6 @@ for:
     only:
       - image: Ubuntu
   clone_folder: /home/appveyor/projects/DirectXShaderCompiler
-
-for:
--
-  matrix:
-    only:
-      - image: Ubuntu
   artifacts:
   - path: /home/appveyor/projects/DirectXShaderCompiler/build/artifacts.tar.gz
 
