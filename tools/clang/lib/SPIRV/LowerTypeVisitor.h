@@ -12,7 +12,6 @@
 
 #include "AlignmentSizeCalculator.h"
 #include "clang/AST/ASTContext.h"
-#include "clang/SPIRV/SpirvBuilder.h"
 #include "clang/SPIRV/SpirvContext.h"
 #include "clang/SPIRV/SpirvVisitor.h"
 #include "llvm/ADT/Optional.h"
@@ -24,11 +23,9 @@ namespace spirv {
 class LowerTypeVisitor : public Visitor {
 public:
   LowerTypeVisitor(ASTContext &astCtx, SpirvContext &spvCtx,
-                   const SpirvCodeGenOptions &opts, SpirvBuilder &builder,
-                   SpirvExtInstImport *debugExt)
+                   const SpirvCodeGenOptions &opts)
       : Visitor(opts, spvCtx), astContext(astCtx), spvContext(spvCtx),
-        spvBuilder(builder), alignmentCalc(astCtx, opts),
-        debugExtInstSet(debugExt) {}
+        alignmentCalc(astCtx, opts) {}
 
   // Visiting different SPIR-V constructs.
   bool visit(SpirvModule *, Phase) override { return true; }
@@ -68,24 +65,13 @@ private:
                              SourceLocation);
 
   /// Lowers the given HLSL resource type into its SPIR-V type.
-  ///
-  /// Returns the lowered SpirvType and its underlying SpirvType.
-  std::pair<const SpirvType *, const SpirvType *>
-  lowerResourceType(QualType type, SpirvLayoutRule rule, SourceLocation);
+  const SpirvType *lowerResourceType(QualType type, SpirvLayoutRule rule,
+                                     SourceLocation);
 
   /// For the given sampled type, returns the corresponding image format
   /// that can be used to create an image object.
   spv::ImageFormat translateSampledTypeToImageFormat(QualType sampledType,
                                                      SourceLocation);
-
-  /// Generate debug info of a function.
-  ///
-  /// When there is no function call for decl, SpirvEmitter does not
-  /// generate function definition nor function info. However, if it is
-  /// a member method of a struct/class, we need to generate its debug
-  /// info.
-  SpirvDebugFunction *generateFunctionInfo(const CXXMethodDecl *decl,
-                                           SpirvDebugInstruction *parent);
 
 private:
   /// Calculates all layout information needed for the given structure fields.
@@ -96,24 +82,10 @@ private:
   populateLayoutInformation(llvm::ArrayRef<HybridStructType::FieldInfo> fields,
                             SpirvLayoutRule rule);
 
-  /// Generate rich debug info of a composite type from a QualType (RecordType).
-  SpirvDebugTypeComposite *lowerDebugTypeComposite(
-      const RecordType *structType, const SpirvType *spirvType,
-      llvm::SmallVector<StructType::FieldInfo, 4> &fields, bool isResourceType);
-
 private:
   ASTContext &astContext;                /// AST context
   SpirvContext &spvContext;              /// SPIR-V context
-  SpirvBuilder &spvBuilder;              /// SPIR-V builder
   AlignmentSizeCalculator alignmentCalc; /// alignment calculator
-
-  // TODO: Adding a pointer the debugInfoExtInstSet in the LowerTypeVisitor
-  // class is too intrusive. Clean it up.
-  SpirvExtInstImport *debugExtInstSet; /// Pointer to
-                                       /// OpenCLDebugInfoExtInstSet
-
-  llvm::SmallSet<const Decl *, 4> visitedRecordDecl; /// A set of already
-                                                     /// visited RecordDecl
 };
 
 } // end namespace spirv
