@@ -339,6 +339,19 @@ public:
     return currentLexicalScope;
   }
 
+  /// Function to add/get the mapping from a SPIR-V type to its QualType for
+  /// a type of a resource.
+  void addSpirvTypeToRecordType(const SpirvType *spvTy,
+                                const RecordType *recordTy) {
+    spvTypeToRecordType[spvTy] = recordTy;
+  }
+  const RecordType *getRecordType(const SpirvType *spvTy) {
+    auto it = spvTypeToRecordType.find(spvTy);
+    if (it == spvTypeToRecordType.end())
+      return nullptr;
+    return it->second;
+  }
+
 private:
   /// \brief The allocator used to create SPIR-V entity objects.
   ///
@@ -402,6 +415,9 @@ private:
   // The purpose is not to generate several DebugType* instructions for the same
   // type if the type is used for several variables.
   llvm::MapVector<const SpirvType *, SpirvDebugType *> debugTypes;
+
+  // Mapping from SPIR-V type to QualType for a resource type.
+  llvm::DenseMap<const SpirvType *, const RecordType *> spvTypeToRecordType;
 
   // Keep DebugTypeMember, DebugTypeInheritance, DebugTypeTemplate,
   // and DebugTypeTemplateParameter.

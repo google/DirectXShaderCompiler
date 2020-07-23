@@ -19,6 +19,7 @@ namespace clang {
 namespace spirv {
 
 class SpirvBuilder;
+class LowerTypeVisitor;
 
 /// The class responsible to translate SPIR-V types into DebugType*
 /// types as defined in the OpenCL.DebugInfo.100 spec.
@@ -26,9 +27,10 @@ class SpirvBuilder;
 class DebugTypeVisitor : public Visitor {
 public:
   DebugTypeVisitor(ASTContext &astCtx, SpirvContext &spvCtx,
-                   const SpirvCodeGenOptions &opts, SpirvBuilder &builder)
+                   const SpirvCodeGenOptions &opts, SpirvBuilder &builder,
+                   LowerTypeVisitor &lowerTypeVisitor)
       : Visitor(opts, spvCtx), astContext(astCtx), spvContext(spvCtx),
-        spvBuilder(builder) {}
+        spvBuilder(builder), spvTypeVisitor(lowerTypeVisitor) {}
 
   // Visiting different SPIR-V constructs.
   bool visit(SpirvModule *module, Phase);
@@ -87,9 +89,10 @@ private:
   SpirvDebugInfoNone *getDebugInfoNone();
 
 private:
-  ASTContext &astContext;   /// AST context
-  SpirvContext &spvContext; /// SPIR-V context
-  SpirvBuilder &spvBuilder; ///< SPIR-V builder
+  ASTContext &astContext;           /// AST context
+  SpirvContext &spvContext;         /// SPIR-V context
+  SpirvBuilder &spvBuilder;         ///< SPIR-V builder
+  LowerTypeVisitor &spvTypeVisitor; /// QualType to SPIR-V type visitor
 };
 
 } // end namespace spirv

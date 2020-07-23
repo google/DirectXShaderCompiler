@@ -1209,16 +1209,12 @@ SpirvString *SpirvBuilder::getString(llvm::StringRef str) {
 std::vector<uint32_t> SpirvBuilder::takeModule() {
   // Run necessary visitor passes first
   LiteralTypeVisitor literalTypeVisitor(astContext, context, spirvOptions);
-  LowerTypeVisitor lowerTypeVisitor(
-      astContext, context, spirvOptions, *this,
-      spirvOptions.debugInfoRich ? getOpenCLDebugInfoExtInstSet() : nullptr);
-  DebugTypeVisitor debugTypeVisitor(astContext, context, spirvOptions, *this);
+  LowerTypeVisitor lowerTypeVisitor(astContext, context, spirvOptions);
   CapabilityVisitor capabilityVisitor(astContext, context, spirvOptions, *this);
   RelaxedPrecisionVisitor relaxedPrecisionVisitor(context, spirvOptions);
   PreciseVisitor preciseVisitor(context, spirvOptions);
   NonUniformVisitor nonUniformVisitor(context, spirvOptions);
   RemoveBufferBlockVisitor removeBufferBlockVisitor(context, spirvOptions);
-  SortDebugInfoVisitor sortDebugInfoVisitor(context, spirvOptions);
   EmitVisitor emitVisitor(astContext, context, spirvOptions);
 
   mod->invokeVisitor(&literalTypeVisitor, true);
@@ -1230,8 +1226,11 @@ std::vector<uint32_t> SpirvBuilder::takeModule() {
   mod->invokeVisitor(&lowerTypeVisitor);
 
   // Generate debug types (if needed)
-  if (spirvOptions.debugInfoRich)
+  if (spirvOptions.debugInfoRich) {
+    DebugTypeVisitor debugTypeVisitor(astContext, context, spirvOptions, *this,
+                                      lowerTypeVisitor);
     mod->invokeVisitor(&debugTypeVisitor);
+  }
 
   // Add necessary capabilities and extensions
   mod->invokeVisitor(&capabilityVisitor);
@@ -1247,8 +1246,10 @@ std::vector<uint32_t> SpirvBuilder::takeModule() {
   mod->invokeVisitor(&removeBufferBlockVisitor);
 
   // Sort OpenCL.DebugInfo.100 instructions
-  if (spirvOptions.debugInfoRich)
+  if (spirvOptions.debugInfoRich) {
+    SortDebugInfoVisitor sortDebugInfoVisitor(context, spirvOptions);
     mod->invokeVisitor(&sortDebugInfoVisitor);
+  }
 
   // Emit SPIR-V
   mod->invokeVisitor(&emitVisitor);

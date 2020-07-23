@@ -74,6 +74,22 @@ bool LowerTypeVisitor::visitInstruction(SpirvInstruction *instr) {
     instr->setResultType(spirvType);
   }
 
+  // Lower QualType of DebugLocalVariable or DebugGlobalVariable to SpirvType.
+  // Since debug local/global variable must have a debug type, SpirvEmitter sets
+  // its QualType. Here we lower it to SpirvType and DebugTypeVisitor will lower
+  // the SpirvType to debug type.
+  if (auto *debugInstruction = dyn_cast<SpirvDebugInstruction>(instr)) {
+    const QualType debugQualType = debugInstruction->getDebugQualType();
+    if (!debugQualType.isNull()) {
+      assert(isa<SpirvDebugLocalVariable>(debugInstruction) ||
+             isa<SpirvDebugGlobalVariable>(debugInstruction));
+      const SpirvType *spirvType =
+          lowerType(debugQualType, instr->getLayoutRule(),
+                    /*isRowMajor*/ llvm::None, instr->getSourceLocation());
+      debugInstruction->setDebugSpirvType(spirvType);
+    }
+  }
+
   // Instruction-specific type updates
 
   const auto *resultType = instr->getResultType();
@@ -361,8 +377,10 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
     // (ClassTemplateSpecializationDecl is a subclass of CXXRecordDecl, which
     // is then a subclass of RecordDecl.) So we need to check them before
     // checking the general struct type.
-    if (const auto *spvType = lowerResourceType(type, rule, srcLoc))
+    if (const auto *spvType = lowerResourceType(type, rule, srcLoc)) {
+      spvContext.addSpirvTypeToRecordType(spvType, structType);
       return spvType;
+    }
 
     // Collect all fields' information.
     llvm::SmallVector<HybridStructType::FieldInfo, 8> fields;
@@ -387,7 +405,10 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
 
     auto loweredFields = populateLayoutInformation(fields, rule);
 
-    return spvContext.getStructType(loweredFields, decl->getName());
+    const auto *spvStructType =
+        spvContext.getStructType(loweredFields, decl->getName());
+    spvContext.addSpirvTypeToRecordType(spvStructType, structType);
+    return spvStructType;
   }
 
   // Array type

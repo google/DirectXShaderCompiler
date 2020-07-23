@@ -1,4 +1,4 @@
-//===--- LowerTypeVisitor.cpp - AST type to SPIR-V type impl -----*- C++ -*-==//
+//===--- DebugTypeVisitor.cpp - SPIR-V type to debug type impl ---*- C++ -*-==//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "DebugTypeVisitor.h"
+#include "LowerTypeVisitor.h"
 #include "clang/SPIRV/SpirvBuilder.h"
 #include "clang/SPIRV/SpirvModule.h"
 
