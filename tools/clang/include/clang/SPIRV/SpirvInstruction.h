@@ -2446,8 +2446,6 @@ public:
 
   SpirvDebugInstruction *getParentScope() const override { return parent; }
 
-  void setType(SpirvDebugType *type_) { type = type_; }
-  SpirvDebugType *getType() const { return type; }
   SpirvDebugSource *getSource() const { return source; }
   uint32_t getLine() const { return line; }
   uint32_t getColumn() const { return column; }
@@ -2459,7 +2457,6 @@ public:
   const SpirvType *getSpirvType() const { return spvType; }
 
 private:
-  SpirvDebugType *type;     //< The type of the current member
   SpirvDebugSource *source; //< DebugSource containing this type
   uint32_t line;            //< Line number
   uint32_t column;          //< Column number
@@ -2488,8 +2485,8 @@ public:
   SpirvDebugTypeComposite(llvm::StringRef name, SpirvDebugSource *source,
                           uint32_t line, uint32_t column,
                           SpirvDebugInstruction *parent,
-                          llvm::StringRef linkageName, uint32_t size,
-                          uint32_t flags, uint32_t tag);
+                          llvm::StringRef linkageName, uint32_t flags,
+                          uint32_t tag);
 
   static bool classof(const SpirvInstruction *inst) {
     return inst->getKind() == IK_DebugTypeComposite;
@@ -2513,9 +2510,6 @@ public:
 
   void setTypeTemplate(SpirvDebugTypeTemplate *t) { typeTemplate = t; }
   SpirvDebugTypeTemplate *getTypeTemplate() const { return typeTemplate; }
-
-  void setFullyLowered() { fullyLowered = true; }
-  bool getFullyLowered() const { return fullyLowered; }
 
   void setDebugInfoNone(SpirvDebugInfoNone *none) { debugNone = none; }
   SpirvDebugInfoNone *getDebugInfoNone() const { return debugNone; }
@@ -2554,11 +2548,6 @@ private:
   // the limitation of single value for the map. Instead, we keep it
   // here.
   SpirvDebugTypeTemplate *typeTemplate;
-
-  // It is first lowered by LowerTypeVisitor and then lowered by
-  // DebugTypeVisitor. We set fullyLowered true after it is lowered
-  // by DebugTypeVisitor.
-  bool fullyLowered;
 
   // When it is DebugTypeComposite for HLSL resource type i.e., opaque
   // type, we must put DebugInfoNone for Size operand.

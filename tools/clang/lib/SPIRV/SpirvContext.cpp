@@ -298,16 +298,17 @@ SpirvDebugInstruction *SpirvContext::getDebugTypeMember(
   return debugType;
 }
 
-SpirvDebugInstruction *SpirvContext::getDebugTypeComposite(
+SpirvDebugTypeComposite *SpirvContext::getDebugTypeComposite(
     const SpirvType *spirvType, llvm::StringRef name, SpirvDebugSource *source,
     uint32_t line, uint32_t column, SpirvDebugInstruction *parent,
-    llvm::StringRef linkageName, uint32_t size, uint32_t flags, uint32_t tag) {
+    llvm::StringRef linkageName, uint32_t flags, uint32_t tag) {
   // Reuse existing debug type if possible.
-  if (debugTypes.find(spirvType) != debugTypes.end())
-    return debugTypes[spirvType];
+  auto it = debugTypes.find(spirvType);
+  if (it != debugTypes.end())
+    return dyn_cast<SpirvDebugTypeComposite>(it->second);
 
   auto *debugType = new (this) SpirvDebugTypeComposite(
-      name, source, line, column, parent, linkageName, size, flags, tag);
+      name, source, line, column, parent, linkageName, flags, tag);
   debugType->setDebugSpirvType(spirvType);
   debugTypes[spirvType] = debugType;
   return debugType;

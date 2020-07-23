@@ -172,12 +172,13 @@ public:
                      uint32_t offsetInBits = UINT32_MAX,
                      const APValue *value = nullptr);
 
-  SpirvDebugInstruction *
-  getDebugTypeComposite(const SpirvType *spirvType, llvm::StringRef name,
-                        SpirvDebugSource *source, uint32_t line,
-                        uint32_t column, SpirvDebugInstruction *parent,
-                        llvm::StringRef linkageName, uint32_t size,
-                        uint32_t flags, uint32_t tag);
+  SpirvDebugTypeComposite *getDebugTypeComposite(const SpirvType *spirvType,
+                                                 llvm::StringRef name,
+                                                 SpirvDebugSource *source,
+                                                 uint32_t line, uint32_t column,
+                                                 SpirvDebugInstruction *parent,
+                                                 llvm::StringRef linkageName,
+                                                 uint32_t flags, uint32_t tag);
 
   SpirvDebugInstruction *getDebugType(const SpirvType *spirvType);
 

@@ -950,12 +950,10 @@ SpirvDebugTypeMember::SpirvDebugTypeMember(
 SpirvDebugTypeComposite::SpirvDebugTypeComposite(
     llvm::StringRef name, SpirvDebugSource *source_, uint32_t line_,
     uint32_t column_, SpirvDebugInstruction *parent_,
-    llvm::StringRef linkageName_, uint32_t size_, uint32_t flags_,
-    uint32_t tag_)
+    llvm::StringRef linkageName_, uint32_t flags_, uint32_t tag_)
     : SpirvDebugType(IK_DebugTypeComposite, /*opcode*/ 10u), source(source_),
       line(line_), column(column_), parent(parent_), linkageName(linkageName_),
-      size(size_), debugFlags(flags_), tag(tag_), typeTemplate(nullptr),
-      fullyLowered(false), debugNone(nullptr) {
+      debugFlags(flags_), tag(tag_), typeTemplate(nullptr), debugNone(nullptr) {
   debugName = name;
 }
 

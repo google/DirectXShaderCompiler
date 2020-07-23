@@ -14,6 +14,8 @@
 #include "clang/SPIRV/SpirvBuilder.h"
 #include "clang/SPIRV/SpirvModule.h"
 
+static const uint32_t kUninitializedOffset = UINT32_MAX;
+
 namespace clang {
 namespace spirv {
 
@@ -40,9 +42,8 @@ SpirvDebugInfoNone *DebugTypeVisitor::getDebugInfoNone() {
   return debugNone;
 }
 
-SpirvDebugTypeComposite *
-DebugTypeVisitor::lowerCbufferDebugType(const StructType *type,
-                                        const SourceLocation &loc) {
+SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
+    const StructType *type, const SourceLocation &loc, uint32_t tag) {
   const auto &sm = astContext.getSourceManager();
   uint32_t line = sm.getPresumedLineNumber(loc);
   uint32_t column = sm.getPresumedColumnNumber(loc);
@@ -51,20 +52,27 @@ DebugTypeVisitor::lowerCbufferDebugType(const StructType *type,
   // TODO: Update linkageName using astContext.createMangleContext().
   std::string name = type->getName();
 
-  // TODO: Update parent, size, flags, and tag information correctly.
+  // TODO: Update size information correctly.
   RichDebugInfo *debugInfo = &spvContext.getDebugInfo().begin()->second;
   const char *file = sm.getPresumedLoc(loc).getFilename();
   if (file)
     debugInfo = &spvContext.getDebugInfo()[file];
-  auto *dbgTyComposite =
-      dyn_cast<SpirvDebugTypeComposite>(spvContext.getDebugTypeComposite(
-          type, name, debugInfo->source, line, column,
-          /* parent */ debugInfo->compilationUnit, linkageName,
-          /* size */ 0, 3u, 1u));
+  return spvContext.getDebugTypeComposite(
+      type, name, debugInfo->source, line, column,
+      /* parent */ debugInfo->compilationUnit, linkageName, 3u, tag);
+}
 
-  auto &members = dbgTyComposite->getMembers();
+void DebugTypeVisitor::addDebugTypeMember(
+    SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
+    const SourceLocation &loc) {
+  const auto &sm = astContext.getSourceManager();
+  uint32_t line = sm.getPresumedLineNumber(loc);
+  uint32_t column = sm.getPresumedColumnNumber(loc);
+
+  // Add DebugTypeMemeber.
+  auto &members = debugTypeComposite->getMembers();
   for (auto &field : type->getFields()) {
-    uint32_t offsetInBits = UINT32_MAX;
+    uint32_t offsetInBits = kUninitializedOffset;
     if (field.offset.hasValue())
       offsetInBits = *field.offset * 8;
 
@@ -72,16 +80,33 @@ DebugTypeVisitor::lowerCbufferDebugType(const StructType *type,
     // placed in SPIRV-Header.
     auto *debugInstr =
         dyn_cast<SpirvDebugInstruction>(spvContext.getDebugTypeMember(
-            field.name, field.type, debugInfo->source, line, column,
-            dbgTyComposite,
+            field.name, field.type, debugTypeComposite->getSource(), line,
+            column, debugTypeComposite,
             /* flags */ 3u, offsetInBits, /* value */ nullptr));
     assert(debugInstr);
     setDefaultDebugInfo(debugInstr);
     members.push_back(debugInstr);
   }
 
-  setDefaultDebugInfo(dbgTyComposite);
-  return dbgTyComposite;
+  // Lower the debug type of DebugTypeMemeber and set size and offset.
+  uint32_t sizeInBits = 0;
+  uint32_t offsetInBits = 0;
+  for (auto *member : members) {
+    auto *debugMember = dyn_cast<SpirvDebugTypeMember>(member);
+    assert(debugMember != nullptr);
+    debugMember->setDebugType(lowerToDebugType(debugMember->getSpirvType()));
+
+    uint32_t memberSizeInBits = debugMember->getDebugType()->getSizeInBits();
+    uint32_t memberOffsetInBits = debugMember->getOffsetInBits();
+    if (memberOffsetInBits == kUninitializedOffset)
+      memberOffsetInBits = offsetInBits;
+    debugMember->updateOffsetAndSize(memberOffsetInBits, memberSizeInBits);
+
+    offsetInBits = memberOffsetInBits + memberSizeInBits;
+    if (sizeInBits < offsetInBits)
+      sizeInBits = offsetInBits;
+  }
+  debugTypeComposite->setSizeInBits(sizeInBits);
 }
 
 bool DebugTypeVisitor::lowerDebugTypeTemplate(SpirvDebugTypeComposite *instr) {
@@ -132,69 +157,34 @@ bool DebugTypeVisitor::lowerDebugTypeFunctionForMemberFunction(
   return true;
 }
 
-bool DebugTypeVisitor::lowerDebugTypeMember(SpirvDebugTypeMember *debugMember,
-                                            uint32_t *sizeInBits,
-                                            uint32_t *offsetInBits) {
-  assert(sizeInBits);
-  assert(offsetInBits);
-
-  auto *ty = lowerToDebugType(debugMember->getSpirvType());
-  if (ty == nullptr)
-    return false;
-
-  SpirvDebugType *memberTy = dyn_cast<SpirvDebugType>(ty);
-  debugMember->setType(memberTy);
-
-  uint32_t memberSizeInBits = memberTy->getSizeInBits();
-  uint32_t memberOffsetInBits = debugMember->getOffsetInBits();
-  if (memberOffsetInBits == UINT32_MAX)
-    memberOffsetInBits = *offsetInBits;
-  debugMember->updateOffsetAndSize(memberOffsetInBits, memberSizeInBits);
-
-  *offsetInBits = memberOffsetInBits + memberSizeInBits;
-  if (*sizeInBits < *offsetInBits)
-    *sizeInBits = *offsetInBits;
-
-  return true;
-}
-
 SpirvDebugInstruction *
 DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
-  // TODO: Update lowerToDebugTypeComposite
   if (const auto *recordType = spvContext.getRecordType(type)) {
-  } else if (const auto *decl = spvContext.getDeclForSpirvType(type)) {
-  }
-
-  // DebugTypeComposite is already lowered by LowerTypeVisitor,
-  // but it is not completely lowered.
-  // We have to update member information including offset and size.
-  auto *instr =
-      dyn_cast<SpirvDebugTypeComposite>(spvContext.getDebugType(type));
-  if (!lowerDebugTypeTemplate(instr)) {
-    emitError("Lowering DebugTypeComposite for SpirvType %0 fails")
-        << type->getName();
-    return nullptr;
-  }
-  if (instr->getFullyLowered())
-    return instr;
-
-  uint32_t sizeInBits = 0;
-  uint32_t offsetInBits = 0;
-  auto &members = instr->getMembers();
-  for (auto *member : members) {
-    auto *debugMember = dyn_cast<SpirvDebugTypeMember>(member);
-    if (!debugMember) {
-      if (!lowerDebugTypeFunctionForMemberFunction(member))
-        return nullptr;
-      continue;
+    const auto *decl = recordType->getDecl();
+    uint32_t tag = 1;
+    if (decl->isStruct())
+      tag = 1;
+    else if (decl->isClass())
+      tag = 0;
+    else if (decl->isUnion())
+      tag = 2;
+    else
+      assert(!"DebugTypeComposite must be a struct, class, or union.");
+    auto *debugTypeComposite =
+        createDebugTypeComposite(type, decl->getLocStart(), tag);
+    if (const auto *templateType = type->getAs<TemplateSpecializationType>()) {
+      return lowerDebugTypeTemplate(templateType, debugTypeComposite);
+    } else {
+      addDebugTypeMember(debugTypeComposite, type, decl->getLocStart());
+      return debugTypeComposite;
     }
-
-    if (!lowerDebugTypeMember(debugMember, &sizeInBits, &offsetInBits))
-      return nullptr;
+  } else if (const auto *decl = spvContext.getDeclForSpirvType(type)) {
+    auto *debugTypeComposite =
+        createDebugTypeComposite(type, decl->getLocStart(), 1u);
+    addDebugTypeMember(debugTypeComposite, type, decl->getLocStart());
+    return debugTypeComposite;
   }
-  instr->setSizeInBits(sizeInBits);
-  instr->setFullyLowered();
-  return instr;
+  assert(false && "Unreachable");
 }
 
 SpirvDebugInstruction *
