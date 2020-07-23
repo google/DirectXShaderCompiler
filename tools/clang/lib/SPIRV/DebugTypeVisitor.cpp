@@ -160,6 +160,11 @@ bool DebugTypeVisitor::lowerDebugTypeMember(SpirvDebugTypeMember *debugMember,
 
 SpirvDebugInstruction *
 DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
+  // TODO: Update lowerToDebugTypeComposite
+  if (const auto *recordType = spvContext.getRecordType(type)) {
+  } else if (const auto *decl = spvContext.getDeclForSpirvType(type)) {
+  }
+
   // DebugTypeComposite is already lowered by LowerTypeVisitor,
   // but it is not completely lowered.
   // We have to update member information including offset and size.
@@ -347,29 +352,9 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
     if (isa<SpirvDebugGlobalVariable>(debugInstr) ||
         isa<SpirvDebugLocalVariable>(debugInstr)) {
       const SpirvType *spirvType = debugInstr->getDebugSpirvType();
-      if (!spirvType) {
-        // If a debug instruction does not have QualType, LowerTypeVisitor
-        // does not invoke lowerDebugTypeComposite() even though the type is a
-        // composite type. For example, cbuffer does not have QualType, but it
-        // has StructType. We have to prepare a DebugTypeComposite for such
-        // StructType before calling
-        // DebugTypeVisitor::lowerToDebugTypeComposite().
-        if (auto *debugGlobalVar = dyn_cast<SpirvDebugGlobalVariable>(instr)) {
-          auto *varType = debugGlobalVar->getVariable()->getResultType();
-          assert(varType &&
-                 "Global variables must be lowered by LowerTypeVisitor");
-          auto *ptrType = dyn_cast<SpirvPointerType>(varType);
-          assert(ptrType && "OpVariable must have a pointer type");
-          spirvType = ptrType->getPointeeType();
-          debugGlobalVar->setDebugSpirvType(spirvType);
-          if (auto *structType = dyn_cast<StructType>(spirvType))
-            lowerCbufferDebugType(structType, instr->getSourceLocation());
-        }
-      }
-      if (spirvType) {
-        SpirvDebugInstruction *debugType = lowerToDebugType(spirvType);
-        debugInstr->setDebugType(debugType);
-      }
+      assert(spirvType != nullptr);
+      SpirvDebugInstruction *debugType = lowerToDebugType(spirvType);
+      debugInstr->setDebugType(debugType);
     }
     if (auto *debugFunction = dyn_cast<SpirvDebugFunction>(debugInstr)) {
       const SpirvType *spirvType =

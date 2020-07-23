@@ -340,7 +340,7 @@ public:
   }
 
   /// Function to add/get the mapping from a SPIR-V type to its QualType for
-  /// a type of a resource.
+  /// a record type.
   void addSpirvTypeToRecordType(const SpirvType *spvTy,
                                 const RecordType *recordTy) {
     spvTypeToRecordType[spvTy] = recordTy;
@@ -348,6 +348,18 @@ public:
   const RecordType *getRecordType(const SpirvType *spvTy) {
     auto it = spvTypeToRecordType.find(spvTy);
     if (it == spvTypeToRecordType.end())
+      return nullptr;
+    return it->second;
+  }
+
+  /// Function to add/get the mapping from a SPIR-V type to its Decl for
+  /// a struct type.
+  void addSpirvTypeToDecl(const SpirvType *spvTy, const DeclContext *decl) {
+    spvTypeToDecl[spvTy] = decl;
+  }
+  const DeclContext *getDeclForSpirvType(const SpirvType *spvTy) {
+    auto it = spvTypeToDecl.find(spvTy);
+    if (it == spvTypeToDecl.end())
       return nullptr;
     return it->second;
   }
@@ -416,8 +428,10 @@ private:
   // type if the type is used for several variables.
   llvm::MapVector<const SpirvType *, SpirvDebugType *> debugTypes;
 
-  // Mapping from SPIR-V type to QualType for a resource type.
+  // Mapping from SPIR-V type to QualType for a record type.
   llvm::DenseMap<const SpirvType *, const RecordType *> spvTypeToRecordType;
+  // Mapping from SPIR-V type to Decl for a struct type.
+  llvm::DenseMap<const SpirvType *, const DeclContext *> spvTypeToDecl;
 
   // Keep DebugTypeMember, DebugTypeInheritance, DebugTypeTemplate,
   // and DebugTypeTemplateParameter.
