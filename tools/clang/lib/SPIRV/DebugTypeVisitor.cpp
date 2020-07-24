@@ -109,32 +109,40 @@ void DebugTypeVisitor::addDebugTypeMember(
   debugTypeComposite->setSizeInBits(sizeInBits);
 }
 
-bool DebugTypeVisitor::lowerDebugTypeTemplate(SpirvDebugTypeComposite *instr) {
-  if (instr == nullptr)
-    return false;
+SpirvDebugTypeTemplate *DebugTypeVisitor::lowerDebugTypeTemplate(
+    const TemplateSpecializationType *templateType,
+    SpirvDebugTypeComposite *debugTypeComposite) {
+  // Reuse already lowered DebugTypeTemplate.
+  auto *debugTypeTemplate = spvContext.getDebugTypeTemplate(templateType);
+  if (debugTypeTemplate != nullptr)
+    return debugTypeTemplate;
 
-  auto *tempType = instr->getTypeTemplate();
-  // It is not a composite type for a resource. It is not an error.
-  if (tempType == nullptr)
-    return true;
-
-  auto &tempParams = tempType->getParams();
-  for (auto &t : tempParams) {
-    auto *loweredParam = lowerToDebugType(t->getSpirvType());
-    if (loweredParam == nullptr)
-      return false;
-    t->setActualType(dyn_cast<SpirvDebugType>(loweredParam));
-    if (!t->getValue()) {
-      auto *debugNone = getDebugInfoNone();
-      if (debugNone == nullptr)
-        return false;
-      t->setValue(debugNone);
+  llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> tempTypeParams;
+  for (auto arg : *templateType) {
+    // Reuse already lowered DebugTypeTemplateParameter.
+    auto *debugTypeTemplateParam =
+        spvContext.getDebugTypeTemplateParameter(arg);
+    if (debugTypeTemplateParam != nullptr) {
+      tempTypeParams.push_back(debugTypeTemplateParam);
+      continue;
     }
-    setDefaultDebugInfo(t);
-  }
-  setDefaultDebugInfo(tempType);
 
-  return true;
+    // Lower DebugTypeTemplateParameter.
+    const auto *spvType = spvTypeVisitor.lowerType(
+        arg->getAsType(), currentDebugInstructionLayoutRule, llvm::None,
+        debugTypeComposite->getSourceLocation());
+    debugTypeTemplateParam = spvContext.createDebugTypeTemplateParameter(
+        arg, "TemplateParam", lowerToDebugType(spvType), nullptr,
+        debugTypeComposite->getSource(), debugTypeComposite->getLine(),
+        debugTypeComposite->getColumn());
+    debugTemplateParams.push_back(debugTypeTemplateParam);
+    setDefaultDebugInfo(debugTypeTemplateParam);
+  }
+
+  debugTypeTemplate = spvContext.getDebugTypeTemplate(
+      templateType, debugTypeComposite, debugTemplateParams);
+  setDefaultDebugInfo(debugTypeTemplate);
+  return debugTypeTemplate;
 }
 
 bool DebugTypeVisitor::lowerDebugTypeFunctionForMemberFunction(
@@ -341,12 +349,14 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
     // DebugFunction
     if (isa<SpirvDebugGlobalVariable>(debugInstr) ||
         isa<SpirvDebugLocalVariable>(debugInstr)) {
+      currentDebugInstructionLayoutRule = debugInstr->getLayoutRule();
       const SpirvType *spirvType = debugInstr->getDebugSpirvType();
       assert(spirvType != nullptr);
       SpirvDebugInstruction *debugType = lowerToDebugType(spirvType);
       debugInstr->setDebugType(debugType);
     }
     if (auto *debugFunction = dyn_cast<SpirvDebugFunction>(debugInstr)) {
+      currentDebugInstructionLayoutRule = SpirvLayoutRule::Void;
       const SpirvType *spirvType =
           debugFunction->getSpirvFunction()->getFunctionType();
       if (spirvType) {

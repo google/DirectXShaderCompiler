@@ -953,19 +953,22 @@ SpirvDebugTypeComposite::SpirvDebugTypeComposite(
     llvm::StringRef linkageName_, uint32_t flags_, uint32_t tag_)
     : SpirvDebugType(IK_DebugTypeComposite, /*opcode*/ 10u), source(source_),
       line(line_), column(column_), parent(parent_), linkageName(linkageName_),
-      debugFlags(flags_), tag(tag_), typeTemplate(nullptr), debugNone(nullptr) {
+      debugFlags(flags_), tag(tag_), debugNone(nullptr) {
   debugName = name;
 }
 
-SpirvDebugTypeTemplate::SpirvDebugTypeTemplate(SpirvDebugInstruction *target_)
-    : SpirvDebugType(IK_DebugTypeTemplate, /*opcode*/ 14u), target(target_) {}
+SpirvDebugTypeTemplate::SpirvDebugTypeTemplate(
+    SpirvDebugInstruction *target_,
+    const llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &params_)
+    : SpirvDebugType(IK_DebugTypeTemplate, /*opcode*/ 14u), target(target_),
+      params(params_) {}
 
 SpirvDebugTypeTemplateParameter::SpirvDebugTypeTemplateParameter(
     llvm::StringRef name, const SpirvType *type, SpirvInstruction *value_,
     SpirvDebugSource *source_, uint32_t line_, uint32_t column_)
     : SpirvDebugType(IK_DebugTypeTemplateParameter, /*opcode*/ 15u),
-      actualType(nullptr), value(value_), source(source_), line(line_),
-      column(column_), spvType(type) {
+      actualType(type), value(value_), source(source_), line(line_),
+      column(column_) {
   debugName = name;
 }
 

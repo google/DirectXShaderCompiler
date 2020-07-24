@@ -364,70 +364,45 @@ SpirvContext::getDebugTypeFunction(const SpirvType *spirvType, uint32_t flags,
   return debugType;
 }
 
-SpirvDebugInstruction *
-SpirvContext::getDebugTypeTemplate(const SpirvType *spirvType,
-                                   SpirvDebugInstruction *target) {
-  // Reuse existing debug type if possible.
-  auto it = debugTypes.find(spirvType);
-  SpirvDebugTypeComposite *compositeInfo = nullptr;
-  if (it != debugTypes.end()) {
-    compositeInfo = dyn_cast<SpirvDebugTypeComposite>(it->second);
-    if (compositeInfo) {
-      // This is the case that we use DebugTypeTemplate to describe a
-      // template-based HLSL resource type.
-      if (compositeInfo->getTypeTemplate())
-        return compositeInfo->getTypeTemplate();
-    } else {
-      return it->second;
-    }
-  }
-
-  auto *debugType = new (this) SpirvDebugTypeTemplate(target);
-  if (compositeInfo) {
-    // This is the case that we use DebugTypeTemplate to describe a
-    // template-based HLSL resource type. We want to keep DebugTypeTemplate in
-    // its DebugTypeComposite. The main reason is that a HLSL resource type
-    // generates only a single SpirvType but we need both DebugTypeTemplate and
-    // DebugTypeComposite for it. Since we can search only one of them using
-    // debugTypes (DebugTypeTemplate or DebugTypeComposite), we have to keep one
-    // of them out of debugTypes and this is one of the most convenient way.
-    compositeInfo->setTypeTemplate(debugType);
-  } else {
-    debugTypes[spirvType] = debugType;
-  }
-  return debugType;
+SpirvDebugTypeTemplate *SpirvContext::createDebugTypeTemplate(
+    const TemplateSpecializationType *templateType,
+    SpirvDebugInstruction *target,
+    const llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &params) {
+  auto *tempTy = getDebugTypeTemplate(templateType);
+  if (tempTy != nullptr)
+    return tempTy;
+  tempTy = new (this) SpirvDebugTypeTemplate(target, params);
+  typeTemplates[templateType] = tempTy;
+  return tempTy;
 }
 
-SpirvDebugInstruction *SpirvContext::getDebugTypeTemplateParameter(
-    const SpirvType *parentType, llvm::StringRef name, const SpirvType *type,
-    SpirvInstruction *value, SpirvDebugSource *source, uint32_t line,
-    uint32_t column) {
-  // Reuse existing debug type if possible.
-  auto it = debugTypes.find(parentType);
-  SpirvDebugTypeTemplate *tempType = nullptr;
-  if (it != debugTypes.end()) {
-    if (auto *compositeInfo = dyn_cast<SpirvDebugTypeComposite>(it->second)) {
-      // This is the case that we use DebugTypeTemplate to describe a
-      // template-based HLSL resource type.
-      if (compositeInfo->getTypeTemplate())
-        tempType = compositeInfo->getTypeTemplate();
-    } else {
-      tempType = dyn_cast<SpirvDebugTypeTemplate>(it->second);
-    }
+SpirvDebugTypeTemplate *SpirvContext::getDebugTypeTemplate(
+    const TemplateSpecializationType *templateType) {
+  auto it = typeTemplates.find(templateType);
+  if (it != typeTemplates.end())
+    return it->second;
+  return nullptr;
+}
 
-    if (tempType) {
-      for (auto *param : tempType->getParams()) {
-        if (param->getSpirvType() == type)
-          return param;
-      }
-    }
-  }
-
-  auto *debugType = new (this)
+SpirvDebugTypeTemplateParameter *SpirvContext::createDebugTypeTemplateParameter(
+    const TemplateArgument *templateArg, llvm::StringRef name,
+    const SpirvType *type, SpirvInstruction *value, SpirvDebugSource *source,
+    uint32_t line, uint32_t column) {
+  auto *param = getDebugTypeTemplateParameter(templateArg);
+  if (param != nullptr)
+    return param;
+  param = new (this)
       SpirvDebugTypeTemplateParameter(name, type, value, source, line, column);
-  if (tempType)
-    tempType->getParams().push_back(debugType);
-  return debugType;
+  typeTemplateParams[templateArg] = param;
+  return param;
+}
+
+SpirvDebugTypeTemplateParameter *SpirvContext::getDebugTypeTemplateParameter(
+    const TemplateArgument *templateArg) {
+  auto it = typeTemplateParams.find(templateArg);
+  if (it != typeTemplateParams.end())
+    return it->second;
+  return nullptr;
 }
 
 void SpirvContext::pushDebugLexicalScope(RichDebugInfo *info,

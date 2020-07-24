@@ -2382,22 +2382,20 @@ public:
   uint32_t getLine() const { return line; }
   uint32_t getColumn() const { return column; }
 
-  const SpirvType *getSpirvType() const { return spvType; }
-
 private:
   SpirvDebugType *actualType; //< Type for type param
   SpirvInstruction *value;    //< Value. It must be null for type.
   SpirvDebugSource *source;   //< DebugSource containing this type
   uint32_t line;              //< Line number
   uint32_t column;            //< Column number
-
-  const SpirvType *spvType;
 };
 
 /// Represents debug information for a template type.
 class SpirvDebugTypeTemplate : public SpirvDebugType {
 public:
-  SpirvDebugTypeTemplate(SpirvDebugInstruction *target);
+  SpirvDebugTypeTemplate(
+      SpirvDebugInstruction *target,
+      const llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &params);
 
   static bool classof(const SpirvInstruction *inst) {
     return inst->getKind() == IK_DebugTypeTemplate;
@@ -2405,7 +2403,7 @@ public:
 
   bool invokeVisitor(Visitor *v) override;
 
-  llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &getParams() {
+  llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> getParams() {
     return params;
   }
   SpirvDebugInstruction *getTarget() const { return target; }
@@ -2508,9 +2506,6 @@ public:
   void setSizeInBits(uint32_t size_) { size = size_; }
   uint32_t getSizeInBits() const override { return size; }
 
-  void setTypeTemplate(SpirvDebugTypeTemplate *t) { typeTemplate = t; }
-  SpirvDebugTypeTemplate *getTypeTemplate() const { return typeTemplate; }
-
   void setDebugInfoNone(SpirvDebugInfoNone *none) { debugNone = none; }
   SpirvDebugInfoNone *getDebugInfoNone() const { return debugNone; }
 
@@ -2539,15 +2534,6 @@ private:
   // DebugTypeInheritance. Since DebugFunction may be a member, we cannot use a
   // vector of SpirvDebugType.
   llvm::SmallVector<SpirvDebugInstruction *, 4> members;
-
-  // Optional pointer to keep the template type information of a HLSL
-  // resource type. A HLSL resource needs both DebugTypeComposite and
-  // DebugTypeTemplate. Typically, we keep all debug type information
-  // in SpirvContext::debugTypes including DebugTypeComposite, but we
-  // cannot keep DebugTypeTemplate for a HLSL resource in it because of
-  // the limitation of single value for the map. Instead, we keep it
-  // here.
-  SpirvDebugTypeTemplate *typeTemplate;
 
   // When it is DebugTypeComposite for HLSL resource type i.e., opaque
   // type, we must put DebugInfoNone for Size operand.

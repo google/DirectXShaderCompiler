@@ -195,13 +195,21 @@ public:
                        SpirvDebugType *ret,
                        llvm::ArrayRef<SpirvDebugType *> params);
 
-  SpirvDebugInstruction *getDebugTypeTemplate(const SpirvType *spirvType,
-                                              SpirvDebugInstruction *target);
+  SpirvDebugTypeTemplate *createDebugTypeTemplate(
+      const TemplateSpecializationType *templateType,
+      SpirvDebugInstruction *target,
+      const llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &params);
 
-  SpirvDebugInstruction *getDebugTypeTemplateParameter(
-      const SpirvType *parentType, llvm::StringRef name, const SpirvType *type,
-      SpirvInstruction *value, SpirvDebugSource *source, uint32_t line,
-      uint32_t column);
+  SpirvDebugTypeTemplate *
+  getDebugTypeTemplate(const TemplateSpecializationType *templateType);
+
+  SpirvDebugTypeTemplateParameter *createDebugTypeTemplateParameter(
+      const TemplateArgument *templateArg, llvm::StringRef name,
+      const SpirvType *type, SpirvInstruction *value, SpirvDebugSource *source,
+      uint32_t line, uint32_t column);
+
+  SpirvDebugTypeTemplateParameter *
+  getDebugTypeTemplateParameter(const TemplateArgument *templateArg);
 
   llvm::MapVector<const SpirvType *, SpirvDebugType *> &getDebugTypes() {
     return debugTypes;
@@ -428,6 +436,12 @@ private:
   // The purpose is not to generate several DebugType* instructions for the same
   // type if the type is used for several variables.
   llvm::MapVector<const SpirvType *, SpirvDebugType *> debugTypes;
+
+  // Mapping from QualType type to debug type instruction for templates.
+  llvm::MapVector<const TemplateSpecializationType *, SpirvDebugTypeTemplate *>
+      typeTemplates;
+  llvm::MapVector<const TemplateArgument *, SpirvDebugTypeTemplateParameter *>
+      typeTemplateParams;
 
   // Mapping from SPIR-V type to QualType for a record type.
   llvm::DenseMap<const SpirvType *, const RecordType *> spvTypeToRecordType;

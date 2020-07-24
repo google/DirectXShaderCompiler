@@ -30,7 +30,8 @@ public:
                    const SpirvCodeGenOptions &opts, SpirvBuilder &builder,
                    LowerTypeVisitor &lowerTypeVisitor)
       : Visitor(opts, spvCtx), astContext(astCtx), spvContext(spvCtx),
-        spvBuilder(builder), spvTypeVisitor(lowerTypeVisitor) {}
+        spvBuilder(builder), spvTypeVisitor(lowerTypeVisitor),
+        currentDebugInstructionLayoutRule(SpirvLayoutRule::Void) {}
 
   // Visiting different SPIR-V constructs.
   bool visit(SpirvModule *module, Phase);
@@ -73,9 +74,10 @@ private:
   void addDebugTypeMember(SpirvDebugTypeComposite *debugTypeComposite,
                           const StructType *type, const SourceLocation &loc);
 
-  /// Lowers DebugTypeTemplate for HLSL resource type. Returns false if
-  /// there is an error.
-  bool lowerDebugTypeTemplate(SpirvDebugTypeComposite *instr);
+  /// Lowers DebugTypeTemplate for composite type.
+  SpirvDebugTypeTemplate *
+  lowerDebugTypeTemplate(const TemplateSpecializationType *templateType,
+                         SpirvDebugTypeComposite *debugTypeComposite);
 
   /// Lowers DebugTypeFunction for member function of a composite type.
   /// Returns false if there is an error.
@@ -93,6 +95,8 @@ private:
   SpirvContext &spvContext;         /// SPIR-V context
   SpirvBuilder &spvBuilder;         ///< SPIR-V builder
   LowerTypeVisitor &spvTypeVisitor; /// QualType to SPIR-V type visitor
+
+  SpirvLayoutRule currentDebugInstructionLayoutRule; /// SPIR-V layout rule
 };
 
 } // end namespace spirv
