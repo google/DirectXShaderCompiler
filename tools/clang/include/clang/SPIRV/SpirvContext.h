@@ -160,17 +160,16 @@ public:
   // === DebugTypes ===
 
   // TODO: Replace uint32_t with an enum for encoding.
-  SpirvDebugInstruction *getDebugTypeBasic(const SpirvType *spirvType,
-                                           llvm::StringRef name,
-                                           SpirvConstant *size,
-                                           uint32_t encoding);
+  SpirvDebugType *getDebugTypeBasic(const SpirvType *spirvType,
+                                    llvm::StringRef name, SpirvConstant *size,
+                                    uint32_t encoding);
 
-  SpirvDebugInstruction *
-  getDebugTypeMember(llvm::StringRef name, const SpirvType *type,
-                     SpirvDebugSource *source, uint32_t line, uint32_t column,
-                     SpirvDebugInstruction *parent, uint32_t flags,
-                     uint32_t offsetInBits = UINT32_MAX,
-                     const APValue *value = nullptr);
+  SpirvDebugType *getDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
+                                     SpirvDebugSource *source,
+                                     SpirvDebugInstruction *parent,
+                                     uint32_t flags,
+                                     uint32_t offsetInBits = UINT32_MAX,
+                                     const APValue *value = nullptr);
 
   SpirvDebugTypeComposite *getDebugTypeComposite(const SpirvType *spirvType,
                                                  llvm::StringRef name,
@@ -180,32 +179,31 @@ public:
                                                  llvm::StringRef linkageName,
                                                  uint32_t flags, uint32_t tag);
 
-  SpirvDebugInstruction *getDebugType(const SpirvType *spirvType);
+  SpirvDebugType *getDebugType(const SpirvType *spirvType);
 
-  SpirvDebugInstruction *getDebugTypeArray(const SpirvType *spirvType,
-                                           SpirvDebugInstruction *elemType,
-                                           llvm::ArrayRef<uint32_t> elemCount);
+  SpirvDebugType *getDebugTypeArray(const SpirvType *spirvType,
+                                    SpirvDebugInstruction *elemType,
+                                    llvm::ArrayRef<uint32_t> elemCount);
 
-  SpirvDebugInstruction *getDebugTypeVector(const SpirvType *spirvType,
-                                            SpirvDebugInstruction *elemType,
-                                            uint32_t elemCount);
+  SpirvDebugType *getDebugTypeVector(const SpirvType *spirvType,
+                                     SpirvDebugInstruction *elemType,
+                                     uint32_t elemCount);
 
-  SpirvDebugInstruction *
-  getDebugTypeFunction(const SpirvType *spirvType, uint32_t flags,
-                       SpirvDebugType *ret,
-                       llvm::ArrayRef<SpirvDebugType *> params);
+  SpirvDebugType *getDebugTypeFunction(const SpirvType *spirvType,
+                                       uint32_t flags, SpirvDebugType *ret,
+                                       llvm::ArrayRef<SpirvDebugType *> params);
 
   SpirvDebugTypeTemplate *createDebugTypeTemplate(
-      const TemplateSpecializationType *templateType,
+      const ClassTemplateSpecializationDecl *templateType,
       SpirvDebugInstruction *target,
       const llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &params);
 
   SpirvDebugTypeTemplate *
-  getDebugTypeTemplate(const TemplateSpecializationType *templateType);
+  getDebugTypeTemplate(const ClassTemplateSpecializationDecl *templateType);
 
   SpirvDebugTypeTemplateParameter *createDebugTypeTemplateParameter(
       const TemplateArgument *templateArg, llvm::StringRef name,
-      const SpirvType *type, SpirvInstruction *value, SpirvDebugSource *source,
+      SpirvDebugType *type, SpirvInstruction *value, SpirvDebugSource *source,
       uint32_t line, uint32_t column);
 
   SpirvDebugTypeTemplateParameter *
@@ -348,19 +346,6 @@ public:
     return currentLexicalScope;
   }
 
-  /// Function to add/get the mapping from a SPIR-V type to its QualType for
-  /// a record type.
-  void addSpirvTypeToRecordType(const SpirvType *spvTy,
-                                const RecordType *recordTy) {
-    spvTypeToRecordType[spvTy] = recordTy;
-  }
-  const RecordType *getRecordType(const SpirvType *spvTy) {
-    auto it = spvTypeToRecordType.find(spvTy);
-    if (it == spvTypeToRecordType.end())
-      return nullptr;
-    return it->second;
-  }
-
   /// Function to add/get the mapping from a SPIR-V type to its Decl for
   /// a struct type.
   void addSpirvTypeToDecl(const SpirvType *spvTy, const DeclContext *decl) {
@@ -438,7 +423,8 @@ private:
   llvm::MapVector<const SpirvType *, SpirvDebugType *> debugTypes;
 
   // Mapping from QualType type to debug type instruction for templates.
-  llvm::MapVector<const TemplateSpecializationType *, SpirvDebugTypeTemplate *>
+  llvm::MapVector<const ClassTemplateSpecializationDecl *,
+                  SpirvDebugTypeTemplate *>
       typeTemplates;
   llvm::MapVector<const TemplateArgument *, SpirvDebugTypeTemplateParameter *>
       typeTemplateParams;

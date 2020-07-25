@@ -937,13 +937,12 @@ SpirvDebugTypeFunction::SpirvDebugTypeFunction(
       returnType(ret), paramTypes(params.begin(), params.end()) {}
 
 SpirvDebugTypeMember::SpirvDebugTypeMember(
-    llvm::StringRef name, const SpirvType *type_, SpirvDebugSource *source_,
-    uint32_t line_, uint32_t column_, SpirvDebugInstruction *parent_,
-    uint32_t flags_, uint32_t offsetInBits_, const APValue *value_)
-    : SpirvDebugType(IK_DebugTypeMember, /*opcode*/ 11u), type(nullptr),
-      source(source_), line(line_), column(column_), parent(parent_),
-      offset(offsetInBits_), size(0), debugFlags(flags_), value(value_),
-      spvType(type_) {
+    llvm::StringRef name, SpirvDebugType *type_, SpirvDebugSource *source_,
+    SpirvDebugInstruction *parent_, uint32_t flags_, uint32_t offsetInBits_,
+    const APValue *value_)
+    : SpirvDebugType(IK_DebugTypeMember, /*opcode*/ 11u), type(type_),
+      source(source_), line(0), column(0), parent(parent_),
+      offset(offsetInBits_), size(0), debugFlags(flags_), value(value_) {
   debugName = name;
 }
 
@@ -964,7 +963,7 @@ SpirvDebugTypeTemplate::SpirvDebugTypeTemplate(
       params(params_) {}
 
 SpirvDebugTypeTemplateParameter::SpirvDebugTypeTemplateParameter(
-    llvm::StringRef name, const SpirvType *type, SpirvInstruction *value_,
+    llvm::StringRef name, SpirvDebugType *type, SpirvInstruction *value_,
     SpirvDebugSource *source_, uint32_t line_, uint32_t column_)
     : SpirvDebugType(IK_DebugTypeTemplateParameter, /*opcode*/ 15u),
       actualType(type), value(value_), source(source_), line(line_),

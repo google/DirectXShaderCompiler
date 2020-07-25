@@ -268,10 +268,10 @@ const StructType *SpirvContext::getACSBufferCounterType() {
   return type;
 }
 
-SpirvDebugInstruction *
-SpirvContext::getDebugTypeBasic(const SpirvType *spirvType,
-                                llvm::StringRef name, SpirvConstant *size,
-                                uint32_t encoding) {
+SpirvDebugType *SpirvContext::getDebugTypeBasic(const SpirvType *spirvType,
+                                                llvm::StringRef name,
+                                                SpirvConstant *size,
+                                                uint32_t encoding) {
   // Reuse existing debug type if possible.
   if (debugTypes.find(spirvType) != debugTypes.end())
     return debugTypes[spirvType];
@@ -281,15 +281,16 @@ SpirvContext::getDebugTypeBasic(const SpirvType *spirvType,
   return debugType;
 }
 
-SpirvDebugInstruction *SpirvContext::getDebugTypeMember(
-    llvm::StringRef name, const SpirvType *type, SpirvDebugSource *source,
-    uint32_t line, uint32_t column, SpirvDebugInstruction *parent,
-    uint32_t flags, uint32_t offsetInBits, const APValue *value) {
+SpirvDebugType *
+SpirvContext::getDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
+                                 SpirvDebugSource *source,
+                                 SpirvDebugInstruction *parent, uint32_t flags,
+                                 uint32_t offsetInBits, const APValue *value) {
   // NOTE: Do not search it in debugTypes because it would have the same
   // spirvType but has different parent i.e., type composite.
 
   SpirvDebugTypeMember *debugType = new (this) SpirvDebugTypeMember(
-      name, type, source, line, column, parent, flags, offsetInBits, value);
+      name, type, source, parent, flags, offsetInBits, value);
 
   // NOTE: Do not save it in debugTypes because it would have the same
   // spirvType but it has different parent i.e., type composite. Instead,
@@ -314,14 +315,14 @@ SpirvDebugTypeComposite *SpirvContext::getDebugTypeComposite(
   return debugType;
 }
 
-SpirvDebugInstruction *SpirvContext::getDebugType(const SpirvType *spirvType) {
+SpirvDebugType *SpirvContext::getDebugType(const SpirvType *spirvType) {
   auto it = debugTypes.find(spirvType);
   if (it != debugTypes.end())
     return it->second;
   return nullptr;
 }
 
-SpirvDebugInstruction *
+SpirvDebugType *
 SpirvContext::getDebugTypeArray(const SpirvType *spirvType,
                                 SpirvDebugInstruction *elemType,
                                 llvm::ArrayRef<uint32_t> elemCount) {
@@ -336,7 +337,7 @@ SpirvContext::getDebugTypeArray(const SpirvType *spirvType,
   return debugType;
 }
 
-SpirvDebugInstruction *
+SpirvDebugType *
 SpirvContext::getDebugTypeVector(const SpirvType *spirvType,
                                  SpirvDebugInstruction *elemType,
                                  uint32_t elemCount) {
@@ -351,7 +352,7 @@ SpirvContext::getDebugTypeVector(const SpirvType *spirvType,
   return debugType;
 }
 
-SpirvDebugInstruction *
+SpirvDebugType *
 SpirvContext::getDebugTypeFunction(const SpirvType *spirvType, uint32_t flags,
                                    SpirvDebugType *ret,
                                    llvm::ArrayRef<SpirvDebugType *> params) {
@@ -365,7 +366,7 @@ SpirvContext::getDebugTypeFunction(const SpirvType *spirvType, uint32_t flags,
 }
 
 SpirvDebugTypeTemplate *SpirvContext::createDebugTypeTemplate(
-    const TemplateSpecializationType *templateType,
+    const ClassTemplateSpecializationDecl *templateType,
     SpirvDebugInstruction *target,
     const llvm::SmallVector<SpirvDebugTypeTemplateParameter *, 2> &params) {
   auto *tempTy = getDebugTypeTemplate(templateType);
@@ -377,7 +378,7 @@ SpirvDebugTypeTemplate *SpirvContext::createDebugTypeTemplate(
 }
 
 SpirvDebugTypeTemplate *SpirvContext::getDebugTypeTemplate(
-    const TemplateSpecializationType *templateType) {
+    const ClassTemplateSpecializationDecl *templateType) {
   auto it = typeTemplates.find(templateType);
   if (it != typeTemplates.end())
     return it->second;
@@ -386,7 +387,7 @@ SpirvDebugTypeTemplate *SpirvContext::getDebugTypeTemplate(
 
 SpirvDebugTypeTemplateParameter *SpirvContext::createDebugTypeTemplateParameter(
     const TemplateArgument *templateArg, llvm::StringRef name,
-    const SpirvType *type, SpirvInstruction *value, SpirvDebugSource *source,
+    SpirvDebugType *type, SpirvInstruction *value, SpirvDebugSource *source,
     uint32_t line, uint32_t column) {
   auto *param = getDebugTypeTemplateParameter(templateArg);
   if (param != nullptr)

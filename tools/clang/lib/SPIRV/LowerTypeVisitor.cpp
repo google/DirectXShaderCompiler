@@ -389,7 +389,7 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
     // is then a subclass of RecordDecl.) So we need to check them before
     // checking the general struct type.
     if (const auto *spvType = lowerResourceType(type, rule, srcLoc)) {
-      spvContext.addSpirvTypeToRecordType(spvType, structType);
+      spvContext.addSpirvTypeToDecl(spvType, decl);
       return spvType;
     }
 
@@ -418,7 +418,7 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
 
     const auto *spvStructType =
         spvContext.getStructType(loweredFields, decl->getName());
-    spvContext.addSpirvTypeToRecordType(spvStructType, structType);
+    spvContext.addSpirvTypeToDecl(spvStructType, decl);
     return spvStructType;
   }
 
@@ -836,6 +836,7 @@ LowerTypeVisitor::populateLayoutInformation(
 
     // Each structure-type member must have an Offset Decoration.
     loweredField.offset = offset;
+    loweredField.sizeInBytes = memberSize;
     offset += memberSize;
 
     // Each structure-type member that is a matrix or array-of-matrices must be

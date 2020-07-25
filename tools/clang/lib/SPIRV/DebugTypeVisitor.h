@@ -60,10 +60,10 @@ private:
   ///
   /// The lowering is recursive. All the debug types that the target type
   /// depends on will also be created.
-  SpirvDebugInstruction *lowerToDebugType(const SpirvType *);
+  SpirvDebugType *lowerToDebugType(const SpirvType *);
 
   /// Lowers DebugTypeComposite.
-  SpirvDebugInstruction *lowerToDebugTypeComposite(const SpirvType *);
+  SpirvDebugType *lowerToDebugTypeComposite(const SpirvType *);
 
   /// Creates DebugTypeComposite for a struct type.
   SpirvDebugTypeComposite *createDebugTypeComposite(const StructType *type,
@@ -71,12 +71,16 @@ private:
                                                     uint32_t tag);
 
   /// Adds DebugTypeMembers to DebugTypeComposite.
-  void addDebugTypeMember(SpirvDebugTypeComposite *debugTypeComposite,
-                          const StructType *type, const SourceLocation &loc);
+  void addDebugTypeMembers(SpirvDebugTypeComposite *debugTypeComposite,
+                           const StructType *type);
+
+  /// Lowers DebugTypeMembers of DebugTypeComposite.
+  void lowerDebugTypeMembers(SpirvDebugTypeComposite *debugTypeComposite,
+                             const StructType *type, const DeclContext *decl);
 
   /// Lowers DebugTypeTemplate for composite type.
   SpirvDebugTypeTemplate *
-  lowerDebugTypeTemplate(const TemplateSpecializationType *templateType,
+  lowerDebugTypeTemplate(const ClassTemplateSpecializationDecl *templateDecl,
                          SpirvDebugTypeComposite *debugTypeComposite);
 
   /// Lowers DebugTypeFunction for member function of a composite type.

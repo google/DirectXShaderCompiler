@@ -2242,7 +2242,7 @@ class SpirvDebugType : public SpirvDebugInstruction {
 public:
   static bool classof(const SpirvInstruction *inst) {
     return inst->getKind() >= IK_DebugTypeBasic &&
-           inst->getKind() <= IK_DebugTypeMember;
+           inst->getKind() <= IK_DebugTypeTemplateParameter;
   }
 
   virtual uint32_t getSizeInBits() const { return 0u; }
@@ -2363,7 +2363,7 @@ private:
 /// Represents debug information for a template type parameter.
 class SpirvDebugTypeTemplateParameter : public SpirvDebugType {
 public:
-  SpirvDebugTypeTemplateParameter(llvm::StringRef name, const SpirvType *type,
+  SpirvDebugTypeTemplateParameter(llvm::StringRef name, SpirvDebugType *type,
                                   SpirvInstruction *value,
                                   SpirvDebugSource *source, uint32_t line,
                                   uint32_t column);
@@ -2375,7 +2375,6 @@ public:
   bool invokeVisitor(Visitor *v) override;
 
   SpirvDebugType *getActualType() const { return actualType; }
-  void setActualType(SpirvDebugType *ty) { actualType = ty; }
   void setValue(SpirvInstruction *c) { value = c; }
   SpirvInstruction *getValue() const { return value; }
   SpirvDebugSource *getSource() const { return source; }
@@ -2426,18 +2425,18 @@ private:
 /// type.
 class SpirvDebugTypeMember : public SpirvDebugType {
 public:
-  SpirvDebugTypeMember(llvm::StringRef name, const SpirvType *type,
-                       SpirvDebugSource *source, uint32_t line, uint32_t column,
-                       SpirvDebugInstruction *parent, uint32_t flags,
-                       uint32_t offsetInBits, const APValue *value = nullptr);
+  SpirvDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
+                       SpirvDebugSource *source, SpirvDebugInstruction *parent,
+                       uint32_t flags, uint32_t offsetInBits,
+                       const APValue *value = nullptr);
 
   static bool classof(const SpirvInstruction *inst) {
     return inst->getKind() == IK_DebugTypeMember;
   }
 
-  void updateOffsetAndSize(uint32_t offset_, uint32_t size_) {
-    offset = offset_;
-    size = size_;
+  void SetLineAndColumn(uint32_t line_, uint32_t column_) {
+    line = line_;
+    column = column_;
   }
 
   bool invokeVisitor(Visitor *v) override;
@@ -2452,10 +2451,11 @@ public:
   uint32_t getSizeInBits() const override { return size; }
   const APValue *getValue() const { return value; }
 
-  const SpirvType *getSpirvType() const { return spvType; }
+  SpirvDebugType *getType() const { return type; }
 
 private:
-  SpirvDebugSource *source; //< DebugSource containing this type
+  SpirvDebugType *type;     //< Debug type of this member
+  SpirvDebugSource *source; //< DebugSource
   uint32_t line;            //< Line number
   uint32_t column;          //< Column number
 
@@ -2467,15 +2467,6 @@ private:
   // available.
   uint32_t debugFlags;
   const APValue *value; //< Value (if static member)
-
-  // We will lower DebugTypeMember in two steps: LowerTypeVisitor and
-  // DebugTypeVisitor, which is different from other debug types that are
-  // lowered only by DebugTypeVisitor. It is because DebugTypeMember requires
-  // more information that needs the declaration info. Therefore, we keep
-  // SpirvType instead of SpirvDebugType when it is first lowered by
-  // LowerTypeVisitor and SpirvType will be lowered to SpirvDebugType by
-  // DebugTypeVisitor.
-  const SpirvType *spvType;
 };
 
 class SpirvDebugTypeComposite : public SpirvDebugType {
@@ -2492,9 +2483,15 @@ public:
 
   bool invokeVisitor(Visitor *v) override;
 
-  llvm::SmallVector<SpirvDebugInstruction *, 4> &getMembers() {
-    return members;
+  llvm::SmallVector<SpirvDebugInstruction *, 4> getMembers() { return members; }
+  void appendMember(SpirvDebugInstruction *member) {
+    members.push_back(member);
   }
+  void
+  setMembers(const llvm::SmallVector<SpirvDebugInstruction *, 4> &memberTypes) {
+    members = memberTypes;
+  }
+
   SpirvDebugInstruction *getParentScope() const override { return parent; }
   uint32_t getTag() const { return tag; }
   SpirvDebugSource *getSource() const { return source; }
@@ -2506,7 +2503,10 @@ public:
   void setSizeInBits(uint32_t size_) { size = size_; }
   uint32_t getSizeInBits() const override { return size; }
 
-  void setDebugInfoNone(SpirvDebugInfoNone *none) { debugNone = none; }
+  void markOpaqueType(SpirvDebugInfoNone *none) {
+    debugName = std::string("@") + debugName;
+    debugNone = none;
+  }
   SpirvDebugInfoNone *getDebugInfoNone() const { return debugNone; }
 
 private:
