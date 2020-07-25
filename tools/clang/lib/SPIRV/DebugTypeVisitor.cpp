@@ -67,10 +67,18 @@ void DebugTypeVisitor::addDebugTypeMembers(
     SpirvDebugTypeComposite *debugTypeComposite, const StructType *type) {
   llvm::SmallVector<SpirvDebugInstruction *, 4> members;
   uint32_t compositeSizeInBits = kUnknownBitSize;
+  bool unknownPhysicalLayout = false;
   for (auto &field : type->getFields()) {
     uint32_t offsetInBits = kUnknownBitSize;
-    if (field.offset.hasValue())
+    if (!unknownPhysicalLayout && field.offset.hasValue())
       offsetInBits = *field.offset * 8;
+    else
+      unknownPhysicalLayout = true;
+
+    // TODO: We are currently in the discussion about how to handle
+    // a variable type with unknown physical layout. Add proper flags
+    // or operations for variables with the unknown physical layout.
+    // For example, we do not have physical layout for a local variable.
 
     // TODO: Replace 2u and 3u with valid flags when debug info extension is
     // placed in SPIRV-Header.
