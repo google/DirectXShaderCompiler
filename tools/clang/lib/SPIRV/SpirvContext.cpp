@@ -291,11 +291,6 @@ SpirvContext::getDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
 
   SpirvDebugTypeMember *debugType = new (this) SpirvDebugTypeMember(
       name, type, source, parent, flags, offsetInBits, value);
-
-  // NOTE: Do not save it in debugTypes because it would have the same
-  // spirvType but it has different parent i.e., type composite. Instead,
-  // we want to keep it in tailDebugTypes.
-  tailDebugTypes.push_back(debugType);
   return debugType;
 }
 
@@ -415,6 +410,24 @@ void SpirvContext::pushDebugLexicalScope(RichDebugInfo *info,
          "Given scope is not a lexical scope");
   currentLexicalScope = scope;
   info->scopeStack.push_back(scope);
+}
+
+void SpirvContext::addDebugTypeToModule(SpirvModule *module) {
+  for (const auto &typePair : debugTypes) {
+    module->addDebugInfo(typePair.second);
+
+    if (auto *composite = dyn_cast<SpirvDebugTypeComposite>(typePair.second)) {
+      for (auto *member : composite->getMembers()) {
+        module->addDebugInfo(member);
+      }
+    }
+  }
+  for (const auto &typePair : typeTemplates) {
+    module->addDebugInfo(typePair.second);
+  }
+  for (const auto &typePair : typeTemplateParams) {
+    module->addDebugInfo(typePair.second);
+  }
 }
 
 } // end namespace spirv

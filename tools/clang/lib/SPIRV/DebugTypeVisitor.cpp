@@ -109,8 +109,8 @@ void DebugTypeVisitor::lowerDebugTypeMembers(
   auto subDeclIter = decl->decls_begin();
   for (auto *member : debugTypeComposite->getMembers()) {
     // Skip member functions and "this" object.
-    while (isa<CXXMethodDecl>(&*subDeclIter) ||
-           isa<CXXRecordDecl>(&*subDeclIter)) {
+    while (isa<CXXMethodDecl>(*subDeclIter) ||
+           isa<CXXRecordDecl>(*subDeclIter)) {
       ++subDeclIter;
     }
 
@@ -306,6 +306,7 @@ SpirvDebugType *DebugTypeVisitor::lowerToDebugType(const SpirvType *spirvType) {
     debugType = spvContext.getDebugTypeArray(spirvType, elemDebugType, counts);
     break;
   }
+  // TODO: Handle TK_RuntimeArray. We need spec updates for the bindless array.
   case SpirvType::TK_Vector: {
     auto *vecType = dyn_cast<VectorType>(spirvType);
     SpirvDebugInstruction *elemDebugType =
@@ -398,46 +399,8 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
 }
 
 bool DebugTypeVisitor::visit(SpirvModule *module, Phase phase) {
-  if (phase == Phase::Done) {
-    // When the processing for all debug types is done, we need to take all the
-    // debug types in the context and add their SPIR-V instructions to the
-    // SPIR-V module.
-    // Note that we don't add debug types to the module when we create them, as
-    // there could be duplicates.
-    for (const auto &typePair : spvContext.getDebugTypes()) {
-      if (auto *tempType = dyn_cast<SpirvDebugTypeTemplate>(typePair.second)) {
-        addTemplateTypeAndItsParamsToModule(module, tempType);
-        continue;
-      }
-
-      module->addDebugInfo(typePair.second);
-
-      // If SpirvDebugFunction is a member of this composite type and
-      // it has FunctionType, it means DebugTypeVisitor lowers the
-      // FunctionType to generate the debug function type info which is
-      // not yet added to debug info of the module. We must add it now.
-      if (auto *composite =
-              dyn_cast<SpirvDebugTypeComposite>(typePair.second)) {
-        if (auto *tempType = composite->getTypeTemplate()) {
-          addTemplateTypeAndItsParamsToModule(module, tempType);
-          continue;
-        }
-
-        auto &members = composite->getMembers();
-        for (auto *member : members) {
-          auto *fn = dyn_cast<SpirvDebugFunction>(member);
-          if (!fn)
-            continue;
-          if (fn->getFunctionType())
-            module->addDebugInfo(fn);
-        }
-      }
-    }
-    for (auto *type : spvContext.getTailDebugTypes()) {
-      module->addDebugInfo(type);
-    }
-  }
-
+  if (phase == Phase::Done)
+    spvContext.addDebugTypeToModule(module);
   return true;
 }
 

@@ -14,6 +14,7 @@
 #include "dxc/DXIL/DxilShaderModel.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/SPIRV/SpirvInstruction.h"
+#include "clang/SPIRV/SpirvModule.h"
 #include "clang/SPIRV/SpirvType.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseMapInfo.h"
@@ -209,13 +210,7 @@ public:
   SpirvDebugTypeTemplateParameter *
   getDebugTypeTemplateParameter(const TemplateArgument *templateArg);
 
-  llvm::MapVector<const SpirvType *, SpirvDebugType *> &getDebugTypes() {
-    return debugTypes;
-  }
-
-  llvm::SmallVector<SpirvDebugInstruction *, 16> &getTailDebugTypes() {
-    return tailDebugTypes;
-  }
+  void addDebugTypeToModule(SpirvModule *module);
 
   // === Types ===
 
@@ -423,29 +418,16 @@ private:
   llvm::MapVector<const SpirvType *, SpirvDebugType *> debugTypes;
 
   // Mapping from QualType type to debug type instruction for templates.
-  llvm::MapVector<const ClassTemplateSpecializationDecl *,
-                  SpirvDebugTypeTemplate *>
+  llvm::DenseMap<const ClassTemplateSpecializationDecl *,
+                 SpirvDebugTypeTemplate *>
       typeTemplates;
-  llvm::MapVector<const TemplateArgument *, SpirvDebugTypeTemplateParameter *>
+  llvm::DenseMap<const TemplateArgument *, SpirvDebugTypeTemplateParameter *>
       typeTemplateParams;
 
   // Mapping from SPIR-V type to QualType for a record type.
   llvm::DenseMap<const SpirvType *, const RecordType *> spvTypeToRecordType;
   // Mapping from SPIR-V type to Decl for a struct type.
   llvm::DenseMap<const SpirvType *, const DeclContext *> spvTypeToDecl;
-
-  // Keep DebugTypeMember, DebugTypeInheritance, DebugTypeTemplate,
-  // and DebugTypeTemplateParameter.
-  // Since they do not have corresponding SpirvType, we cannot keep them
-  // in debugTypes. No component references them other than themselves,
-  // there by being able to safely emit them at the end of other debug
-  // extension instructions.
-  //
-  // TODO: remove tailDebugTypes. Instead, we can keep
-  //       - DebugTypeMember and DebugTypeInheritance in DebugTypeComposite.
-  //       - keep DebugTypeTemplate in DebugTypeComposite and DebugFunction.
-  //       - keep DebugTypeTemplateParameter in DebugTypeTemplate.
-  llvm::SmallVector<SpirvDebugInstruction *, 16> tailDebugTypes;
 
   // Mapping from CXXMethodDecl (member method of struct or class) to its
   // function info.
