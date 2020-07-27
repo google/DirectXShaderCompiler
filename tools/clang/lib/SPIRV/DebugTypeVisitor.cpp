@@ -44,7 +44,7 @@ SpirvDebugInfoNone *DebugTypeVisitor::getDebugInfoNone() {
 }
 
 SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
-    const StructType *type, const SourceLocation &loc, uint32_t tag) {
+    const SpirvType *type, const SourceLocation &loc, uint32_t tag) {
   const auto &sm = astContext.getSourceManager();
   uint32_t line = sm.getPresumedLineNumber(loc);
   uint32_t column = sm.getPresumedColumnNumber(loc);
@@ -151,6 +151,10 @@ SpirvDebugTypeTemplate *DebugTypeVisitor::lowerDebugTypeTemplate(
       continue;
     }
 
+    // TODO: Handle other kinds e.g., value, template template type.
+    if (argList[i].getKind() != clang::TemplateArgument::ArgKind::Type)
+      continue;
+
     // Lower DebugTypeTemplateParameter.
     const auto *spvType = spvTypeVisitor.lowerType(
         argList[i].getAsType(), currentDebugInstructionLayoutRule, llvm::None,
@@ -191,9 +195,7 @@ bool DebugTypeVisitor::lowerDebugTypeFunctionForMemberFunction(
 
 SpirvDebugType *
 DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
-  const StructType *structType = dyn_cast<StructType>(type);
-  assert(structType != nullptr && "SpirvType must be a struct type");
-  const auto *decl = spvContext.getDeclForSpirvType(structType);
+  const auto *decl = spvContext.getDeclForSpirvType(type);
   assert(decl != nullptr && "Lowering DebugTypeComposite needs DeclContext");
 
   uint32_t tag = 1u;
@@ -210,7 +212,7 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
   SourceLocation loc = {};
   if (const auto *declDecl = dyn_cast<Decl>(decl))
     loc = declDecl->getLocation();
-  auto *debugTypeComposite = createDebugTypeComposite(structType, loc, tag);
+  auto *debugTypeComposite = createDebugTypeComposite(type, loc, tag);
   setDefaultDebugInfo(debugTypeComposite);
 
   if (const auto *templateDecl =
@@ -220,7 +222,8 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
     debugTypeComposite->markOpaqueType(getDebugInfoNone());
     return lowerDebugTypeTemplate(templateDecl, debugTypeComposite);
   } else {
-    lowerDebugTypeMembers(debugTypeComposite, structType, decl);
+    if (const StructType *structType = dyn_cast<StructType>(type))
+      lowerDebugTypeMembers(debugTypeComposite, structType, decl);
     return debugTypeComposite;
   }
 }

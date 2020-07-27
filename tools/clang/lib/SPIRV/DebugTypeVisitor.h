@@ -66,7 +66,7 @@ private:
   SpirvDebugType *lowerToDebugTypeComposite(const SpirvType *);
 
   /// Creates DebugTypeComposite for a struct type.
-  SpirvDebugTypeComposite *createDebugTypeComposite(const StructType *type,
+  SpirvDebugTypeComposite *createDebugTypeComposite(const SpirvType *type,
                                                     const SourceLocation &loc,
                                                     uint32_t tag);
 
