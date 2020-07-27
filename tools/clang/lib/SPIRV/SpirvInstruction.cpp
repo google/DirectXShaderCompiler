@@ -937,13 +937,14 @@ SpirvDebugTypeFunction::SpirvDebugTypeFunction(
       returnType(ret), paramTypes(params.begin(), params.end()) {}
 
 SpirvDebugTypeMember::SpirvDebugTypeMember(
-    llvm::StringRef name, SpirvDebugType *type_, SpirvDebugSource *source_,
+    llvm::StringRef name, SpirvDebugType *type, SpirvDebugSource *source_,
     SpirvDebugInstruction *parent_, uint32_t flags_, uint32_t offsetInBits_,
     const APValue *value_)
-    : SpirvDebugType(IK_DebugTypeMember, /*opcode*/ 11u), type(type_),
+    : SpirvDebugType(IK_DebugTypeMember, /*opcode*/ 11u),
       source(source_), line(0), column(0), parent(parent_),
       offset(offsetInBits_), size(0), debugFlags(flags_), value(value_) {
   debugName = name;
+  setDebugType(type);
 }
 
 SpirvDebugTypeComposite::SpirvDebugTypeComposite(

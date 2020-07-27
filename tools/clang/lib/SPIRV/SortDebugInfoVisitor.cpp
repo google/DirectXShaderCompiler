@@ -113,7 +113,7 @@ void SortDebugInfoVisitor::whileEachOperandOfDebugInstruction(
   case SpirvInstruction::IK_DebugTypeMember: {
     SpirvDebugTypeMember *inst = dyn_cast<SpirvDebugTypeMember>(di);
     assert(inst != nullptr);
-    if (!visitor(inst->getType()))
+    if (!visitor(inst->getDebugType()))
       break;
     if (!visitor(inst->getSource()))
       break;

@@ -2451,10 +2451,7 @@ public:
   uint32_t getSizeInBits() const override { return size; }
   const APValue *getValue() const { return value; }
 
-  SpirvDebugType *getType() const { return type; }
-
 private:
-  SpirvDebugType *type;     //< Debug type of this member
   SpirvDebugSource *source; //< DebugSource
   uint32_t line;            //< Line number
   uint32_t column;          //< Column number
