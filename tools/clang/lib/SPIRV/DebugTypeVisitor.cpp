@@ -156,9 +156,9 @@ SpirvDebugTypeTemplate *DebugTypeVisitor::lowerDebugTypeTemplate(
         argList[i].getAsType(), currentDebugInstructionLayoutRule, llvm::None,
         debugTypeComposite->getSourceLocation());
     debugTypeTemplateParam = spvContext.createDebugTypeTemplateParameter(
-        &argList[i], "TemplateParam", lowerToDebugType(spvType), nullptr,
-        debugTypeComposite->getSource(), debugTypeComposite->getLine(),
-        debugTypeComposite->getColumn());
+        &argList[i], "TemplateParam", lowerToDebugType(spvType),
+        getDebugInfoNone(), debugTypeComposite->getSource(),
+        debugTypeComposite->getLine(), debugTypeComposite->getColumn());
     tempTypeParams.push_back(debugTypeTemplateParam);
     setDefaultDebugInfo(debugTypeTemplateParam);
   }
@@ -211,6 +211,7 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
   if (const auto *declDecl = dyn_cast<Decl>(decl))
     loc = declDecl->getLocation();
   auto *debugTypeComposite = createDebugTypeComposite(structType, loc, tag);
+  setDefaultDebugInfo(debugTypeComposite);
 
   if (const auto *templateDecl =
           dyn_cast<ClassTemplateSpecializationDecl>(decl)) {

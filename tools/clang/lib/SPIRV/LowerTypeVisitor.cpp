@@ -189,9 +189,12 @@ const SpirvType *LowerTypeVisitor::lowerType(const SpirvType *type,
     // lower all fields of the struct.
     auto loweredFields =
         populateLayoutInformation(hybridStruct->getFields(), rule);
-    return spvContext.getStructType(
+    const StructType *structType = spvContext.getStructType(
         loweredFields, hybridStruct->getStructName(),
         hybridStruct->isReadOnly(), hybridStruct->getInterfaceType());
+    if (const auto *decl = spvContext.getDeclForSpirvType(type))
+      spvContext.addSpirvTypeToDecl(structType, decl);
+    return structType;
   }
   // Void, bool, int, float cannot be further lowered.
   // Matrices cannot contain hybrid types. Only matrices of scalars are valid.
