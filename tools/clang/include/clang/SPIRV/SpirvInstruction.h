@@ -2497,6 +2497,8 @@ public:
   uint32_t getSizeInBits() const override { return size; }
 
   void markOpaqueType(SpirvDebugInfoNone *none) {
+    if (debugNone == none && !debugName.empty() && debugName[0] == '@')
+      return;
     debugName = std::string("@") + debugName;
     debugNone = none;
   }

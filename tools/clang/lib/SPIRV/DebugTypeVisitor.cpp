@@ -53,7 +53,6 @@ SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
   // TODO: Update linkageName using astContext.createMangleContext().
   std::string name = type->getName();
 
-  // TODO: Update size information correctly.
   RichDebugInfo *debugInfo = &spvContext.getDebugInfo().begin()->second;
   const char *file = sm.getPresumedLoc(loc).getFilename();
   if (file)
@@ -222,8 +221,12 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
     debugTypeComposite->markOpaqueType(getDebugInfoNone());
     return lowerDebugTypeTemplate(templateDecl, debugTypeComposite);
   } else {
+    // If SpirvType is StructType, it is a normal struct/class. Otherwise,
+    // it must be an image or a sampler type that is an opaque type.
     if (const StructType *structType = dyn_cast<StructType>(type))
       lowerDebugTypeMembers(debugTypeComposite, structType, decl);
+    else
+      debugTypeComposite->markOpaqueType(getDebugInfoNone());
     return debugTypeComposite;
   }
 }
