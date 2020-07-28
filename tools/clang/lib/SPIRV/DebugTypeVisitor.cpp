@@ -65,14 +65,11 @@ SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
 
 void DebugTypeVisitor::addDebugTypeForMemberVariables(
     SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
-    const DeclContext *decl) {
+    llvm::function_ref<SourceLocation()> location) {
   llvm::SmallVector<SpirvDebugInstruction *, 4> members;
   uint32_t compositeSizeInBits = kUnknownBitSize;
   bool unknownPhysicalLayout = false;
   const auto &sm = astContext.getSourceManager();
-  const auto *recordDecl = dyn_cast<RecordDecl>(decl);
-  assert(recordDecl != nullptr);
-  auto fieldIter = recordDecl->field_begin();
   for (auto &field : type->getFields()) {
     uint32_t offsetInBits = kUnknownBitSize;
     if (!unknownPhysicalLayout && field.offset.hasValue())
@@ -85,7 +82,7 @@ void DebugTypeVisitor::addDebugTypeForMemberVariables(
     // or operations for variables with the unknown physical layout.
     // For example, we do not have physical layout for a local variable.
 
-    const SourceLocation loc = fieldIter->getLocation();
+    const SourceLocation loc = location();
     uint32_t line = sm.getPresumedLineNumber(loc);
     uint32_t column = sm.getPresumedColumnNumber(loc);
 
@@ -105,7 +102,6 @@ void DebugTypeVisitor::addDebugTypeForMemberVariables(
     } else {
       compositeSizeInBits = offsetInBits + *field.sizeInBytes * 8;
     }
-    ++fieldIter;
   }
   debugTypeComposite->setMembers(members);
   debugTypeComposite->setSizeInBits(compositeSizeInBits);
@@ -114,7 +110,31 @@ void DebugTypeVisitor::addDebugTypeForMemberVariables(
 void DebugTypeVisitor::lowerDebugTypeMembers(
     SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
     const DeclContext *decl) {
-  addDebugTypeForMemberVariables(debugTypeComposite, type, decl);
+  if (const auto *recordDecl = dyn_cast<RecordDecl>(decl)) {
+    auto fieldIter = recordDecl->field_begin();
+    auto fieldEnd = recordDecl->field_end();
+    addDebugTypeForMemberVariables(debugTypeComposite, type,
+                                   [&fieldIter, &fieldEnd]() {
+                                     assert(fieldIter != fieldEnd);
+                                     (void)fieldEnd;
+                                     auto location = fieldIter->getLocation();
+                                     ++fieldIter;
+                                     return location;
+                                   });
+  } else if (const auto *hlslBufferDecl = dyn_cast<HLSLBufferDecl>(decl)) {
+    auto subDeclIter = hlslBufferDecl->decls_begin();
+    auto subDeclEnd = hlslBufferDecl->decls_end();
+    addDebugTypeForMemberVariables(debugTypeComposite, type,
+                                   [&subDeclIter, &subDeclEnd]() {
+                                     assert(subDeclIter != subDeclEnd);
+                                     (void)subDeclEnd;
+                                     auto location = subDeclIter->getLocation();
+                                     ++subDeclIter;
+                                     return location;
+                                   });
+  } else {
+    assert(false && "Uknown DeclContext for DebugTypeMember generation");
+  }
 
   // Push member functions to DebugTypeComposite Members operand.
   auto subDeclIter = decl->decls_begin();

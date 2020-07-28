@@ -74,7 +74,7 @@ private:
   void
   addDebugTypeForMemberVariables(SpirvDebugTypeComposite *debugTypeComposite,
                                  const StructType *type,
-                                 const DeclContext *decl);
+                                 llvm::function_ref<SourceLocation()> location);
 
   /// Lowers DebugTypeMembers of DebugTypeComposite.
   void lowerDebugTypeMembers(SpirvDebugTypeComposite *debugTypeComposite,
