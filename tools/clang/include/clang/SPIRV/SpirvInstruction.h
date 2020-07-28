@@ -2429,7 +2429,7 @@ public:
                        SpirvDebugSource *source, uint32_t line_,
                        uint32_t column_, SpirvDebugInstruction *parent,
                        uint32_t flags, uint32_t offsetInBits,
-                       const APValue *value = nullptr);
+                       uint32_t sizeInBits, const APValue *value = nullptr);
 
   static bool classof(const SpirvInstruction *inst) {
     return inst->getKind() == IK_DebugTypeMember;
@@ -2442,9 +2442,9 @@ public:
   SpirvDebugSource *getSource() const { return source; }
   uint32_t getLine() const { return line; }
   uint32_t getColumn() const { return column; }
-  uint32_t getOffsetInBits() const { return offset; }
+  uint32_t getOffsetInBits() const { return offsetInBits; }
   uint32_t getDebugFlags() const { return debugFlags; }
-  uint32_t getSizeInBits() const override { return size; }
+  uint32_t getSizeInBits() const override { return sizeInBits; }
   const APValue *getValue() const { return value; }
 
 private:
@@ -2454,8 +2454,8 @@ private:
 
   SpirvDebugInstruction *parent; //< The parent DebugTypeComposite
 
-  uint32_t offset; //< Offset (in bits) of this member in the struct
-  uint32_t size;   //< Size (in bits) of this member in the struct
+  uint32_t offsetInBits; //< Offset (in bits) of this member in the struct
+  uint32_t sizeInBits;   //< Size (in bits) of this member in the struct
   // TODO: Replace uint32_t with enum in the SPIRV-Headers once it is
   // available.
   uint32_t debugFlags;

@@ -939,10 +939,12 @@ SpirvDebugTypeFunction::SpirvDebugTypeFunction(
 SpirvDebugTypeMember::SpirvDebugTypeMember(
     llvm::StringRef name, SpirvDebugType *type, SpirvDebugSource *source_,
     uint32_t line_, uint32_t column_, SpirvDebugInstruction *parent_,
-    uint32_t flags_, uint32_t offsetInBits_, const APValue *value_)
+    uint32_t flags_, uint32_t offsetInBits_, uint32_t sizeInBits_,
+    const APValue *value_)
     : SpirvDebugType(IK_DebugTypeMember, /*opcode*/ 11u), source(source_),
-      line(line_), column(column_), parent(parent_), offset(offsetInBits_),
-      size(0), debugFlags(flags_), value(value_) {
+      line(line_), column(column_), parent(parent_),
+      offsetInBits(offsetInBits_), sizeInBits(sizeInBits_), debugFlags(flags_),
+      value(value_) {
   debugName = name;
   setDebugType(type);
 }

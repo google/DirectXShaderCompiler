@@ -76,6 +76,12 @@ void DebugTypeVisitor::addDebugTypeForMemberVariables(
     else
       unknownPhysicalLayout = true;
 
+    uint32_t sizeInBits = kUnknownBitSize;
+    if (!unknownPhysicalLayout && field.sizeInBytes.hasValue())
+      sizeInBits = *field.sizeInBytes * 8;
+    else
+      unknownPhysicalLayout = true;
+
     // TODO: We are currently in the discussion about how to handle
     // a variable type with unknown physical layout. Add proper flags
     // or operations for variables with the unknown physical layout.
@@ -90,16 +96,16 @@ void DebugTypeVisitor::addDebugTypeForMemberVariables(
     auto *debugInstr = spvContext.getDebugTypeMember(
         field.name, lowerToDebugType(field.type),
         debugTypeComposite->getSource(), line, column, debugTypeComposite,
-        /* flags */ 3u, offsetInBits, /* value */ nullptr);
+        /* flags */ 3u, offsetInBits, sizeInBits, /* value */ nullptr);
     assert(debugInstr);
 
     setDefaultDebugInfo(debugInstr);
     members.push_back(debugInstr);
 
-    if (offsetInBits == kUnknownBitSize || !field.sizeInBytes.hasValue()) {
+    if (sizeInBits == kUnknownBitSize) {
       compositeSizeInBits = kUnknownBitSize;
     } else {
-      compositeSizeInBits = offsetInBits + *field.sizeInBytes * 8;
+      compositeSizeInBits = offsetInBits + sizeInBits;
     }
   }
   debugTypeComposite->setMembers(members);

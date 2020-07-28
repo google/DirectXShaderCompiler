@@ -752,9 +752,12 @@ SpirvDebugGlobalVariable *DeclResultIdMapper::createDebugGlobalVariable(
     // TODO: replace this with FlagIsDefinition enum.
     uint32_t flags = 1 << 3;
     // TODO: update linkageName correctly.
-    return spvBuilder.createDebugGlobalVariable(
+    auto *dbgGlobalVar = spvBuilder.createDebugGlobalVariable(
         type, name, info->source, line, column, info->scopeStack.back(),
         /* linkageName */ name, var, flags);
+    dbgGlobalVar->setDebugSpirvType(var->getResultType());
+    dbgGlobalVar->setLayoutRule(var->getLayoutRule());
+    return dbgGlobalVar;
   }
   return nullptr;
 }
@@ -1012,10 +1015,9 @@ SpirvVariable *DeclResultIdMapper::createCTBuffer(const HLSLBufferDecl *decl) {
   auto *dbgGlobalVar = createDebugGlobalVariable(
       bufferVar, QualType(), decl->getLocation(), decl->getName());
   if (dbgGlobalVar != nullptr) {
+    // C/TBuffer needs HLSLBufferDecl for debug type lowering.
     spvContext.addSpirvTypeToDecl(bufferVar->getResultType(), decl);
-    dbgGlobalVar->setDebugSpirvType(bufferVar->getResultType());
   }
-
   return bufferVar;
 }
 

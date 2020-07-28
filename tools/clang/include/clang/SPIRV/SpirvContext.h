@@ -169,9 +169,8 @@ public:
                                      SpirvDebugSource *source, uint32_t line,
                                      uint32_t column,
                                      SpirvDebugInstruction *parent,
-                                     uint32_t flags,
-                                     uint32_t offsetInBits = UINT32_MAX,
-                                     const APValue *value = nullptr);
+                                     uint32_t flags, uint32_t offsetInBits,
+                                     uint32_t sizeInBits, const APValue *value);
 
   SpirvDebugTypeComposite *getDebugTypeComposite(const SpirvType *spirvType,
                                                  llvm::StringRef name,
