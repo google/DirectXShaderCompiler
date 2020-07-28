@@ -166,7 +166,8 @@ public:
                                     uint32_t encoding);
 
   SpirvDebugType *getDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
-                                     SpirvDebugSource *source,
+                                     SpirvDebugSource *source, uint32_t line,
+                                     uint32_t column,
                                      SpirvDebugInstruction *parent,
                                      uint32_t flags,
                                      uint32_t offsetInBits = UINT32_MAX,
@@ -353,6 +354,18 @@ public:
     return it->second;
   }
 
+  /// Function to add/get the mapping from a FunctionDecl to its DebugFunction.
+  void addDeclToDebugFunction(const FunctionDecl *decl,
+                              SpirvDebugFunction *fn) {
+    declToDebugFunction[decl] = fn;
+  }
+  SpirvDebugFunction *getDebugFunctionForDecl(const FunctionDecl *decl) {
+    auto it = declToDebugFunction.find(decl);
+    if (it == declToDebugFunction.end())
+      return nullptr;
+    return it->second;
+  }
+
 private:
   /// \brief The allocator used to create SPIR-V entity objects.
   ///
@@ -424,10 +437,12 @@ private:
   llvm::DenseMap<const TemplateArgument *, SpirvDebugTypeTemplateParameter *>
       typeTemplateParams;
 
-  // Mapping from SPIR-V type to QualType for a record type.
-  llvm::DenseMap<const SpirvType *, const RecordType *> spvTypeToRecordType;
   // Mapping from SPIR-V type to Decl for a struct type.
   llvm::DenseMap<const SpirvType *, const DeclContext *> spvTypeToDecl;
+
+  // Mapping from FunctionDecl to SPIR-V debug function.
+  llvm::DenseMap<const FunctionDecl *, SpirvDebugFunction *>
+      declToDebugFunction;
 
   // Mapping from CXXMethodDecl (member method of struct or class) to its
   // function info.

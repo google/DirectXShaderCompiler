@@ -70,9 +70,11 @@ private:
                                                     const SourceLocation &loc,
                                                     uint32_t tag);
 
-  /// Adds DebugTypeMembers to DebugTypeComposite.
-  void addDebugTypeMembers(SpirvDebugTypeComposite *debugTypeComposite,
-                           const StructType *type);
+  /// Adds DebugTypeMembers for member variables to DebugTypeComposite.
+  void
+  addDebugTypeForMemberVariables(SpirvDebugTypeComposite *debugTypeComposite,
+                                 const StructType *type,
+                                 const DeclContext *decl);
 
   /// Lowers DebugTypeMembers of DebugTypeComposite.
   void lowerDebugTypeMembers(SpirvDebugTypeComposite *debugTypeComposite,
@@ -82,10 +84,6 @@ private:
   SpirvDebugTypeTemplate *
   lowerDebugTypeTemplate(const ClassTemplateSpecializationDecl *templateDecl,
                          SpirvDebugTypeComposite *debugTypeComposite);
-
-  /// Lowers DebugTypeFunction for member function of a composite type.
-  /// Returns false if there is an error.
-  bool lowerDebugTypeFunctionForMemberFunction(SpirvDebugInstruction *instr);
 
   /// Set the result type of debug instructions to OpTypeVoid.
   /// According to the OpenCL.DebugInfo.100 spec, all debug instructions are

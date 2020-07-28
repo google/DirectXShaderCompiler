@@ -159,11 +159,13 @@ bool SortDebugInfoVisitor::visit(SpirvModule *mod, Phase phase) {
     return true;
 
   auto &debugInstructions = mod->getDebugInfo();
-  auto numberOfDebugInstrs = debugInstructions.size();
+  llvm::SmallSet<SpirvDebugInstruction *, 32> visited;
+  visited.insert(debugInstructions.begin(), debugInstructions.end());
+  auto numberOfDebugInstrs = visited.size();
   (void)numberOfDebugInstrs;
 
   // Collect nodes without predecessor.
-  llvm::SmallSet<SpirvDebugInstruction *, 32> visited;
+  visited.clear();
   for (auto *di : debugInstructions) {
     whileEachOperandOfDebugInstruction(
         di, [&visited](SpirvDebugInstruction *operand) {

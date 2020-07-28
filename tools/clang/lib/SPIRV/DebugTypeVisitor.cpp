@@ -63,11 +63,16 @@ SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
       /* parent */ debugInfo->compilationUnit, linkageName, 3u, tag);
 }
 
-void DebugTypeVisitor::addDebugTypeMembers(
-    SpirvDebugTypeComposite *debugTypeComposite, const StructType *type) {
+void DebugTypeVisitor::addDebugTypeForMemberVariables(
+    SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
+    const DeclContext *decl) {
   llvm::SmallVector<SpirvDebugInstruction *, 4> members;
   uint32_t compositeSizeInBits = kUnknownBitSize;
   bool unknownPhysicalLayout = false;
+  const auto &sm = astContext.getSourceManager();
+  const auto *recordDecl = dyn_cast<RecordDecl>(decl);
+  assert(recordDecl != nullptr);
+  auto fieldIter = recordDecl->field_begin();
   for (auto &field : type->getFields()) {
     uint32_t offsetInBits = kUnknownBitSize;
     if (!unknownPhysicalLayout && field.offset.hasValue())
@@ -80,13 +85,18 @@ void DebugTypeVisitor::addDebugTypeMembers(
     // or operations for variables with the unknown physical layout.
     // For example, we do not have physical layout for a local variable.
 
+    const SourceLocation loc = fieldIter->getLocation();
+    uint32_t line = sm.getPresumedLineNumber(loc);
+    uint32_t column = sm.getPresumedColumnNumber(loc);
+
     // TODO: Replace 2u and 3u with valid flags when debug info extension is
     // placed in SPIRV-Header.
     auto *debugInstr = spvContext.getDebugTypeMember(
         field.name, lowerToDebugType(field.type),
-        debugTypeComposite->getSource(), debugTypeComposite,
+        debugTypeComposite->getSource(), line, column, debugTypeComposite,
         /* flags */ 3u, offsetInBits, /* value */ nullptr);
     assert(debugInstr);
+
     setDefaultDebugInfo(debugInstr);
     members.push_back(debugInstr);
 
@@ -95,6 +105,7 @@ void DebugTypeVisitor::addDebugTypeMembers(
     } else {
       compositeSizeInBits = offsetInBits + *field.sizeInBytes * 8;
     }
+    ++fieldIter;
   }
   debugTypeComposite->setMembers(members);
   debugTypeComposite->setSizeInBits(compositeSizeInBits);
@@ -103,33 +114,22 @@ void DebugTypeVisitor::addDebugTypeMembers(
 void DebugTypeVisitor::lowerDebugTypeMembers(
     SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
     const DeclContext *decl) {
-  const auto &sm = astContext.getSourceManager();
-  addDebugTypeMembers(debugTypeComposite, type);
+  addDebugTypeForMemberVariables(debugTypeComposite, type, decl);
 
+  // Push member functions to DebugTypeComposite Members operand.
   auto subDeclIter = decl->decls_begin();
-  for (auto *member : debugTypeComposite->getMembers()) {
-    // Skip member functions and "this" object.
-    while (isa<CXXMethodDecl>(*subDeclIter) ||
-           isa<CXXRecordDecl>(*subDeclIter)) {
-      ++subDeclIter;
+  while (subDeclIter != decl->decls_end()) {
+    if (const auto *methodDecl = dyn_cast<FunctionDecl>(*subDeclIter)) {
+      // TODO: if dbgFunction is NULL, it is a member function without
+      // function calls. We have to generate its type and insert it to
+      // members.
+      if (auto *dbgFunction = spvContext.getDebugFunctionForDecl(methodDecl)) {
+        dbgFunction->setParent(debugTypeComposite);
+        debugTypeComposite->appendMember(dbgFunction);
+      }
     }
-
-    auto *debugTypeMember = dyn_cast<SpirvDebugTypeMember>(member);
-    if (debugTypeMember == nullptr) {
-      assert(false && "Only SpirvDebugTypeMember is expected for member "
-                      "at this point");
-      continue;
-    }
-
-    // Set line and column.
-    const SourceLocation loc = subDeclIter->getLocStart();
-    uint32_t line = sm.getPresumedLineNumber(loc);
-    uint32_t column = sm.getPresumedColumnNumber(loc);
-    debugTypeMember->SetLineAndColumn(line, column);
     ++subDeclIter;
   }
-
-  // TODO: Add member functions.
 }
 
 SpirvDebugTypeTemplate *DebugTypeVisitor::lowerDebugTypeTemplate(
@@ -171,26 +171,6 @@ SpirvDebugTypeTemplate *DebugTypeVisitor::lowerDebugTypeTemplate(
       templateDecl, debugTypeComposite, tempTypeParams);
   setDefaultDebugInfo(debugTypeTemplate);
   return debugTypeTemplate;
-}
-
-bool DebugTypeVisitor::lowerDebugTypeFunctionForMemberFunction(
-    SpirvDebugInstruction *instr) {
-  auto *fn = dyn_cast<SpirvDebugFunction>(instr);
-  if (fn == nullptr) {
-    emitError("Debug instruction %0 is not a DebugFunction")
-        << instr->getDebugName();
-    return false;
-  }
-
-  if (const auto *fnType = fn->getFunctionType()) {
-    fn->setDebugType(lowerToDebugType(fnType));
-    setDefaultDebugInfo(fn);
-  }
-  if (!fn->getSpirvFunction()) {
-    auto *debugNone = getDebugInfoNone();
-    fn->setDebugInfoNone(debugNone);
-  }
-  return true;
 }
 
 SpirvDebugType *

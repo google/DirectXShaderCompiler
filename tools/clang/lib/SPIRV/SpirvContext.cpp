@@ -281,16 +281,15 @@ SpirvDebugType *SpirvContext::getDebugTypeBasic(const SpirvType *spirvType,
   return debugType;
 }
 
-SpirvDebugType *
-SpirvContext::getDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
-                                 SpirvDebugSource *source,
-                                 SpirvDebugInstruction *parent, uint32_t flags,
-                                 uint32_t offsetInBits, const APValue *value) {
+SpirvDebugType *SpirvContext::getDebugTypeMember(
+    llvm::StringRef name, SpirvDebugType *type, SpirvDebugSource *source,
+    uint32_t line, uint32_t column, SpirvDebugInstruction *parent,
+    uint32_t flags, uint32_t offsetInBits, const APValue *value) {
   // NOTE: Do not search it in debugTypes because it would have the same
   // spirvType but has different parent i.e., type composite.
 
   SpirvDebugTypeMember *debugType = new (this) SpirvDebugTypeMember(
-      name, type, source, parent, flags, offsetInBits, value);
+      name, type, source, line, column, parent, flags, offsetInBits, value);
   return debugType;
 }
 

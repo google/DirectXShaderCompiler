@@ -1020,6 +1020,7 @@ void SpirvEmitter::doFunctionDecl(const FunctionDecl *decl) {
     SpirvDebugFunction *debugFunction = spvBuilder.createDebugFunction(
         funcName, source, line, column, parentScope, funcName, flags, scopeLine,
         func);
+    spvContext.addDeclToDebugFunction(decl, debugFunction);
     func->setDebugScope(new (astContext) SpirvDebugScope(debugFunction));
 
     // We want to keep member function info of a structure, but a StructType

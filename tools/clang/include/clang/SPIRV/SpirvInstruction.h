@@ -2426,17 +2426,13 @@ private:
 class SpirvDebugTypeMember : public SpirvDebugType {
 public:
   SpirvDebugTypeMember(llvm::StringRef name, SpirvDebugType *type,
-                       SpirvDebugSource *source, SpirvDebugInstruction *parent,
+                       SpirvDebugSource *source, uint32_t line_,
+                       uint32_t column_, SpirvDebugInstruction *parent,
                        uint32_t flags, uint32_t offsetInBits,
                        const APValue *value = nullptr);
 
   static bool classof(const SpirvInstruction *inst) {
     return inst->getKind() == IK_DebugTypeMember;
-  }
-
-  void SetLineAndColumn(uint32_t line_, uint32_t column_) {
-    line = line_;
-    column = column_;
   }
 
   bool invokeVisitor(Visitor *v) override;
