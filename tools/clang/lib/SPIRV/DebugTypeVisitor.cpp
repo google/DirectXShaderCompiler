@@ -64,12 +64,19 @@ SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
 
 void DebugTypeVisitor::addDebugTypeForMemberVariables(
     SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
-    llvm::function_ref<SourceLocation()> location) {
+    llvm::function_ref<SourceLocation()> location, unsigned numBases) {
   llvm::SmallVector<SpirvDebugInstruction *, 4> members;
   uint32_t compositeSizeInBits = kUnknownBitSize;
   bool unknownPhysicalLayout = false;
   const auto &sm = astContext.getSourceManager();
   for (auto &field : type->getFields()) {
+    // Skip base classes
+    // TODO: Handle class inheritance correctly.
+    if (numBases != 0) {
+      --numBases;
+      continue;
+    }
+
     uint32_t offsetInBits = kUnknownBitSize;
     if (!unknownPhysicalLayout && field.offset.hasValue())
       offsetInBits = *field.offset * 8;
@@ -118,25 +125,32 @@ void DebugTypeVisitor::lowerDebugTypeMembers(
   if (const auto *recordDecl = dyn_cast<RecordDecl>(decl)) {
     auto fieldIter = recordDecl->field_begin();
     auto fieldEnd = recordDecl->field_end();
-    addDebugTypeForMemberVariables(debugTypeComposite, type,
-                                   [&fieldIter, &fieldEnd]() {
-                                     assert(fieldIter != fieldEnd);
-                                     (void)fieldEnd;
-                                     auto location = fieldIter->getLocation();
-                                     ++fieldIter;
-                                     return location;
-                                   });
+    unsigned numBases = 0;
+    if (const auto *cxxRecordDecl = dyn_cast<CXXRecordDecl>(recordDecl))
+      numBases = cxxRecordDecl->getNumBases();
+    addDebugTypeForMemberVariables(
+        debugTypeComposite, type,
+        [&fieldIter, &fieldEnd]() {
+          assert(fieldIter != fieldEnd);
+          (void)fieldEnd;
+          auto location = fieldIter->getLocation();
+          ++fieldIter;
+          return location;
+        },
+        numBases);
   } else if (const auto *hlslBufferDecl = dyn_cast<HLSLBufferDecl>(decl)) {
     auto subDeclIter = hlslBufferDecl->decls_begin();
     auto subDeclEnd = hlslBufferDecl->decls_end();
-    addDebugTypeForMemberVariables(debugTypeComposite, type,
-                                   [&subDeclIter, &subDeclEnd]() {
-                                     assert(subDeclIter != subDeclEnd);
-                                     (void)subDeclEnd;
-                                     auto location = subDeclIter->getLocation();
-                                     ++subDeclIter;
-                                     return location;
-                                   });
+    addDebugTypeForMemberVariables(
+        debugTypeComposite, type,
+        [&subDeclIter, &subDeclEnd]() {
+          assert(subDeclIter != subDeclEnd);
+          (void)subDeclEnd;
+          auto location = subDeclIter->getLocation();
+          ++subDeclIter;
+          return location;
+        },
+        0);
   } else {
     assert(false && "Uknown DeclContext for DebugTypeMember generation");
   }

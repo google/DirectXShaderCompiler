@@ -71,10 +71,9 @@ private:
                                                     uint32_t tag);
 
   /// Adds DebugTypeMembers for member variables to DebugTypeComposite.
-  void
-  addDebugTypeForMemberVariables(SpirvDebugTypeComposite *debugTypeComposite,
-                                 const StructType *type,
-                                 llvm::function_ref<SourceLocation()> location);
+  void addDebugTypeForMemberVariables(
+      SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
+      llvm::function_ref<SourceLocation()> location, unsigned numBases);
 
   /// Lowers DebugTypeMembers of DebugTypeComposite.
   void lowerDebugTypeMembers(SpirvDebugTypeComposite *debugTypeComposite,
