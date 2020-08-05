@@ -11,6 +11,7 @@
 #include <tuple>
 
 #include "clang/SPIRV/SpirvContext.h"
+#include "clang/SPIRV/SpirvModule.h"
 
 namespace clang {
 namespace spirv {
@@ -302,8 +303,10 @@ SpirvDebugTypeComposite *SpirvContext::getDebugTypeComposite(
     llvm::StringRef linkageName, uint32_t flags, uint32_t tag) {
   // Reuse existing debug type if possible.
   auto it = debugTypes.find(spirvType);
-  if (it != debugTypes.end())
+  if (it != debugTypes.end()) {
+    assert(it->second != nullptr && isa<SpirvDebugTypeComposite>(it->second));
     return dyn_cast<SpirvDebugTypeComposite>(it->second);
+  }
 
   auto *debugType = new (this) SpirvDebugTypeComposite(
       name, source, line, column, parent, linkageName, flags, tag);
@@ -414,7 +417,7 @@ void SpirvContext::pushDebugLexicalScope(RichDebugInfo *info,
   info->scopeStack.push_back(scope);
 }
 
-void SpirvContext::addDebugTypeToModule(SpirvModule *module) {
+void SpirvContext::addDebugTypesToModule(SpirvModule *module) {
   for (const auto &typePair : debugTypes) {
     module->addDebugInfo(typePair.second);
 

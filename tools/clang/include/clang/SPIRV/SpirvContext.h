@@ -14,7 +14,6 @@
 #include "dxc/DXIL/DxilShaderModel.h"
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/SPIRV/SpirvInstruction.h"
-#include "clang/SPIRV/SpirvModule.h"
 #include "clang/SPIRV/SpirvType.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseMapInfo.h"
@@ -23,6 +22,8 @@
 
 namespace clang {
 namespace spirv {
+
+class SpirvModule;
 
 struct RichDebugInfo {
   RichDebugInfo(SpirvDebugSource *src, SpirvDebugCompilationUnit *cu)
@@ -210,7 +211,7 @@ public:
   SpirvDebugTypeTemplateParameter *
   getDebugTypeTemplateParameter(const TemplateArgument *templateArg);
 
-  void addDebugTypeToModule(SpirvModule *module);
+  void addDebugTypesToModule(SpirvModule *module);
 
   // === Types ===
 
@@ -343,26 +344,23 @@ public:
 
   /// Function to add/get the mapping from a SPIR-V type to its Decl for
   /// a struct type.
-  void addSpirvTypeToDecl(const SpirvType *spvTy, const DeclContext *decl) {
-    spvTypeToDecl[spvTy] = decl;
+  void registerStructDeclForSpirvType(const SpirvType *spvTy,
+                                      const DeclContext *decl) {
+    assert(spvTy != nullptr && decl != nullptr);
+    spvStructTypeToDecl[spvTy] = decl;
   }
-  const DeclContext *getDeclForSpirvType(const SpirvType *spvTy) {
-    auto it = spvTypeToDecl.find(spvTy);
-    if (it == spvTypeToDecl.end())
-      return nullptr;
-    return it->second;
+  const DeclContext *getStructDeclForSpirvType(const SpirvType *spvTy) {
+    return spvStructTypeToDecl[spvTy];
   }
 
   /// Function to add/get the mapping from a FunctionDecl to its DebugFunction.
-  void addDeclToDebugFunction(const FunctionDecl *decl,
-                              SpirvDebugFunction *fn) {
+  void registerDebugFunctionForDecl(const FunctionDecl *decl,
+                                    SpirvDebugFunction *fn) {
+    assert(decl != nullptr && fn != nullptr);
     declToDebugFunction[decl] = fn;
   }
   SpirvDebugFunction *getDebugFunctionForDecl(const FunctionDecl *decl) {
-    auto it = declToDebugFunction.find(decl);
-    if (it == declToDebugFunction.end())
-      return nullptr;
-    return it->second;
+    return declToDebugFunction[decl];
   }
 
 private:
@@ -429,15 +427,17 @@ private:
   // type if the type is used for several variables.
   llvm::MapVector<const SpirvType *, SpirvDebugType *> debugTypes;
 
-  // Mapping from QualType type to debug type instruction for templates.
+  // Mapping from template decl to DebugTypeTemplate.
   llvm::DenseMap<const ClassTemplateSpecializationDecl *,
                  SpirvDebugTypeTemplate *>
       typeTemplates;
+
+  // Mapping from template parameter decl to DebugTypeTemplateParameter.
   llvm::DenseMap<const TemplateArgument *, SpirvDebugTypeTemplateParameter *>
       typeTemplateParams;
 
   // Mapping from SPIR-V type to Decl for a struct type.
-  llvm::DenseMap<const SpirvType *, const DeclContext *> spvTypeToDecl;
+  llvm::DenseMap<const SpirvType *, const DeclContext *> spvStructTypeToDecl;
 
   // Mapping from FunctionDecl to SPIR-V debug function.
   llvm::DenseMap<const FunctionDecl *, SpirvDebugFunction *>

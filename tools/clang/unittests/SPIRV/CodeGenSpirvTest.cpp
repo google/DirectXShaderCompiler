@@ -2425,22 +2425,20 @@ TEST_F(FileTest, RichDebugInfoTypeFunction) {
 }
 TEST_F(FileTest, RichDebugInfoTypeMemberFunction) {
   runFileTest("rich.debug.type.member.function.hlsl", Expect::Success,
-              runValidationForRichDebugInfo);
+              /*runValidation*/ runValidationForRichDebugInfo);
 }
 TEST_F(FileTest, RichDebugInfoTypeCompositeBeforeFunction) {
   runFileTest("rich.debug.type.composite.before.function.hlsl", Expect::Success,
-              runValidationForRichDebugInfo);
+              /*runValidation*/ runValidationForRichDebugInfo);
 }
 TEST_F(FileTest, RichDebugInfoMemberFunctionParam) {
   runFileTest("rich.debug.member.function.param.hlsl", Expect::Success,
-              runValidationForRichDebugInfo);
+              /*runValidation*/ runValidationForRichDebugInfo);
 }
-/*
-TEST_F(FileTest, RichDebugInfoMemberFunctionWithoutCall) {
+TEST_F(FileTest, DISABLED_RichDebugInfoMemberFunctionWithoutCall) {
   runFileTest("rich.debug.member.function.without-call.hlsl", Expect::Success,
-              runValidationForRichDebugInfo);
+              /*runValidation*/ runValidationForRichDebugInfo);
 }
-*/
 TEST_F(FileTest, RichDebugInfoTypeComposite) {
   runFileTest("rich.debug.type.composite.hlsl", Expect::Success,
               /*runValidation*/ runValidationForRichDebugInfo);

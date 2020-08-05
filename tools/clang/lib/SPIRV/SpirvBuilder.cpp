@@ -910,12 +910,14 @@ SpirvDebugDeclare *SpirvBuilder::createDebugDeclare(
 }
 
 SpirvDebugFunction *SpirvBuilder::createDebugFunction(
-    llvm::StringRef name, SpirvDebugSource *src, uint32_t line, uint32_t column,
-    SpirvDebugInstruction *parentScope, llvm::StringRef linkageName,
-    uint32_t flags, uint32_t scopeLine, SpirvFunction *fn) {
+    const FunctionDecl *decl, llvm::StringRef name, SpirvDebugSource *src,
+    uint32_t line, uint32_t column, SpirvDebugInstruction *parentScope,
+    llvm::StringRef linkageName, uint32_t flags, uint32_t scopeLine,
+    SpirvFunction *fn) {
   auto *inst = new (context) SpirvDebugFunction(
       name, src, line, column, parentScope, linkageName, flags, scopeLine, fn);
   mod->addDebugInfo(inst);
+  context.registerDebugFunctionForDecl(decl, inst);
   return inst;
 }
 
@@ -1229,7 +1231,9 @@ std::vector<uint32_t> SpirvBuilder::takeModule() {
   if (spirvOptions.debugInfoRich) {
     DebugTypeVisitor debugTypeVisitor(astContext, context, spirvOptions, *this,
                                       lowerTypeVisitor);
+    SortDebugInfoVisitor sortDebugInfoVisitor(context, spirvOptions);
     mod->invokeVisitor(&debugTypeVisitor);
+    mod->invokeVisitor(&sortDebugInfoVisitor);
   }
 
   // Add necessary capabilities and extensions
@@ -1244,12 +1248,6 @@ std::vector<uint32_t> SpirvBuilder::takeModule() {
   // Remove BufferBlock decoration if necessary (this decoration is deprecated
   // after SPIR-V 1.3).
   mod->invokeVisitor(&removeBufferBlockVisitor);
-
-  // Sort OpenCL.DebugInfo.100 instructions
-  if (spirvOptions.debugInfoRich) {
-    SortDebugInfoVisitor sortDebugInfoVisitor(context, spirvOptions);
-    mod->invokeVisitor(&sortDebugInfoVisitor);
-  }
 
   // Emit SPIR-V
   mod->invokeVisitor(&emitVisitor);

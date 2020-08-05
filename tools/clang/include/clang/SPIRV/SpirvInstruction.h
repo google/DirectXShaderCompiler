@@ -2496,7 +2496,9 @@ public:
   void setSizeInBits(uint32_t size_) { size = size_; }
   uint32_t getSizeInBits() const override { return size; }
 
-  void markOpaqueType(SpirvDebugInfoNone *none) {
+  void markAsOpaqueType(SpirvDebugInfoNone *none) {
+    // If it was already marked as a opaque type, just return. For example,
+    // `debugName` can be "@@Texture2D" if we call this method twice.
     if (debugNone == none && !debugName.empty() && debugName[0] == '@')
       return;
     debugName = std::string("@") + debugName;

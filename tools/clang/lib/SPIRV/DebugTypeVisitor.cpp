@@ -15,8 +15,6 @@
 #include "clang/SPIRV/SpirvBuilder.h"
 #include "clang/SPIRV/SpirvModule.h"
 
-static const uint32_t kUnknownBitSize = 0;
-
 namespace clang {
 namespace spirv {
 
@@ -65,6 +63,9 @@ SpirvDebugTypeComposite *DebugTypeVisitor::createDebugTypeComposite(
 void DebugTypeVisitor::addDebugTypeForMemberVariables(
     SpirvDebugTypeComposite *debugTypeComposite, const StructType *type,
     llvm::function_ref<SourceLocation()> location, unsigned numBases) {
+  // Will be used to describe size/offset with unknown physical layout.
+  const uint32_t kUnknownBitSize = 0;
+
   llvm::SmallVector<SpirvDebugInstruction *, 4> members;
   uint32_t compositeSizeInBits = kUnknownBitSize;
   bool unknownPhysicalLayout = false;
@@ -156,9 +157,8 @@ void DebugTypeVisitor::lowerDebugTypeMembers(
   }
 
   // Push member functions to DebugTypeComposite Members operand.
-  auto subDeclIter = decl->decls_begin();
-  while (subDeclIter != decl->decls_end()) {
-    if (const auto *methodDecl = dyn_cast<FunctionDecl>(*subDeclIter)) {
+  for (auto *subDecl : decl->decls()) {
+    if (const auto *methodDecl = dyn_cast<FunctionDecl>(subDecl)) {
       // TODO: if dbgFunction is NULL, it is a member function without
       // function calls. We have to generate its type and insert it to
       // members.
@@ -167,7 +167,6 @@ void DebugTypeVisitor::lowerDebugTypeMembers(
         debugTypeComposite->appendMember(dbgFunction);
       }
     }
-    ++subDeclIter;
   }
 }
 
@@ -214,7 +213,7 @@ SpirvDebugTypeTemplate *DebugTypeVisitor::lowerDebugTypeTemplate(
 
 SpirvDebugType *
 DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
-  const auto *decl = spvContext.getDeclForSpirvType(type);
+  const auto *decl = spvContext.getStructDeclForSpirvType(type);
   assert(decl != nullptr && "Lowering DebugTypeComposite needs DeclContext");
 
   uint32_t tag = 1u;
@@ -238,7 +237,7 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
           dyn_cast<ClassTemplateSpecializationDecl>(decl)) {
     // The size of an opaque type must be DebugInfoNone and its name must
     // start with "@".
-    debugTypeComposite->markOpaqueType(getDebugInfoNone());
+    debugTypeComposite->markAsOpaqueType(getDebugInfoNone());
     return lowerDebugTypeTemplate(templateDecl, debugTypeComposite);
   } else {
     // If SpirvType is StructType, it is a normal struct/class. Otherwise,
@@ -246,7 +245,7 @@ DebugTypeVisitor::lowerToDebugTypeComposite(const SpirvType *type) {
     if (const StructType *structType = dyn_cast<StructType>(type))
       lowerDebugTypeMembers(debugTypeComposite, structType, decl);
     else
-      debugTypeComposite->markOpaqueType(getDebugInfoNone());
+      debugTypeComposite->markAsOpaqueType(getDebugInfoNone());
     return debugTypeComposite;
   }
 }
@@ -427,7 +426,7 @@ bool DebugTypeVisitor::visitInstruction(SpirvInstruction *instr) {
 
 bool DebugTypeVisitor::visit(SpirvModule *module, Phase phase) {
   if (phase == Phase::Done)
-    spvContext.addDebugTypeToModule(module);
+    spvContext.addDebugTypesToModule(module);
   return true;
 }
 

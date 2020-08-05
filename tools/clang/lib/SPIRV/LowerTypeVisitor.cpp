@@ -192,8 +192,8 @@ const SpirvType *LowerTypeVisitor::lowerType(const SpirvType *type,
     const StructType *structType = spvContext.getStructType(
         loweredFields, hybridStruct->getStructName(),
         hybridStruct->isReadOnly(), hybridStruct->getInterfaceType());
-    if (const auto *decl = spvContext.getDeclForSpirvType(type))
-      spvContext.addSpirvTypeToDecl(structType, decl);
+    if (const auto *decl = spvContext.getStructDeclForSpirvType(type))
+      spvContext.registerStructDeclForSpirvType(structType, decl);
     return structType;
   }
   // Void, bool, int, float cannot be further lowered.
@@ -392,7 +392,7 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
     // is then a subclass of RecordDecl.) So we need to check them before
     // checking the general struct type.
     if (const auto *spvType = lowerResourceType(type, rule, srcLoc)) {
-      spvContext.addSpirvTypeToDecl(spvType, decl);
+      spvContext.registerStructDeclForSpirvType(spvType, decl);
       return spvType;
     }
 
@@ -421,7 +421,7 @@ const SpirvType *LowerTypeVisitor::lowerType(QualType type,
 
     const auto *spvStructType =
         spvContext.getStructType(loweredFields, decl->getName());
-    spvContext.addSpirvTypeToDecl(spvStructType, decl);
+    spvContext.registerStructDeclForSpirvType(spvStructType, decl);
     return spvStructType;
   }
 

@@ -1016,7 +1016,7 @@ SpirvVariable *DeclResultIdMapper::createCTBuffer(const HLSLBufferDecl *decl) {
       bufferVar, QualType(), decl->getLocation(), decl->getName());
   if (dbgGlobalVar != nullptr) {
     // C/TBuffer needs HLSLBufferDecl for debug type lowering.
-    spvContext.addSpirvTypeToDecl(bufferVar->getResultType(), decl);
+    spvContext.registerStructDeclForSpirvType(bufferVar->getResultType(), decl);
   }
   return bufferVar;
 }
