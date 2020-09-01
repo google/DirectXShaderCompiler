@@ -601,16 +601,26 @@ void SpirvEmitter::HandleTranslationUnit(ASTContext &context) {
     }
 
     // Run optimization passes
-    if (!spirvOptions.debugInfoRich &&
-        theCompilerInstance.getCodeGenOpts().OptimizationLevel > 0) {
+    if (theCompilerInstance.getCodeGenOpts().OptimizationLevel > 0) {
       std::string messages;
-      if (!spirvToolsOptimize(&m, &messages)) {
-        emitFatalError("failed to optimize SPIR-V: %0", {}) << messages;
-        emitNote("please file a bug report on "
-                 "https://github.com/Microsoft/DirectXShaderCompiler/issues "
-                 "with source code if possible",
-                 {});
-        return;
+      if (spirvOptions.debugInfoRich) {
+        if (!spirvToolsLegalize(&m, &messages)) {
+          emitFatalError("failed to legalize SPIR-V: %0", {}) << messages;
+          emitNote("please file a bug report on "
+                   "https://github.com/Microsoft/DirectXShaderCompiler/issues "
+                   "with source code if possible",
+                   {});
+          return;
+        }
+      } else {
+        if (!spirvToolsOptimize(&m, &messages)) {
+          emitFatalError("failed to optimize SPIR-V: %0", {}) << messages;
+          emitNote("please file a bug report on "
+                   "https://github.com/Microsoft/DirectXShaderCompiler/issues "
+                   "with source code if possible",
+                   {});
+          return;
+        }
       }
     }
   }
