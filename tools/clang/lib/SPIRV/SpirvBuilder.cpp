@@ -835,16 +835,6 @@ SpirvBuilder::createDebugLexicalBlock(SpirvDebugSource *source, uint32_t line,
   auto *inst =
       new (context) SpirvDebugLexicalBlock(source, line, column, parent);
   mod->addDebugInfo(inst);
-  if (insertPoint->empty()) {
-    insertPoint->setDebugScope(new (context) SpirvDebugScope(inst));
-  } else {
-    // Note that a SpirvBasicBlock can have multiple lexical blocks. For
-    // example, `void foo() { { { } } { } }` has 4 lexical blocks but
-    // generates only a single `OpLabel`. Since we want to add 4 DebugScope
-    // corresponding to those 4 lexical blocks, we use
-    // insertPoint->addInstruction() instead of setDebugScope() here.
-    insertPoint->addInstruction(new (context) SpirvDebugScope(inst));
-  }
   return inst;
 }
 
