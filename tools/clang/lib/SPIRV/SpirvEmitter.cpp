@@ -705,22 +705,12 @@ void SpirvEmitter::doStmt(const Stmt *stmt,
       // Add this lexical block to the stack of lexical scopes.
       spvContext.pushDebugLexicalScope(info, debugLexicalBlock);
 
-      // Switch DebugScope if the current basic block is empty.
-      //
-      // TODO: Handle the following case
-      //
-      // {    // BB0
-      //   int foo = x;
-      //   {  // BB1
-      //     int bar = y;
-      //     ...
-      //
-      // doStmt() does not emit OpLabel for BB1. `int bar = y;` is under BB0.
-      // We do not create DebugLexicalBlock for BB1 but only for BB0, so the
-      // DebugScope of `int bar = y;` will be wrong.
+      // Update or add DebugScope.
       if (spvBuilder.getInsertPoint()->empty()) {
         spvBuilder.getInsertPoint()->setDebugScope(
             new (astContext) SpirvDebugScope(debugLexicalBlock));
+      } else if (!spvBuilder.isCurrentBasicBlockTerminated()) {
+        spvBuilder.createDebugScope(debugLexicalBlock);
       }
 
       // Iterate over sub-statements

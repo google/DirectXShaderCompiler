@@ -114,6 +114,13 @@ SpirvBasicBlock *SpirvBuilder::createBasicBlock(llvm::StringRef name) {
   return bb;
 }
 
+SpirvDebugScope *SpirvBuilder::createDebugScope(SpirvDebugInstruction *scope) {
+  assert(insertPoint && "null insert point");
+  auto *dbgScope = new (context) SpirvDebugScope(scope);
+  insertPoint->addInstruction(dbgScope);
+  return dbgScope;
+}
+
 void SpirvBuilder::addSuccessor(SpirvBasicBlock *successorBB) {
   assert(insertPoint && "null insert point");
   insertPoint->addSuccessor(successorBB);

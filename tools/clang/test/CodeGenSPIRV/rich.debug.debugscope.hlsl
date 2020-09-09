@@ -3,11 +3,11 @@
 // CHECK:  [[set:%\d+]] = OpExtInstImport "OpenCL.DebugInfo.100"
 // CHECK: [[compUnit:%\d+]] = OpExtInst %void [[set]] DebugCompilationUnit
 // CHECK: [[main:%\d+]] = OpExtInst %void [[set]] DebugFunction
-// CHECK: [[mainFnLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} {{\d+}} {{\d+}} [[main]]
-// CHECK: [[whileLoopLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} {{\d+}} {{\d+}} [[mainFnLexBlock]]
-// CHECK: [[ifStmtLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} {{\d+}} {{\d+}} [[whileLoopLexBlock]]
-// CHECK: [[tempLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} {{\d+}} {{\d+}} [[ifStmtLexBlock]]
-// CHECK: [[forLoopLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} {{\d+}} {{\d+}} [[mainFnLexBlock]]
+// CHECK: [[mainFnLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} 15 1 [[main]]
+// CHECK: [[whileLoopLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} 35 3 [[mainFnLexBlock]]
+// CHECK: [[ifStmtLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} 42 20 [[whileLoopLexBlock]]
+// CHECK: [[tempLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} 47 7 [[ifStmtLexBlock]]
+// CHECK: [[forLoopLexBlock:%\d+]] = OpExtInst %void [[set]] DebugLexicalBlock {{%\d+}} 20 12 [[mainFnLexBlock]]
 
 float4 main(float4 color : COLOR) : SV_TARGET
 // CHECK:     %src_main = OpFunction
@@ -43,8 +43,7 @@ float4 main(float4 color : COLOR) : SV_TARGET
 // CHECK:      %if_true = OpLabel
 // CHECK-NEXT: {{%\d+}} = OpExtInst %void [[set]] DebugScope [[ifStmtLexBlock]]
       c = c + c;
-// TODO: It has to generate
-//       {{%\d+}} = OpExtInst %void [[set]] DebugScope [[tempLexBlock]]
+// CHECK: {{%\d+}} = OpExtInst %void [[set]] DebugScope [[tempLexBlock]]
       {
         c = c + c;
       }
