@@ -126,6 +126,9 @@ public:
   /// \brief Sets insertion point to the given basic block.
   inline void setInsertPoint(SpirvBasicBlock *bb) { insertPoint = bb; }
 
+  /// \brief Gets insertion point.
+  inline SpirvBasicBlock *getInsertPoint() { return insertPoint; }
+
   // === Instruction at the current Insertion Point ===
 
   /// \brief Creates a composite construct instruction with the given
