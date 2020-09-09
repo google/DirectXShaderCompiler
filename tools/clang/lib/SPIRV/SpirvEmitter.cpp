@@ -708,7 +708,7 @@ void SpirvEmitter::doStmt(const Stmt *stmt,
       // Update or add DebugScope.
       if (spvBuilder.getInsertPoint()->empty()) {
         spvBuilder.getInsertPoint()->setDebugScope(
-            new (astContext) SpirvDebugScope(debugLexicalBlock));
+            new (spvContext) SpirvDebugScope(debugLexicalBlock));
       } else if (!spvBuilder.isCurrentBasicBlockTerminated()) {
         spvBuilder.createDebugScope(debugLexicalBlock);
       }
